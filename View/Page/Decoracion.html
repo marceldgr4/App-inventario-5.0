@@ -1,0 +1,169 @@
+    <?!= include("View/Css/Css_Generico.html"); ?>
+    <?!= include("View/Css/Css_Articulos.html"); ?>
+    <?!= include("View/Css/Css_Tablas.html"); ?>
+    <?!= include("View/Css/Css_Filtros.html"); ?>
+    <?!= include("View/Css/Css_Modal.html"); ?>
+
+<div class="inventory-container">
+    <div class="header-section">
+        <h1>Inventario de Decoración</h1>
+        <p>Gestión de inventario de artículos de decoración.</p>
+    </div>
+
+    <div class="action-bar">
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="abrirModalAgregar()">
+                <ion-icon name="add-circle-outline"></ion-icon> Agregar Decoración
+            </button>
+        </div>
+
+        <div class="search-group">
+            <input type="text" id="buscarProducto" class="search-input" placeholder="Buscar por nombre de producto...">
+            <button class="btn btn-outline" onclick="searchItems()">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+            <button class="btn btn-outline" onclick="clearSearch()">
+                <i class="fas fa-times"></i> Limpiar
+            </button>
+        </div>
+    </div>
+
+    <div class="filtro">
+        <div id="toggleFiltrosIconContainer">
+            <ion-icon name="filter-outline" style="font-size: 20px; vertical-align: middle;"></ion-icon>
+            <span style="vertical-align: middle; margin-left: 5px;">Filtros</span>
+        </div>
+        <div id="filtrosAdicionalesContainer" class="filtros-adicionales-ocultos">
+            <input type="text" id="filtroTipo" placeholder="Filtrar por Tipo" class="form-control">
+            <div class="filter-item">
+                <label for="filtroEstado">Estado:</label>
+                <select id="filtroEstado" class="form-control">
+                    <option value="activo" selected>Activo</option>
+                    <option value="desactivado">Desactivado</option>
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <button onclick="limpiarTodosLosFiltros()" class="btn btn-outline">Limpiar Filtros</button>
+        </div>
+    </div>
+
+    <div id="noData" class="no-data-container" style="display:none;">
+        <i class="fas fa-inbox no-data-icon"></i>
+        <h3 class="no-data-title">No se encontraron artículos de decoración</h3>
+        <p>Haz clic en "Agregar Decoración" para añadir tu primer artículo</p>
+    </div>
+
+    <div id="tableContainer">
+        <table id="inventarioTable" class="inventory-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Producto</th>
+                    <th>Tipo</th>
+                    <th>Color</th>
+                    <th>Fecha de Ingreso</th>
+                    <th>Cantidad</th>
+                    <th>Disponibles</th>
+                    <th>Imagen</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+        </table>
+        <div id="pagination" class="pagination"></div>
+    </div>
+
+    <!-- Modal Agregar -->
+    <div id="modalAgregar" class="modal-overlay">
+        <div class="modal-content-ac">
+            <div class="modal-header">
+                <h2>Agregar Decoración</h2>
+                <span class="close-btn" onclick="cerrarModal('modalAgregar')">&times;</span>
+            </div>
+            <form id="agregarForm">
+                <div class="form-group">
+                    <label for="productoAgregar" class="required">Producto:</label>
+                    <input type="text" id="productoAgregar" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="tipoAgregar" class="required">Tipo:</label>
+                    <input type="text" id="tipoAgregar" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="colorAgregar">Color:</label>
+                    <input type="text" id="colorAgregar" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="cantidadAgregar" class="required">Cantidad Inicial:</label>
+                    <input type="number" id="cantidadAgregar" class="form-control" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="imagenArchivoAgregar">Imagen (desde equipo):</label>
+                    <input type="file" id="imagenArchivoAgregar" class="form-control" accept="image/*">
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Guardar Decoración</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Editar -->
+    <div id="modalEditar" class="modal-overlay">
+        <div class="modal-content-ac">
+            <div class="modal-header">
+                <h2>Modificar Decoración</h2>
+                <span class="close-btn" onclick="cerrarModal('modalEditar')">&times;</span>
+            </div>
+            <p>ID del Producto: <span id="productoIdEditar"></span></p>
+            <form id="editarForm">
+                <div class="form-group">
+                    <label for="productoEditar" class="required">Producto:</label>
+                    <input type="text" id="productoEditar" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="tipoEditar" class="required">Tipo:</label>
+                    <input type="text" id="tipoEditar" class="form-control" required>
+                </div>
+                 <div class="form-group">
+                    <label for="colorEditar">Color:</label>
+                    <input type="text" id="colorEditar" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="unidadesAgregarEditar" class="required">Unidades a agregar:</label>
+                    <input type="number" id="unidadesAgregarEditar" class="form-control" min="0" value="0" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Retiro -->
+    <div id="modalRetiro" class="modal-overlay">
+        <div class="modal-content-ac">
+            <div class="modal-header">
+                <h2>Retirar Decoración</h2>
+                <span class="close-btn" onclick="cerrarModal('modalRetiro')">&times;</span>
+            </div>
+            <p>ID del Producto: <span id="productoIdRetiro"></span></p>
+            <p>Producto: <span id="productoNombreRetiro"></span></p>
+            <p>Unidades Disponibles: <span id="unidadesDisponiblesRetiro"></span></p>
+            <form id="retiroForm">
+                <div class="form-group">
+                    <label for="unidadesRetirar" class="required">Unidades a retirar:</label>
+                    <input type="number" id="unidadesRetirar" class="form-control" min="1" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Retirar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<?!= include("View/Js/Js_InventarioGenerico.html"); ?>
+<?!= include("View/Js/Js_Decoracion.html"); ?>

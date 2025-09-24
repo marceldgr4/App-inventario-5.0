@@ -1,0 +1,563 @@
+<script>
+(function() {
+    // =================================================
+    // --- VARIABLES DE ESTADO DE LA PÁGINA
+    // =================================================
+    const pageState = {
+        fullData: [],
+        datosMostrados: [],
+        currentPage: 1,
+        itemsPerPage: 10,
+        productoAEditarId: null,
+        productoRetiroSeleccionado: null,
+        fechaOrdenAscendente: false,
+        productoComentarioSeleccionado: null,
+        productosViejosGlobal: [],
+        paginaActualNotificaciones: 1,
+        elementosPorPaginaNotificaciones: 10,
+    };
+
+    // =======================================
+    // --- 1. CARGA DE DATOS Y MANEJO DE RESPUESTAS ---
+    // =======================================
+    function loadInventario() {
+        loadDataGenerico({
+            endpoint: "getInventarioData",
+            tbodyId: "tablaBody",
+            noDataId: "noData",
+            containerId: "tableContainer",
+            onSuccess: function(data) {
+                pageState.fullData = data;
+                pageState.currentPage = 1;
+                aplicarFiltrosYOrdenar();
+                if (pageState.fullData.length === 0) {
+                    document.getElementById("noData").style.display = "block";
+                    document.getElementById("tableContainer").style.display = "none";
+                } else {
+                    document.getElementById("noData").style.display = "none";
+                    document.getElementById("tableContainer").style.display = "block";
+                }
+                // Cargar notificaciones después de que la tabla principal esté lista
+                cargarNotificacionesNuevas();
+            }
+        });
+    }
+
+    function cargarNotificacionesNuevas() {
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(function (productosServerString) {
+                hideLoading();
+                try {
+                    const productosServer = JSON.parse(productosServerString);
+                    if (Array.isArray(productosServer)) {
+                        pageState.productosViejosGlobal = productosServer;
+                        pageState.paginaActualNotificaciones = 1;
+                        renderizarTablaNotificaciones();
+                        updateNotificationIcon();
+                    } else {
+                        console.error('Formato de respuesta inesperado de getArticulosViejos:', productosServer);
+                    }
+                } catch (e) {
+                    console.error('Error parseando la respuesta de getArticulosViejos:', e, productosServerString);
+                }
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                console.error('Error al obtener productos viejos:', error);
+                mostrarMensaje('Error de comunicación al cargar notificaciones: ' + error.message, 'error');
+            })
+            .getArticulosViejos();
+    }
+
+    function handleServerResponse(response) {
+        showLoading(false);
+        let parsedResponse;
+        try {
+            parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
+        } catch (e) {
+            const message = "Error: Respuesta inesperada del servidor.";
+            mostrarMensaje(message, "error");
+            showToastNotification(message, "error");
+            document.getElementById('imagenArchivoAgregar').value = "";
+            return;
+        }
+
+        if (parsedResponse && typeof parsedResponse.success !== 'undefined') {
+            const message = parsedResponse.message || (parsedResponse.success ? 'Operación completada.' : 'Ocurrió un error.');
+            const type = parsedResponse.success ? 'success' : 'error';
+            mostrarMensaje(message, type);
+            showToastNotification(message, type);
+
+            if (parsedResponse.success) {
+                loadInventario();
+                if (document.getElementById('modalAgregar').style.display === 'block') cerrarModalAgregar();
+                if (document.getElementById('modalEditar').style.display === 'block') cerrarModalEditar();
+                if (document.getElementById('modalRetiro').style.display === 'block') cerrarModalRetiro();
+                if (document.getElementById('modalComentario').style.display === 'block') cerrarModalComentario();
+            }
+        } else {
+            const message = "Error: Respuesta inválida del servidor.";
+            mostrarMensaje(message, "error");
+            showToastNotification(message, "error");
+        }
+        document.getElementById('imagenArchivoAgregar').value = "";
+    }
+
+    function handleServerError(error) {
+        showLoading(false);
+        const message = 'Error de comunicación con el servidor: ' + error.message;
+        mostrarMensaje(message, 'error');
+        showToastNotification(message, 'error');
+        document.getElementById('imagenArchivoAgregar').value = "";
+    }
+
+    // ============================================
+    // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN ---
+    // ============================================
+    function renderPaginatedTable() {
+        const tbody = document.getElementById("tablaBody");
+        tbody.innerHTML = "";
+        if (pageState.datosMostrados.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='13' style='text-align:center;'>No hay productos que coincidan con los filtros.</td></tr>";
+            document.getElementById("pagination").innerHTML = "";
+            return;
+        }
+
+        const totalPages = Math.ceil(pageState.datosMostrados.length / pageState.itemsPerPage);
+        if (pageState.currentPage > totalPages) pageState.currentPage = 1;
+
+        const start = (pageState.currentPage - 1) * pageState.itemsPerPage;
+        const paginatedItems = pageState.datosMostrados.slice(start, start + pageState.itemsPerPage);
+
+        paginatedItems.forEach(item => {
+            const row = tbody.insertRow();
+            const unidades = parseInt(item["Unidades disponibles"]) || 0;
+            const agotadoClass = unidades === 0 ? "agotado" : "";
+            const imageUrl = item["Imagen"] || "";
+
+            row.innerHTML = `
+                <td>${item["Id"] || ''}</td>
+                <td>${item["PRODUCTO"] || ''}</td>
+                <td>${item["PROGRAMA"] || ''}</td>
+                <td>${formatDate(item["FECHA DE INGRESO"])}</td>
+                <td>${item["Ingresos"] || 0}</td>
+                <td>${item["Salidas"] || 0}</td>
+                <td class="${agotadoClass}">${unidades}</td>
+                <td>${item["Tiempo en Storage"] == null ? '' : item["Tiempo en Storage"]}</td>
+                <td>
+                    ${imageUrl ? `<ion-icon name="open-outline" class="btn-icon" title="Abrir imagen" 
+                    onclick="abrirImagenNuevaVentana('${imageUrl}')"></ion-icon>` : 'N/A'}
+                </td>
+                <td>${formatDate(item["Entregas fecha"])}</td>
+                <td>${item["Entregas cantidad"] || ''}</td>
+                <td>${item["Estado"] || ''}</td>
+                <td>
+                    <button class="btn-modificar" title="Editar" onclick="abrirModalEditar('${item["Id"]}')"><ion-icon name="create-outline"></ion-icon></button>
+                    <button class="btn-retirar" title="Retirar" onclick="abrirModalRetiro('${item["Id"]}', '${escapeHtml(item["PRODUCTO"])}', '${escapeHtml(item["PROGRAMA"])}', ${unidades})"><ion-icon name="bag-handle-outline"></ion-icon></button>
+                    <button class="btn-comentario" title="Comentar" onclick="abrirModalComentario('${item["Id"]}', '${escapeHtml(item["PRODUCTO"])}', '${escapeHtml(item["PROGRAMA"])}')"><ion-icon name="chatbubble-ellipses-outline"></ion-icon></button>
+                    <button class="btn-eliminar" title="Desactivar" onclick="confirmarEliminar('${item["Id"]}', '${escapeHtml(item["PRODUCTO"])}')"><ion-icon name="trash-bin-outline"></ion-icon></button>
+                </td>
+            `;
+        });
+        renderPaginationControls(pageState.datosMostrados.length);
+    }
+
+    function renderPaginationControls(totalItems) {
+        const paginationDiv = document.getElementById("pagination");
+        paginationDiv.innerHTML = "";
+
+        const totalPages = Math.ceil(totalItems / pageState.itemsPerPage);
+        if (totalPages <= 1) return;
+
+        const maxButtons = 5;
+        let buttonsHtml = '';
+
+        buttonsHtml += `<button class="page-btn" onclick="changePage(pageState.currentPage - 1)" ${pageState.currentPage === 1 ? "disabled" : ""}>Anterior</button>`;
+
+        let startPage = Math.max(1, pageState.currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+        if (endPage === totalPages) {
+            startPage = Math.max(1, totalPages - maxButtons + 1);
+        }
+
+        if (startPage > 1) {
+            buttonsHtml += `<button class="page-btn" onclick="changePage(1)">1</button>`;
+            if (startPage > 2) {
+                buttonsHtml += `<span class="pagination-dots">...</span>`;
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === pageState.currentPage ? "active" : "";
+            buttonsHtml += `<button class="page-btn ${activeClass}" onclick="changePage(${i})">${i}</button>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                buttonsHtml += `<span class="pagination-dots">...</span>`;
+            }
+            buttonsHtml += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+        }
+
+        buttonsHtml += `<button class="page-btn" onclick="changePage(pageState.currentPage + 1)" ${pageState.currentPage === totalPages ? "disabled" : ""}>Siguiente</button>`;
+        paginationDiv.innerHTML = buttonsHtml;
+    }
+
+    function changePage(page) {
+        const totalPages = Math.ceil(pageState.datosMostrados.length / pageState.itemsPerPage);
+        pageState.currentPage = Math.max(1, Math.min(page, totalPages || 1));
+        renderPaginatedTable();
+    }
+
+    // ============================================
+    // --- 3. NOTIFICACIONES (PRODUCTOS ANTIGUOS) ---
+    // ============================================
+    function renderizarTablaNotificaciones() {
+        const tablaBody = document.getElementById("tablaBodyNotificaciones");
+        if (!tablaBody) return;
+        tablaBody.innerHTML = '';
+
+        const start = (pageState.paginaActualNotificaciones - 1) * pageState.elementosPorPaginaNotificaciones;
+        const end = start + pageState.elementosPorPaginaNotificaciones;
+        const itemsParaMostrar = pageState.productosViejosGlobal.slice(start, end);
+
+        if (itemsParaMostrar.length === 0) {
+            tablaBody.innerHTML = `<tr><td colspan="6" class="no-data">No hay notificaciones.</td></tr>`;
+        } else {
+            itemsParaMostrar.forEach(item => {
+                const row = document.createElement('tr');
+                const tiempoEnStorageMeses = convertDaysToMonths(parseInt(item.tiempoenstorage) || 0);
+                const esVencido = tiempoEnStorageMeses >= 8;
+                row.classList.toggle('producto-viejo-critico', esVencido);
+
+                row.innerHTML = `
+                    <td>${escapeHtml(item.id || "N/A")}</td>
+                    <td>${escapeHtml(item.producto || "N/A")}</td>
+                    <td>${escapeHtml(item.programa || "N/A")}</td>
+                    <td>${formatDate(item.fechadeingreso)}</td>
+                    <td>${esVencido ? `<span>⚠ ${tiempoEnStorageMeses} meses</span>` : `${tiempoEnStorageMeses} meses`}</td>
+                    <td><input type="checkbox" data-id="${escapeHtml(item.id)}" class="select-notification-checkbox" onchange="handleIndividualCheckboxChange()"></td>
+                `;
+                tablaBody.appendChild(row);
+            });
+        }
+        actualizarControlesPaginacionNotificaciones();
+    }
+
+    function updateNotificationIcon() {
+        const icon = document.getElementById("notificacionCampanaIcon");
+        const count = document.getElementById("notificacionCampanaCount");
+        if (icon && count) {
+            if (pageState.productosViejosGlobal.length > 0) {
+                count.textContent = pageState.productosViejosGlobal.length;
+                count.style.display = "inline-block";
+                icon.style.cursor = "pointer";
+                icon.onclick = abrirModalNotificacionesInterno;
+            } else {
+                count.style.display = "none";
+                icon.style.cursor = "default";
+                icon.onclick = null;
+            }
+        }
+    }
+
+    function handleIndividualCheckboxChange() {
+        const all = document.querySelectorAll('#tablaBodyNotificaciones .select-notification-checkbox');
+        const checked = document.querySelectorAll('#tablaBodyNotificaciones .select-notification-checkbox:checked');
+        const selectAll = document.getElementById('selectAllNotifications');
+        if (selectAll) selectAll.checked = all.length > 0 && all.length === checked.length;
+    }
+
+    function deactivateSelectedNotifications() {
+        const ids = Array.from(document.querySelectorAll('#tablaBodyNotificaciones .select-notification-checkbox:checked')).map(cb => cb.dataset.id).filter(id => id);
+        if (ids.length === 0) {
+            mostrarMensaje("Selecciona al menos un producto.", "error");
+            return;
+        }
+        if (confirm(`¿Seguro que desea dar de baja ${ids.length} producto(s)?`)) {
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(handleServerResponse)
+                .withFailureHandler(handleServerError)
+                .deactivateProducts(ids);
+        }
+    }
+
+    function actualizarControlesPaginacionNotificaciones() {
+        const totalPaginas = Math.ceil(pageState.productosViejosGlobal.length / pageState.elementosPorPaginaNotificaciones);
+        const info = document.getElementById("infoPaginaNotificaciones");
+        const btnAnterior = document.getElementById("btnAnteriorNotif");
+        const btnSiguiente = document.getElementById("btnSiguienteNotif");
+        if (info) info.textContent = `Página ${pageState.paginaActualNotificaciones} de ${totalPaginas || 1}`;
+        if (btnAnterior) btnAnterior.disabled = pageState.paginaActualNotificaciones === 1;
+        if (btnSiguiente) btnSiguiente.disabled = pageState.paginaActualNotificaciones >= totalPaginas;
+    }
+
+    function paginaSiguienteNotificaciones() {
+        const totalPaginas = Math.ceil(pageState.productosViejosGlobal.length / pageState.elementosPorPaginaNotificaciones);
+        if (pageState.paginaActualNotificaciones < totalPaginas) {
+            pageState.paginaActualNotificaciones++;
+            renderizarTablaNotificaciones();
+        }
+    }
+
+    function paginaAnteriorNotificaciones() {
+        if (pageState.paginaActualNotificaciones > 1) {
+            pageState.paginaActualNotificaciones--;
+            renderizarTablaNotificaciones();
+        }
+    }
+
+    function clearNotifications() {
+        pageState.productosViejosGlobal = [];
+        renderizarTablaNotificaciones();
+        updateNotificationIcon();
+        mostrarMensaje('Notificaciones limpiadas.', 'success');
+    }
+
+    // =================================================
+    // --- 4. FILTROS Y ORDENAMIENTO ---
+    // =================================================
+    function aplicarFiltrosYOrdenarArticulos() {
+        aplicarFiltrosYOrdenarGenerico({
+            dataSource: pageState.fullData,
+            setResultados: val => { 
+                pageState.datosMostrados = val; 
+                pageState.currentPage = 1; 
+            },
+            fechaOrdenAsc: pageState.fechaOrdenAscendente,
+            renderFn: renderPaginatedTable,
+            filters: [
+                { id: "buscarProducto", field: "PRODUCTO", type: "text" },
+                { id: "filtroPrograma", field: "PROGRAMA", type: "text" },
+                { id: "filtroFechaIngreso", field: "FECHA DE INGRESO", type: "date" },
+                { id: "filtroUnidades", field: "Unidades disponibles", type: "number" },
+                { id: "filtroTiempoStorage", field: "Tiempo en Storage", type: "number" },
+                { id: "filtroEstado", field: "Estado", type: "text" }
+            ]
+        });
+    }
+    const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarArticulos;
+
+    function limpiarTodosLosFiltrosArticulos() {
+        limpiarFiltrosGenerico({
+            filtros: [
+                { id: "buscarProducto", type: "text" },
+                { id: "filtroPrograma", type: "text" },
+                { id: "filtroFechaIngreso", type: "date" },
+                { id: "filtroUnidades", type: "number" },
+                { id: "filtroTiempoStorage", type: "number" },
+                { id: "filtroEstado", type: "select", defaultValue: "activo" }
+            ],
+            aplicarFn: aplicarFiltrosYOrdenarArticulos
+        });
+    }
+
+    // ===================================
+    // --- 5. MANEJO DE MODALES ---
+    // ===================================
+    function abrirModalAgregar() { abrirModal("modalAgregar"); document.getElementById("agregarForm").reset(); }
+    function cerrarModalAgregar() { cerrarModal("modalAgregar"); }
+    function abrirModalRetiro(id, producto, programa, unidadesDisponibles) {
+        pageState.productoRetiroSeleccionado = { id, producto, programa, unidadesDisponibles };
+        abrirModal("modalRetiro");
+        document.getElementById("productoIdRetiro").textContent = id;
+        document.getElementById("productoNombreRetiro").textContent = producto;
+        document.getElementById("programaRetiro").textContent = programa;
+        document.getElementById("unidadesDisponiblesRetiro").textContent = unidadesDisponibles;
+        document.getElementById("unidadesRetirar").max = unidadesDisponibles;
+    }
+    function cerrarModalRetiro() { cerrarModal("modalRetiro"); pageState.productoRetiroSeleccionado = null; }
+    function abrirModalEditar(id) {
+        pageState.productoAEditarId = id;
+        const producto = pageState.datosMostrados.find(item => String(item.Id) === String(id));
+        if (producto) {
+            abrirModal("modalEditar");
+            document.getElementById("productoIdEditar").textContent = id;
+            document.getElementById("productoEditar").value = producto["PRODUCTO"];
+            document.getElementById("programaEditar").value = producto["PROGRAMA"];
+            document.getElementById("unidadesAgregarEditar").value = "0";
+            document.getElementById("imagenEditar").value = producto["Imagen"] || "";
+        } else {
+            mostrarMensaje("Error: No se pudo encontrar el producto para editar.", "error");
+        }
+    }
+    function cerrarModalEditar() { cerrarModal("modalEditar"); pageState.productoAEditarId = null; }
+    function abrirModalComentario(id, producto, programa) {
+        pageState.productoComentarioSeleccionado = { id, producto, programa };
+        abrirModal("modalComentario");
+        document.getElementById("comentarioProductoId").textContent = id;
+        document.getElementById("comentarioProductoNombre").textContent = producto;
+        document.getElementById("comentarioProductoPrograma").textContent = programa;
+        document.getElementById("comentarioTexto").value = "";
+    }
+    function cerrarModalComentario() { cerrarModal("modalComentario"); pageState.productoComentarioSeleccionado = null; }
+    function abrirModalNotificacionesInterno() { abrirModal("modalNotificaciones"); }
+    function cerrarModalNotificaciones() { cerrarModal("modalNotificaciones"); }
+    function abrirModalVerImagen(imageUrl) {
+        const img = document.getElementById("imagenEnModal");
+        if (img && imageUrl) {
+            img.src = imageUrl;
+            abrirModal("modalVerImagen");
+        }
+    }
+    function cerrarModalVerImagen() { cerrarModal("modalVerImagen"); }
+
+    // =========================================
+    // --- 6. MANEJADORES DE ENVÍO DE FORMULARIOS ---
+    // =========================================
+    document.getElementById("agregarForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const producto = document.getElementById("productoAgregar").value.trim();
+        const programa = document.getElementById("programaAgregar").value.trim();
+        const ingresos = document.getElementById("ingresosAgregar").value;
+        const imagenInput = document.getElementById("imagenArchivoAgregar");
+        if (!producto || !programa || ingresos === '' || parseFloat(ingresos) < 0) {
+            mostrarMensaje('Complete todos los campos obligatorios.', 'error');
+            return;
+        }
+        showLoading(true);
+        const productData = { productoAgregar: producto, programaAgregar: programa, ingresosAgregar: parseFloat(ingresos) };
+        const imagenFile = imagenInput.files[0];
+        if (imagenFile) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const fileData = { base64Data: event.target.result.split(',')[1], mimeType: imagenFile.type, fileName: imagenFile.name };
+                google.script.run.withSuccessHandler(handleServerResponse).withFailureHandler(handleServerError).agregarProductoConImagenDesdeArchivo(productData, fileData);
+            };
+            reader.readAsDataURL(imagenFile);
+        } else {
+            google.script.run.withSuccessHandler(handleServerResponse).withFailureHandler(handleServerError).agregarProductoInventario({ ...productData, imagenAgregar: "" });
+        }
+    });
+
+    document.getElementById("editarForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const data = {
+            idEditar: pageState.productoAEditarId,
+            productoEditar: document.getElementById('productoEditar').value.trim(),
+            programaEditar: document.getElementById('programaEditar').value.trim(),
+            unidadesAgregarEditar: parseFloat(document.getElementById('unidadesAgregarEditar').value) || 0,
+            imagenEditar: document.getElementById('imagenEditar').value.trim(),
+        };
+        if (!data.productoEditar || !data.programaEditar) {
+            mostrarMensaje('Complete todos los campos obligatorios.', 'error');
+            return;
+        }
+        showLoading(true);
+        google.script.run.withSuccessHandler(handleServerResponse).withFailureHandler(handleServerError).actualizarProductoInventario(data);
+    });
+
+    document.getElementById("retiroForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const unidadesRetirar = parseInt(document.getElementById("unidadesRetirar").value);
+        if (!pageState.productoRetiroSeleccionado || isNaN(unidadesRetirar) || unidadesRetirar <= 0) {
+            mostrarMensaje("Seleccione un producto e ingrese una cantidad válida.", 'error');
+            return;
+        }
+        if (unidadesRetirar > pageState.productoRetiroSeleccionado.unidadesDisponibles) {
+            mostrarMensaje(`Cantidad a retirar excede las unidades disponibles.`, 'error');
+            return;
+        }
+        showLoading(true);
+        google.script.run.withSuccessHandler(handleServerResponse).withFailureHandler(handleServerError).retirarProductoInventario(pageState.productoRetiroSeleccionado.id, unidadesRetirar);
+    });
+
+    document.getElementById("comentarioForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!pageState.productoComentarioSeleccionado) {
+            mostrarMensaje("No se ha seleccionado producto para comentar.", "error");
+            return;
+        }
+        const comentarioTexto = document.getElementById("comentarioTexto").value.trim();
+        if (!comentarioTexto) {
+            mostrarMensaje("El comentario no puede estar vacío.", "error");
+            return;
+        }
+        showLoading(true);
+        const updateData = {
+            idEditar: pageState.productoComentarioSeleccionado.id,
+            comentariosEditar: comentarioTexto
+        };
+        google.script.run
+            .withSuccessHandler(handleServerResponse)
+            .withFailureHandler(handleServerError)
+            .actualizarProductoInventario(updateData);
+    });
+
+    // =================================================
+    // --- 7. FUNCIONES DE UTILIDAD (HELPERS) ---
+    // =================================================
+    function confirmarEliminar(id, nombreProducto) {
+        if (confirm(`¿Seguro que deseas desactivar "${nombreProducto}"?`)) {
+            showLoading(true);
+            google.script.run.withSuccessHandler(handleServerResponse).withFailureHandler(handleServerError).eliminarProductoInventario(id);
+        }
+    }
+
+    function abrirImagenNuevaVentana(imageUrl) {
+        if (imageUrl) window.open(imageUrl, '_blank');
+    }
+
+    function convertDaysToMonths(days) {
+        return (typeof days === 'number' && days >= 0) ? Math.floor(days / 30.44) : 0;
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? "Fecha Inv." : date.toLocaleDateString('es-CO');
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // ===============================================
+    // --- 8. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
+    // ===============================================
+    function inicializarPaginaArticulos() {
+        const setupListener = (id, event, handler) => document.getElementById(id)?.addEventListener(event, handler);
+        setupListener("buscarProducto", "input", aplicarFiltrosYOrdenar);
+        setupListener("filtroPrograma", "input", aplicarFiltrosYOrdenar);
+        setupListener("filtroFechaIngreso", "change", aplicarFiltrosYOrdenar);
+        setupListener("filtroUnidades", "input", aplicarFiltrosYOrdenar);
+        setupListener("filtroTiempoStorage", "input", aplicarFiltrosYOrdenar);
+        setupListener("filtroEstado", "change", aplicarFiltrosYOrdenar);
+        
+        const toggleBtn = document.getElementById("toggleFiltrosIconContainer");
+        if (toggleBtn) {
+            document.getElementById("filtrosAdicionalesContainer").classList.add("filtros-adicionales-ocultos");
+            toggleBtn.addEventListener("click", () => toggleFiltrosAdicionalesGenerico("filtrosAdicionalesContainer"));
+        }
+
+        document.getElementById("filtroEstado").value = "activo";
+        loadInventario();
+    }
+
+    registrarEscapeCierraModales([
+        cerrarModalAgregar, cerrarModalEditar, cerrarModalRetiro, 
+        cerrarModalComentario, cerrarModalNotificaciones, cerrarModalVerImagen
+    ]);
+
+    // Exponer funciones al scope global
+    Object.assign(window, {
+        abrirModalAgregar, cerrarModalAgregar, abrirModalRetiro, cerrarModalRetiro,
+        abrirModalEditar, cerrarModalEditar, abrirModalComentario, cerrarModalComentario,
+        abrirModalNotificacionesInterno, cerrarModalNotificaciones, abrirModalVerImagen, cerrarModalVerImagen,
+        abrirImagenNuevaVentana, confirmarEliminar, changePage, handleIndividualCheckboxChange,
+        deactivateSelectedNotifications, paginaSiguienteNotificaciones, paginaAnteriorNotificaciones, clearNotifications,
+        limpiarTodosLosFiltros: limpiarTodosLosFiltrosArticulos,
+        ordenarPorFecha: e => ordenarPorFechaGenerico(e, "sortOptions"),
+        ordenarAscendente: () => ordenarAscendenteGenerico(aplicarFiltrosYOrdenar, "sortOptions", val => pageState.fechaOrdenAscendente = val),
+        ordenarDescendente: () => ordenarDescendenteGenerico(aplicarFiltrosYOrdenar, "sortOptions", val => pageState.fechaOrdenAscendente = val)
+    });
+
+    inicializarPaginaArticulos();
+
+})();
+</script>

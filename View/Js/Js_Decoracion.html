@@ -1,0 +1,307 @@
+<script>
+(function() {
+    // ===================================================
+    // --- ESTADO Y CONFIGURACIÓN DEL MÓDULO DECORACION ---
+    // ===================================================
+    const pageState = {
+        fullData: [],
+        datosMostrados: [],
+        currentPage: 1,
+        itemsPerPage: 10,
+        productoAEditarId: null,
+        productoRetiroSeleccionado: null,
+    };
+
+    // ===================================
+    // --- MANEJO DE MODALES ESPECÍFICOS ---
+    // ===================================
+    function abrirModalAgregar() {
+        abrirModal("modalAgregar");
+        document.getElementById("agregarForm").reset();
+    }
+    function cerrarModalAgregar() {
+        cerrarModal("modalAgregar");
+    }
+
+    function abrirModalRetiro(id, producto, unidadesDisponibles) {
+        pageState.productoRetiroSeleccionado = { id, producto, unidadesDisponibles };
+        abrirModal("modalRetiro");
+        document.getElementById("productoIdRetiro").textContent = pageState.productoRetiroSeleccionado.id;
+        document.getElementById("productoNombreRetiro").textContent = pageState.productoRetiroSeleccionado.producto;
+        document.getElementById("unidadesDisponiblesRetiro").textContent = pageState.productoRetiroSeleccionado.unidadesDisponibles;
+        document.getElementById("unidadesRetirar").value = "";
+        document.getElementById("unidadesRetirar").max = pageState.productoRetiroSeleccionado.unidadesDisponibles;
+    }
+    function cerrarModalRetiro() {
+        cerrarModal("modalRetiro");
+        pageState.productoRetiroSeleccionado = null;
+    }
+
+    function abrirModalEditar(id) {
+        pageState.productoAEditarId = id;
+        const producto = pageState.datosMostrados.find(item => String(item.Id) === String(id));
+        if (producto) {
+            abrirModal("modalEditar");
+            document.getElementById("productoIdEditar").textContent = id;
+            document.getElementById("productoEditar").value = producto["PRODUCTO"];
+            document.getElementById("tipoEditar").value = producto["TIPO"];
+            document.getElementById("colorEditar").value = producto["COLOR"];
+            document.getElementById("unidadesAgregarEditar").value = "0";
+        } else {
+            mostrarMensaje("Error: No se pudo encontrar el producto para editar.", "error");
+        }
+    }
+    function cerrarModalEditar() {
+        cerrarModal("modalEditar");
+        pageState.productoAEditarId = null;
+    }
+
+    // =======================================
+    // --- MANEJO DE DATOS Y LLAMADAS AL SERVIDOR ---
+    // =======================================
+    function loadDecoracion() {
+        loadDataGenerico({
+            endpoint: "getDecoracionData",
+            tbodyId: "tablaBody",
+            noDataId: "noData",
+            containerId: "tableContainer",
+            onSuccess: function(data) {
+                pageState.fullData = data;
+                pageState.currentPage = 1;
+                aplicarFiltrosYOrdenarDecoracion();
+            }
+        });
+    }
+
+    function confirmarEliminarDecoracion(id, nombreProducto) {
+        if (confirm(`¿Seguro que deseas desactivar el producto "${nombreProducto}"?`)) {
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(handleServerResponse)
+                .withFailureHandler(handleServerError)
+                .eliminarDecoracion(id);
+        }
+    }
+
+    function handleServerResponse(response) {
+        hideLoading();
+        let parsedResponse;
+        try {
+            parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
+        } catch (e) {
+            const type = response.toLowerCase().includes("error") ? "error" : "success";
+            mostrarMensaje(response, type);
+            if (type === "success") loadDecoracion();
+            return;
+        }
+
+        if (parsedResponse.success) {
+            mostrarMensaje(parsedResponse.message || "Operación completada.", "success");
+            loadDecoracion();
+            cerrarModalAgregar();
+            cerrarModalEditar();
+            cerrarModalRetiro();
+        } else {
+            mostrarMensaje("Error: " + (parsedResponse.message || "Ocurrió un error."), "error");
+        }
+    }
+
+    // =========================================
+    // --- MANEJADORES DE ENVÍO DE FORMULARIOS ---
+    // =========================================
+    document.getElementById("agregarForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        showLoading(true);
+        const productData = {
+            producto: document.getElementById("productoAgregar").value.trim(),
+            tipo: document.getElementById("tipoAgregar").value.trim(),
+            color: document.getElementById("colorAgregar").value.trim(),
+            cantidad: parseFloat(document.getElementById("cantidadAgregar").value),
+        };
+        const imagenFile = document.getElementById("imagenArchivoAgregar").files[0];
+
+        if (!productData.producto || !productData.tipo || isNaN(productData.cantidad) || productData.cantidad < 0) {
+            mostrarMensaje('Por favor, complete todos los campos obligatorios.', 'error');
+            hideLoading();
+            return;
+        }
+
+        if (imagenFile) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const fileData = {
+                    base64Data: event.target.result.split(',')[1],
+                    mimeType: imagenFile.type,
+                    fileName: imagenFile.name
+                };
+                google.script.run
+                    .withSuccessHandler(handleServerResponse)
+                    .withFailureHandler(handleServerError)
+                    .agregarDecoracionConImagen(productData, fileData);
+            };
+            reader.readAsDataURL(imagenFile);
+        } else {
+            google.script.run
+                .withSuccessHandler(handleServerResponse)
+                .withFailureHandler(handleServerError)
+                .agregarDecoracion(productData);
+        }
+    });
+
+    document.getElementById("editarForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        showLoading(true);
+        const data = {
+            id: pageState.productoAEditarId,
+            producto: document.getElementById('productoEditar').value.trim(),
+            tipo: document.getElementById('tipoEditar').value.trim(),
+            color: document.getElementById('colorEditar').value.trim(),
+            unidades: parseFloat(document.getElementById('unidadesAgregarEditar').value),
+        };
+        if (!data.producto || !data.tipo || isNaN(data.unidades) || data.unidades < 0) {
+            mostrarMensaje('Por favor, complete todos los campos obligatorios.', 'error');
+            hideLoading();
+            return;
+        }
+        google.script.run
+            .withSuccessHandler(handleServerResponse)
+            .withFailureHandler(handleServerError)
+            .actualizarDecoracion(data);
+    });
+
+    document.getElementById("retiroForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        showLoading(true);
+        const unidadesRetirar = parseInt(document.getElementById("unidadesRetirar").value);
+        if (!pageState.productoRetiroSeleccionado || isNaN(unidadesRetirar) || unidadesRetirar <= 0) {
+            mostrarMensaje("Por favor, ingrese una cantidad válida para retirar.", 'error');
+            hideLoading();
+            return;
+        }
+        if (unidadesRetirar > pageState.productoRetiroSeleccionado.unidadesDisponibles) {
+            mostrarMensaje(`No se pueden retirar más unidades de las disponibles.`, 'error');
+            hideLoading();
+            return;
+        }
+        google.script.run
+            .withSuccessHandler(handleServerResponse)
+            .withFailureHandler(handleServerError)
+            .retirarDecoracion(pageState.productoRetiroSeleccionado.id, unidadesRetirar);
+    });
+
+    // =========================================
+    // --- FUNCIONES DE FILTRADO Y ORDENAMIENTO ---
+    // =========================================
+    function aplicarFiltrosYOrdenarDecoracion() {
+        const filtroNombre = document.getElementById("buscarProducto").value.toLowerCase().trim();
+        const filtroTipo = document.getElementById("filtroTipo").value.toLowerCase().trim();
+        const filtroEstado = document.getElementById("filtroEstado").value;
+
+        pageState.datosMostrados = pageState.fullData.filter(item => {
+            const nombreMatch = !filtroNombre || (item.PRODUCTO && item.PRODUCTO.toLowerCase().includes(filtroNombre));
+            const tipoMatch = !filtroTipo || (item.TIPO && item.TIPO.toLowerCase().includes(filtroTipo));
+            const estadoMatch = !filtroEstado || (item.Estado && item.Estado.toLowerCase() === filtroEstado);
+            return nombreMatch && tipoMatch && estadoMatch;
+        });
+
+        pageState.currentPage = 1;
+        renderPaginatedTable();
+    }
+
+    function limpiarTodosLosFiltrosDecoracion() {
+        document.getElementById("buscarProducto").value = "";
+        document.getElementById("filtroTipo").value = "";
+        document.getElementById("filtroEstado").value = "activo";
+        aplicarFiltrosYOrdenarDecoracion();
+    }
+
+    // ============================================
+    // --- RENDERIZADO DE TABLA Y PAGINACIÓN ---
+    // ============================================
+    function renderPaginatedTable() {
+        const tbody = document.getElementById("tablaBody");
+        tbody.innerHTML = "";
+        if (pageState.datosMostrados.length === 0) {
+            tbody.innerHTML = `<tr><td colspan='10' style='text-align:center;'>No hay productos de decoración que coincidan con los filtros.</td></tr>`;
+            document.getElementById("pagination").innerHTML = "";
+            return;
+        }
+        const start = (pageState.currentPage - 1) * pageState.itemsPerPage;
+        const paginatedItems = pageState.datosMostrados.slice(start, start + pageState.itemsPerPage);
+
+        paginatedItems.forEach(item => {
+            const row = tbody.insertRow();
+            const unidadesDisponibles = parseInt(item["Disponibles"]) || 0;
+            row.innerHTML = `
+                <td>${item["Id"] || ''}</td>
+                <td>${escapeHtml(item["PRODUCTO"] || '')}</td>
+                <td>${escapeHtml(item["TIPO"] || '')}</td>
+                <td>${escapeHtml(item["COLOR"] || '')}</td>
+                <td>${formatDate(item["FECHA DE INGRESO"])}</td>
+                <td>${item["Cantidad"] || 0}</td>
+                <td class="${unidadesDisponibles === 0 ? 'agotado' : ''}">${unidadesDisponibles}</td>
+                <td>${item["Imagen"] ? `<ion-icon name="open-outline" style="cursor:pointer; font-size: 22px; color: #007bff;" onclick="abrirImagenNuevaVentana('${item["Imagen"]}')"></ion-icon>` : 'N/A'}</td>
+                <td>${escapeHtml(item["Estado"] || '')}</td>
+                <td>
+                    <button class="btn-modificar" title="Editar" onclick="abrirModalEditar('${item["Id"]}')"><ion-icon name="create-outline"></ion-icon></button>
+                    <button class="btn-retirar" title="Retirar" onclick="abrirModalRetiro('${item["Id"]}', '${escapeHtml(item["PRODUCTO"])}', ${unidadesDisponibles})"><ion-icon name="bag-handle-outline"></ion-icon></button>
+                    <button class="btn-eliminar" title="Desactivar" onclick="confirmarEliminarDecoracion('${item["Id"]}', '${escapeHtml(item["PRODUCTO"])}')"><ion-icon name="trash-bin-outline"></ion-icon></button>
+                </td>
+            `;
+        });
+        renderPaginationControls(pageState.datosMostrados.length);
+    }
+
+    function renderPaginationControls(totalItems) {
+        const paginationDiv = document.getElementById("pagination");
+        paginationDiv.innerHTML = "";
+        const totalPages = Math.ceil(totalItems / pageState.itemsPerPage);
+        if (totalPages <= 1) return;
+
+        let buttonsHtml = `<button class="page-btn" onclick="changePage(${pageState.currentPage - 1})" ${pageState.currentPage === 1 ? "disabled" : ""}>Anterior</button>`;
+        for (let i = 1; i <= totalPages; i++) {
+            buttonsHtml += `<button class="page-btn ${i === pageState.currentPage ? "active" : ""}" onclick="changePage(${i})">${i}</button>`;
+        }
+        buttonsHtml += `<button class="page-btn" onclick="changePage(${pageState.currentPage + 1})" ${pageState.currentPage === totalPages ? "disabled" : ""}>Siguiente</button>`;
+        paginationDiv.innerHTML = buttonsHtml;
+    }
+
+    function changePage(page) {
+        const totalPages = Math.ceil(pageState.datosMostrados.length / pageState.itemsPerPage);
+        pageState.currentPage = Math.max(1, Math.min(page, totalPages || 1));
+        renderPaginatedTable();
+    }
+
+    // ===============================================
+    // --- INICIALIZACIÓN DE LA PÁGINA ---
+    // ===============================================
+    function inicializarPaginaDecoracion() {
+        document.getElementById('buscarProducto').addEventListener('input', aplicarFiltrosYOrdenarDecoracion);
+        document.getElementById('filtroTipo').addEventListener('input', aplicarFiltrosYOrdenarDecoracion);
+        document.getElementById('filtroEstado').addEventListener('change', aplicarFiltrosYOrdenarDecoracion);
+        document.getElementById('toggleFiltrosIconContainer').addEventListener('click', () => {
+            document.getElementById('filtrosAdicionalesContainer').classList.toggle('filtros-adicionales-ocultos');
+        });
+        
+        registrarEscapeCierraModales([cerrarModalAgregar, cerrarModalEditar, cerrarModalRetiro]);
+
+        loadDecoracion();
+    }
+
+    inicializarPaginaDecoracion();
+
+    // Exponer funciones al scope global para que los `onclick` funcionen
+    window.abrirModalAgregar = abrirModalAgregar;
+    window.abrirModalRetiro = abrirModalRetiro;
+    window.abrirModalEditar = abrirModalEditar;
+    window.confirmarEliminarDecoracion = confirmarEliminarDecoracion;
+    window.changePage = changePage;
+    window.limpiarTodosLosFiltros = limpiarTodosLosFiltrosDecoracion;
+    window.searchItems = aplicarFiltrosYOrdenarDecoracion;
+    window.clearSearch = () => {
+        document.getElementById("buscarProducto").value = "";
+        aplicarFiltrosYOrdenarDecoracion();
+    };
+
+})();
+</script>

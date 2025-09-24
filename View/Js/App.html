@@ -1,0 +1,156 @@
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const App = {
+    elements: {
+      sidebar: document.getElementById('sidebar'),
+      mainContent: document.getElementById('main-content'),
+      menu: document.getElementById('menu'),
+      logoutLink: document.getElementById('logoutLink'),
+      toggleBtn: document.getElementById('toggleSidebarBtn'),
+      loadingOverlay: document.getElementById('loadingOverlay'),
+    },
+
+    state: {
+      currentPage: 'Home',
+      pageCache: {}, // Cache para el contenido HTML de las páginas
+    },
+
+    init() {
+      this.setupEventListeners();
+      this.buildMenu();
+      this.handleInitialPageLoad();
+    },
+
+    setupEventListeners() {
+      this.elements.toggleBtn?.addEventListener('click', () => {
+        this.elements.sidebar?.classList.toggle('collapsed');
+      });
+
+      this.elements.logoutLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.elements.logoutLink.innerHTML = '<span class="icon"><ion-icon name="hourglass-outline"></ion-icon></span><span class="title">Cerrando...</span>';
+        google.script.run.withSuccessHandler(url => {
+          window.top.location.href = url;
+        }).logout();
+      });
+
+      window.addEventListener('popstate', (e) => {
+        const page = e.state?.page || 'Home';
+        this.loadPageContent(page, false); // No pushear al historial en popstate
+      });
+    },
+
+    showLoading(show) {
+      this.elements.loadingOverlay.style.display = show ? 'flex' : 'none';
+    },
+
+    buildMenu() {
+      const paginas = window.paginasDisponiblesParaUsuario || [];
+      if (!Array.isArray(paginas)) {
+        console.error("Menu data is not an array:", paginas);
+        return;
+      }
+
+      const iconos = {
+        'Home': 'home-outline', 'Dashboard': 'bar-chart-outline', 'Artículos': 'cube-outline',
+        'Comida': 'fast-food-outline', 'Decoración': 'color-palette-outline', 'Papelería': 'document-text-outline',
+        'Acta': 'document-attach-outline', 'Perfil': 'person-circle-outline', 'Usuario': 'people-outline',
+        'Historial': 'time-outline', 'Registro': 'clipboard-outline'
+      };
+      const baseUrl = '<?= getScriptUrl() ?>';
+      
+      paginas.forEach(page => {
+        if (page === 'Login') return;
+        
+        const menuItem = document.createElement('a');
+        menuItem.className = 'menu-item';
+        menuItem.href = `${baseUrl}?page=${page}`;
+        menuItem.dataset.page = page;
+        
+        const iconName = iconos[page] || 'document-outline';
+        menuItem.innerHTML = `
+          <span class="icon"><ion-icon name="${iconName}"></ion-icon></span>
+          <span class="title">${page}</span>
+        `;
+        
+        menuItem.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.navigateTo(page);
+        });
+
+        this.elements.menu.appendChild(menuItem);
+      });
+    },
+
+    navigateTo(pageName) {
+      if (this.state.currentPage !== pageName) {
+        history.pushState({ page: pageName }, '', `?page=${pageName}`);
+        this.loadPageContent(pageName);
+      }
+    },
+
+    loadPageContent(pageName, pushState = true) {
+      this.state.currentPage = pageName;
+      this.updateActiveMenuItem(pageName);
+      this.showLoading(true); // Mostrar el loader al iniciar la carga
+
+      const renderPage = (html) => {
+        this.elements.mainContent.innerHTML = html;
+        // Re-ejecutar los scripts. Estos scripts son responsables de llamar a hideLoading()
+        // una vez que sus datos internos se han cargado.
+        Array.from(this.elements.mainContent.querySelectorAll("script")).forEach(oldScript => {
+          const newScript = document.createElement("script");
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+          document.body.appendChild(newScript).parentNode.removeChild(newScript);
+        });
+
+        // Si la página cargada es simple (sin carga de datos propia),
+        // ocultamos el loader aquí, ya que su script no lo hará.
+        const simplePages = ['Home', 'Perfil'];
+        if (simplePages.includes(pageName)) {
+            // Pequeño retraso para que el DOM se actualice visualmente.
+            setTimeout(() => this.showLoading(false), 50);
+        }
+      };
+
+      if (this.state.pageCache[pageName]) {
+        console.log(`Cargando '${pageName}' desde caché.`);
+        renderPage(this.state.pageCache[pageName]);
+      } else {
+        console.log(`Cargando '${pageName}' desde el servidor.`);
+        google.script.run
+          .withSuccessHandler(htmlContent => {
+            this.state.pageCache[pageName] = htmlContent; // Almacenar en caché
+            renderPage(htmlContent);
+          })
+          .withFailureHandler(err => {
+            this.elements.mainContent.innerHTML = `<div style="padding:20px; color:red;"><h2>Error al Cargar</h2><p>${err.message}</p></div>`;
+            this.showLoading(false); // Ocultar loader en caso de error
+          })
+          .loadContent(pageName);
+      }
+    },
+
+    handleInitialPageLoad() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialPage = urlParams.get('page') || 'Home';
+      this.loadPageContent(initialPage, false);
+    },
+
+    updateActiveMenuItem(pageName) {
+      const menuItems = this.elements.menu.querySelectorAll('.menu-item');
+      menuItems.forEach(item => {
+        if (item.dataset.page === pageName) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+  };
+
+  App.init();
+});
+</script>
+>

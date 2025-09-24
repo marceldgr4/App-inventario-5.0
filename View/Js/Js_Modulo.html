@@ -1,0 +1,58 @@
+<script>
+  // ===============================
+  // REGISTRO GENÉRICO DE MÓDULOS
+  // ===============================
+
+  function registrarModulo(nombreModulo, funciones) {
+    Object.entries(funciones).forEach(([clave, fn]) => {
+      window[`${clave}${nombreModulo}`] = fn;
+    });
+  }
+
+  // ===============================
+  // MODULO: COMIDA
+  // ===============================
+  registrarModulo("Comida", {
+    abrirModalAgregar: abrirModalAgregarComida,
+    cerrarModalAgregar,
+    abrirModalRetiro: abrirModalRetiroComida,
+    cerrarModalRetiro,
+    abrirModalEditar: abrirModalEditarComida,
+    cerrarModalEditar,
+    abrirModalComentario: abrirModalComentarioComida,
+    cerrarModalComentario,
+    abrirModalVencimiento: abrirModalVencimientoComida,
+    cerrarModalVencimiento,
+    loadNotificaciones,
+    limpiarNotificaciones,
+    mostrarTab,
+    confirmarEliminar: confirmarEliminarComida,
+    changePage,
+    deactivateSelectedNotifications,
+    handleIndividualCheckboxChange,
+    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarComida,
+    limpiarTodosLosFiltros: limpiarTodosLosFiltrosComida,
+    ordenarPorFecha: ordenarPorFechaComida,
+    ordenarAscendente: ordenarAscendenteComida,
+    ordenarDescendente: ordenarDescendenteComida,
+    toggleFiltrosAdicionales: toggleFiltrosAdicionalesComida
+  });
+
+  // ===============================
+  // MODULO: PAPELERIA
+  // ===============================
+  registrarModulo("Papeleria", {
+    abrirModalAgregar: abrirModalAgregarPapeleria,
+    cerrarModalAgregar: cerrarModalAgregarPapeleria,
+    abrirModalRetiro: abrirModalRetiroPapeleria,
+    cerrarModalRetiro: cerrarModalRetiroPapeleria,
+    abrirModalEditar: abrirModalEditarPapeleria,
+    cerrarModalEditar: cerrarModalEditarPapeleria,
+    abrirModalComentario: abrirModalComentarioPapeleria,
+    cerrarModalComentario: cerrarModalComentarioPapeleria,
+    abrirImagenNuevaVentana: abrirImagenNuevaVentanaPapeleria,
+    confirmarEliminar: confirmarEliminarPapeleria,
+    limpiarTodosLosFiltros: limpiarTodosLosFiltrosPapeleria,
+    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarPapeleria
+  });
+</script>
