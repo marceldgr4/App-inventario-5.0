@@ -295,3 +295,41 @@ function getProductosProximosAVencer() {
     return [];
   }
 }
+
+/**
+ * @summary Obtiene comentarios filtrados por el nombre de la hoja de origen.
+ * @description Lee todos los comentarios de la hoja 'Comentarios' y devuelve solo aquellos que pertenecen a la hoja especificada.
+ * @param {string} sheetName - El nombre de la hoja para la cual se solicitan los comentarios (ej. "Inventario comida").
+ * @returns {Array<object>} Un array de objetos de comentarios.
+ */
+function getComentariosPorHoja(sheetName) {
+  try {
+    const comentariosSheet = getSheet(HOJA_COMENTARIOS);
+    if (!comentariosSheet) {
+      Logger.log(`getComentariosPorHoja: No se encontró la hoja de comentarios '${HOJA_COMENTARIOS}'.`);
+      return [];
+    }
+
+    const data = comentariosSheet.getDataRange().getValues();
+    if (data.length < 2) return []; // No hay datos además del encabezado
+
+    const headers = data.shift().map(h => h.toString().trim().toUpperCase());
+    const colIndexSheetName = headers.indexOf('SHEETNAME');
+
+    if (colIndexSheetName === -1) {
+      Logger.log(`getComentariosPorHoja: No se encontró la columna 'SheetName' en la hoja de comentarios.`);
+      return []; // Si no hay columna para filtrar, devuelve vacío para evitar errores.
+    }
+
+    const comentariosFiltrados = data.filter(row => row[colIndexSheetName] === sheetName).map(row => {
+      const comentarioObj = {};
+      headers.forEach((header, index) => comentarioObj[header] = row[index]);
+      return comentarioObj;
+    });
+
+    return comentariosFiltrados;
+  } catch (e) {
+    Logger.log(`Error en getComentariosPorHoja: ${e.message}`);
+    return [];
+  }
+}

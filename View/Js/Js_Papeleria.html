@@ -362,14 +362,62 @@ formComentario?.addEventListener("submit", function(e) {
   window.ordenarAscendente = ordenarAscendentePapeleria;
   window.ordenarDescendente = ordenarDescendentePapeleria;
 
-  // abrir modal de comentarios generales (notificaciones)
-  window.abrirModalComentariosPapeleria = function() {
-    abrirModal('modalNotificacion-Comentario');
-    if (typeof loadNotificaciones === 'function') loadNotificaciones();
-  };
-  window.cerrarModalNotificaciones = function() { cerrarModal('modalNotificacion-Comentario'); };
-
   // iniciar
   inicializarPaginaPapeleria();
+
+  // =================================================
+  // --- LÓGICA DE NOTIFICACIONES DE COMENTARIOS ---
+  // =================================================
+  function loadNotificacionesComentarios() {
+      google.script.run
+          .withSuccessHandler(function(comentarios) {
+              if (Array.isArray(comentarios)) {
+                  renderizarTablasComentarios(comentarios);
+                  actualizarIconoComentarios(comentarios.length);
+              }
+          })
+          .withFailureHandler(handleServerError)
+          .getComentariosPorHoja("Inventario papeleria");
+  }
+
+  function renderizarTablasComentarios(comentarios) {
+      const pendientesBody = document.getElementById('tablaComentariosPendientesBody');
+      const leidasBody = document.getElementById('tablaComentariosLeidasBody');
+      pendientesBody.innerHTML = '';
+      leidasBody.innerHTML = '';
+
+      // Aquí puedes agregar lógica para separar entre pendientes y leídos si tienes un campo 'Estado' en tus comentarios.
+      // Por ahora, todos se mostrarán como pendientes.
+      if (comentarios.length === 0) {
+          pendientesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay comentarios.</td></tr>`;
+          return;
+      }
+
+      comentarios.forEach(c => {
+          const row = `
+              <tr>
+                  <td>${c.ID || ''}</td>
+                  <td>${c.PRODUCTO || ''}</td>
+                  <td>${formatDate(c.FECHA)}</td>
+                  <td>${escapeHtml(c.COMENTARIO || '')}</td>
+              </tr>`;
+          pendientesBody.innerHTML += row;
+      });
+  }
+
+  function actualizarIconoComentarios(count) {
+      const container = document.getElementById('notificacionContainerPapeleria');
+      const span = container ? container.querySelector('span') : null;
+      if (span) {
+          span.textContent = count;
+          span.style.display = count > 0 ? 'inline-block' : 'none';
+      }
+  }
+
+  window.abrirModalComentariosPapeleria = function() {
+      abrirModal('modalNotificacion-Comentario');
+      loadNotificacionesComentarios();
+  };
+  window.cerrarModalNotificaciones = function() { cerrarModal('modalNotificacion-Comentario'); };
 })();
 </script>

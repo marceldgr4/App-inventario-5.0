@@ -482,6 +482,7 @@ function abrirModalVencimientoComida() {
 }
 function cerrarModalVencimiento() { cerrarModal("modalVencimiento-Comida"); }
 
+
 // =================================================
 // --- 6. ENVÍO DE FORMULARIOS (EVENT LISTENERS) ---
 // =================================================
@@ -656,8 +657,14 @@ window.toggleFiltrosAdicionales = toggleFiltrosAdicionalesComida;
 window.paginaAnteriorNotificaciones = () => console.warn("Función paginaAnteriorNotificaciones no implementada.");
 window.paginaSiguienteNotificaciones = () => console.warn("Función paginaSiguienteNotificaciones no implementada.");
 
+// Alias para compatibilidad con botones que llaman "abrirModalComentariosComida"
+window.abrirModalComentariosComida = function() {
+  abrirModalComentarioComida(null, null);
+};
+
 // --- INICIO ---
 inicializarPaginaComida();
 
 })();
 </script>
+
