@@ -9,10 +9,10 @@
 function logAction(nombreUsuario, accion, hojaCalculo) {
   try {
     const ss = hojaCalculo || SpreadsheetApp.openById(ID_INVENTARIO);
-    let hojaRegistro = ss.getSheetByName(HOJA_REGISTRO_INICIO_SESION);
+    let hojaRegistro = ss.getSheetByName(HOJA_REGISTRO_USUARIO);
 
     if (!hojaRegistro) {
-      hojaRegistro = ss.insertSheet(HOJA_REGISTRO_INICIO_SESION);
+      hojaRegistro = ss.insertSheet(HOJA_REGISTRO_USUARIO);
       hojaRegistro.appendRow(['ID', 'Fecha', 'Usuario', 'Acción']); // encabezados
       hojaRegistro.setFrozenRows(1);
     }

@@ -42,7 +42,7 @@ function getHojasConfig() {
 
 const PAGES_PERMITIDAS = [
   'Home','Articulos','Index','Acta','Comida',
-  'Decoración','Papeleria','Comentario','Historial',
+  'Decoracion','Papeleria','Comentario','Historial',
   'Login','Dashboard','Registro','Usuario','Perfil',
 ];
 
@@ -60,12 +60,12 @@ const ROL_USUARIO = 'Usuario';
 const PAGINAS_POR_ROL = {
   [ROL_ADMIN]: [
     'Home','Articulos','Acta','Comida',
-    'Decoración','Papeleria','Comentario',
+    'Decoracion','Papeleria','Comentario',
     'Historial','Login','Dashboard','Registro',
     'Usuario','Perfil',
   ],
   [ROL_USUARIO]: [
-    'Articulos','Comida','Decoración','Papeleria',
+    'Articulos','Comida','Decoracion','Papeleria',
     'Home','Acta','Perfil',
   ],
 };

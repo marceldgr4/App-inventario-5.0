@@ -368,6 +368,72 @@ function handleIndividualCheckboxChange(checkbox) {
   document.getElementById("btnDesactivarSeleccionados").disabled = !anyChecked;
 }
 
+function loadComentarios() {
+    showLoading(true);
+    google.script.run
+        .withSuccessHandler(function(responseString) {
+            showLoading(false);
+            try {
+                const response = JSON.parse(responseString);
+                if (response.data) {
+                    renderComentarios(response.data);
+                } else {
+                    console.error("No data in response:", response);
+                    mostrarMensaje("No se encontraron comentarios.", "info");
+                }
+            } catch (e) {
+                console.error("Error parsing comments response:", e);
+                mostrarMensaje("Error al procesar la respuesta de comentarios.", "error");
+            }
+        })
+        .withFailureHandler(function(error) {
+            showLoading(false);
+            console.error("Error loading comments:", error);
+            mostrarMensaje("Error al cargar los comentarios.", "error");
+        })
+        .getComentarioData();
+}
+
+function renderComentarios(comentarios) {
+    const pendientesBody = document.getElementById("tablaComentariosPendientesBody");
+    const leidasBody = document.getElementById("tablaComentariosLeidasBody");
+
+    pendientesBody.innerHTML = "";
+    leidasBody.innerHTML = "";
+
+    // Assuming comments have a "Leido" property
+    const pendientes = comentarios.filter(c => !c.Leido);
+    const leidas = comentarios.filter(c => c.Leido);
+
+    if (pendientes.length === 0) {
+        pendientesBody.innerHTML = "<tr><td colspan='4'>No hay comentarios pendientes.</td></tr>";
+    } else {
+        pendientes.forEach(c => {
+            const row = pendientesBody.insertRow();
+            row.innerHTML = `
+                <td>${c.Id}</td>
+                <td>${c.Producto}</td>
+                <td>${formatDate(c.Fecha)}</td>
+                <td>${c.Comentario}</td>
+            `;
+        });
+    }
+
+    if (leidas.length === 0) {
+        leidasBody.innerHTML = "<tr><td colspan='4'>No hay comentarios leídos.</td></tr>";
+    } else {
+        leidas.forEach(c => {
+            const row = leidasBody.insertRow();
+            row.innerHTML = `
+                <td>${c.Id}</td>
+                <td>${c.Producto}</td>
+                <td>${formatDate(c.Fecha)}</td>
+                <td>${c.Comentario}</td>
+            `;
+        });
+    }
+}
+
 // =================================================
 // --- 4. FILTROS Y ORDENAMIENTO ---
 // =================================================
@@ -481,6 +547,14 @@ function abrirModalVencimientoComida() {
     });
 }
 function cerrarModalVencimiento() { cerrarModal("modalVencimiento-Comida"); }
+
+function abrirModalNotificacionComentario() {
+    abrirModal("modalNotificacion-Comentario");
+    loadComentarios();
+}
+function cerrarModalNotificacionComentario() {
+    cerrarModal("modalNotificacion-Comentario");
+}
 
 
 // =================================================
@@ -623,7 +697,8 @@ registrarEscapeCierraModales([
     cerrarModalEditar,
     cerrarModalRetiro,
     cerrarModalComentario,
-    cerrarModalVencimiento
+    cerrarModalVencimiento,
+    cerrarModalNotificacionComentario
 ]);
 
 // Exponer funciones al scope global para que los `onclick` y `event listeners` funcionen
@@ -637,7 +712,10 @@ window.abrirModalComentarioComida = abrirModalComentarioComida;
 window.cerrarModalComentario = cerrarModalComentario;
 window.abrirModalVencimientoComida = abrirModalVencimientoComida;
 window.cerrarModalVencimiento = cerrarModalVencimiento;
+window.abrirModalNotificacionComentario = abrirModalNotificacionComentario;
+window.cerrarModalNotificacionComentario = cerrarModalNotificacionComentario;
 window.loadNotificaciones = loadNotificaciones;
+window.loadComentarios = loadComentarios;
 window.limpiarNotificaciones = limpiarNotificaciones;
 window.mostrarTab = mostrarTab;
 window.confirmarEliminarComida = confirmarEliminarComida;
