@@ -43,6 +43,10 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
+function abrirImagenNuevaVentana(imageUrl) {
+    if (imageUrl) window.open(imageUrl, '_blank');
+}
+
 // --- Manejo de Respuestas del Servidor ---
 function handleServerResponse(responseString, onSuccess, reloadFn) {
     hideLoading();

@@ -216,6 +216,7 @@ function renderBarChart(canvasId, labels, data, labelText) {
      * @param {object} data - El objeto de datos proveniente de `obtenerDatosDashboard`.
      */
     function actualizarDashboard(data) {
+      console.log(data);
       // 2. Calcular los totales generales (igual que antes)
       const totalProductos = (data.inventario.totalProductos || 0) + (data.comida.totalProductos || 0) + (data.decoracion.totalProductos || 0) + (data.papeleria.totalProductos || 0);
       const totalUnidadesDisponibles = (data.inventario.unidadesDisponibles || 0) + (data.comida.unidadesDisponibles || 0) + (data.decoracion.unidadesDisponibles || 0) + (data.papeleria.unidadesDisponibles || 0);

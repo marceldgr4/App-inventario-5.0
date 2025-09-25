@@ -200,8 +200,11 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
 
     if (producto) {
       decoracionData.totalProductos++;
-      if (unidades > 0) decoracionData.unidadesDisponibles++;
-      if (unidades === 0) decoracionData.unidadesAgotadas++;
+      if (unidades > 0) {
+        decoracionData.unidadesDisponibles++;
+      } else {
+        decoracionData.unidadesAgotadas++;
+      }
       decoracionData.categorias[categoria] =
         (decoracionData.categorias[categoria] || 0) + unidades;
       decoracionData.productos.push({ producto, unidades });
