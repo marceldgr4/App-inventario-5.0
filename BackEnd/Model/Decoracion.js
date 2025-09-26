@@ -6,14 +6,14 @@ function getDecoracionSheet() {
 }
 /** @summary Obtiene todos los datos de la hoja de 'Decoracion' en formato JSON. */
 function getDecoracionData() {
- ogger.log("getComidaData: Solicitando datos de comida.");
+  Logger.log("getDecoracionData: Solicitando datos de Decoracion.");
   try {
     const data = _getInventoryDataForSheet(getHojasConfig().DECORACION.nombre);
-    Logger.log(`getDecoracionData: Se obtuvieron ${data.length} registros de comida.`);
-    return JSON.stringify({ data: data });
+    Logger.log(`getDecoracionData: Se obtuvieron ${data.length} registros de Decoracion.`);
+   return JSON.stringify({ data: data });
   } catch (e) {
     Logger.log(`ERROR: getDecoracionData - Fallo al obtener datos de Decoracion: ${e.message}`);
-    return JSON.stringify({ data: [], error: e.message });
+    return JSON.stringify({ data: [] });
   }
 }
 /** @summary Obtiene la información de un artículo de decoración específico por su ID. */

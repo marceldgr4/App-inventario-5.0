@@ -219,4 +219,18 @@ document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
+
+var currentUser = currentUser || null;
+
+// Cargar el usuario desde Apps Script
+google.script.run
+  .withSuccessHandler(function(userJson) {
+    if (userJson) {
+      currentUser = JSON.parse(userJson);
+      console.log("Usuario activo:", currentUser);
+    } else {
+      console.warn("No hay usuario en sesión");
+    }
+  })
+  .getCurrentUser();
 </script>

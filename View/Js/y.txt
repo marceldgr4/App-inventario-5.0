@@ -1,0 +1,14 @@
+registrarModulo("Decoracion", {
+    abrirModalAgregar: abrirModalAgregarDecoracion,
+    cerrarModalAgregar: cerrarModalAgregarDecoracion,
+    abrirModalRetiro: abrirModalRetiroDecoracion,
+    cerrarModalRetiro: cerrarModalRetiroDecoracion,
+    abrirModalEditar: abrirModalEditarDecoracion,
+    cerrarModalEditar: cerrarModalEditarDecoracion,
+    abrirModalComentario: abrirModalComentarioDecoracion,
+    cerrarModalComentario: cerrarModalComentarioDecoracion,
+    abrirImagenNuevaVentana: abrirImagenNuevaVentanaDecoracion,
+    confirmarEliminar: confirmarEliminarDecoracion,
+    limpiarTodosLosFiltros: limpiarTodosLosFiltrosDecoracion,
+    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarDecoracion
+  });

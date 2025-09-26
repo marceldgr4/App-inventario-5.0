@@ -51,13 +51,13 @@ function agregarProductoGenerico(data, sheetName) {
     let formula = "";
     const rowNum = sheet.getLastRow() + 1;
     if (sheetName === HOJA_DECORACION) {
-      formula = `=IF(ISNUMBER(F${rowNum}), F${rowNum}, 0) - IF(ISNUMBER(G${rowNum}), G${rowNum}, 0)`;
+      formula = `=IF(ISNUMBER(F${rowNum}); F${rowNum}, 0) - IF(ISNUMBER(G${rowNum});G${rowNum};0)`;
     } else if (sheetName === HOJA_COMIDA) {
-      formula = `=IF(ISNUMBER(G${rowNum}), G${rowNum}, 0) - IF(ISNUMBER(H${rowNum}), H${rowNum}, 0)`;
+      formula = `=IF(ISNUMBER(G${rowNum}); G${rowNum}, 0) - IF(ISNUMBER(H${rowNum}); H${rowNum}; 0)`;
     } else if (idx["Ingresos"] !== -1 && idx["Salidas"] !== -1) {
       const ingresosCol = columnToLetter(idx["Ingresos"] + 1);
       const salidasCol = columnToLetter(idx["Salidas"] + 1);
-      formula = `=IF(ISNUMBER(${ingresosCol}${rowNum}), ${ingresosCol}${rowNum}, 0) - IF(ISNUMBER(${salidasCol}${rowNum}), ${salidasCol}${rowNum}, 0)`;
+      formula = `=IF(ISNUMBER(${ingresosCol}${rowNum}); ${ingresosCol}${rowNum}; 0) - IF(ISNUMBER(${salidasCol}${rowNum}); ${salidasCol}${rowNum}; 0)`;
     }
     newRowData[idx["Unidades disponibles"]] = formula || (parseFloat(data.ingresosAgregar) || 0);
   }

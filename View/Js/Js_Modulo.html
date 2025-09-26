@@ -3,11 +3,23 @@
   // REGISTRO GENÉRICO DE MÓDULOS
   // ===============================
 
-  function registrarModulo(nombreModulo, funciones) {
-    Object.entries(funciones).forEach(([clave, fn]) => {
+function registrarModulo(nombreModulo, funciones) {
+  if (!nombreModulo || typeof funciones !== 'object') return;
+  // namespace principal: window[nombreModulo]
+  window[nombreModulo] = window[nombreModulo] || {};
+
+  Object.entries(funciones).forEach(([clave, fn]) => {
+    if (typeof fn === 'function') {
+      // 1) registro namespaced: window.Comida.abrirModalAgregar()
+      window[nombreModulo][clave] = fn;
+      // 2) registro legacy: window.abrirModalAgregarComida (compatibilidad)
       window[`${clave}${nombreModulo}`] = fn;
-    });
-  }
+    } else {
+      console.warn(`registrarModulo: la clave ${clave} para ${nombreModulo} no es función`);
+    }
+  });
+}
+
 
   // ===============================
   // MODULO: COMIDA
@@ -54,5 +66,23 @@
     confirmarEliminar: confirmarEliminarPapeleria,
     limpiarTodosLosFiltros: limpiarTodosLosFiltrosPapeleria,
     aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarPapeleria
+  });
+// ===============================
+// MODULO: DECORACION
+// ===============================
+
+  registrarModulo("Decoracion", {
+    abrirModalAgregar: abrirModalAgregarDecoracion,
+    cerrarModalAgregar: cerrarModalAgregarDecoracion,
+    abrirModalRetiro: abrirModalRetiroDecoracion,
+    cerrarModalRetiro: cerrarModalRetiroDecoracion,
+    abrirModalEditar: abrirModalEditarDecoracion,
+    cerrarModalEditar: cerrarModalEditarDecoracion,
+    abrirModalComentario: abrirModalComentarioDecoracion,
+    cerrarModalComentario: cerrarModalComentarioDecoracion,
+    abrirImagenNuevaVentana: abrirImagenNuevaVentanaDecoracion,
+    confirmarEliminar: confirmarEliminarDecoracion,
+    limpiarTodosLosFiltros: limpiarTodosLosFiltrosDecoracion,
+    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarDecoracion
   });
 </script>
