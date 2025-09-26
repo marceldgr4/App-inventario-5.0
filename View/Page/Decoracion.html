@@ -2,9 +2,10 @@
     
     <?!= include("View/Css/Css_Tablas.html"); ?>
     <?!= include("View/Css/Css_Filtros.html"); ?>
-    <?!= include("View/Css/Css_Modal.html"); ?>
+ 
     <?!= include("View/Css/Css_Comentarios.html"); ?>
     <?!= include("View/Css/Css_Notifications.html"); ?>
+       <?!= include("View/Css/Css_Modal.html"); ?>
 
 
 <div class="inventory-container">
@@ -22,10 +23,10 @@
 
         <div class="search-group">
             <input type="text" id="buscarDecoracion" class="search-input" placeholder="Buscar por nombre de producto...">
-            <button class="btn btn-outline" onclick="aplicarFiltrosYOrdenar()">
+            <button class="btn btn-outline" onclick="aplicarFiltrosYOrdenarDecoracion()">
                 <i class="fas fa-search"></i> Buscar
             </button>
-            <button class="btn btn-outline" onclick="limpiarTodosLosFiltros()">
+            <button class="btn btn-outline" onclick="limpiarTodosLosFiltrosDecoracion()">
                 <i class="fas fa-times"></i> Limpiar
             </button>
         </div>
@@ -55,8 +56,8 @@
         <p>Haz clic en "Agregar Decoración" para añadir tu primer artículo</p>
     </div>
 
-    <div id="tableContainer-Decoracion">
-        <table id="decoración" class="inventory-table">
+    <div id="table-container-Decoracion">
+        <table id="decoracionTable" class="inventory-table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -74,7 +75,7 @@
             </thead>
             <tbody id="tablaDecoracionBody"></tbody>
         </table>
-        <div id="decoraciónPagination" class="pagination"></div>
+        <div id="decoracionPagination" class="pagination"></div>
     </div>
 
     <!-- Modal Agregar -->
@@ -190,7 +191,7 @@
                 </form>
             </div>
         </div>
-        div id="modalNotificacion-Comentario" class="modal-overlay">
+<div id="modalNotificacion-Comentario-Decoracion" class="modal-overlay">
   <div class="modal-content-NotificacionesComentarios">
     <div class="modal-header">
       <h2 class="modal-title">
@@ -207,7 +208,7 @@
         <button class="tab-button active" data-tab="pendientes" onclick="mostrarTab('pendientes', this)">Pendientes</button>
         <button class="tab-button" data-tab="leidas" onclick="mostrarTab('leidas', this)">Leidas</button>
       </div>
-      <div id="pendientes" class="tab-content active">
+      <div id="pendientesBody" class="tab-content active">
         <h4>Comentarios Pendientes</h4>
         <table id="tablaComentariosPendientes">
           <thead>
@@ -222,7 +223,7 @@
           <tbody id="tablaComentariosPendientesBody"></tbody>
         </table>
       </div>
-      <div id="leidas" class="tab-content">
+      <div id="leidasBody" class="tab-content">
         <h4>Comentarios Leidas</h4>
         <table id="tablaComentariosLeidas">
           <thead>

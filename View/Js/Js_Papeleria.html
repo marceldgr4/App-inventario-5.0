@@ -152,7 +152,7 @@
   }
   const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarPapeleria;
 
-  function limpiarTodosLosFiltrosArticulos() {
+  function limpiarTodosLosFiltrosPapeleria() {
     limpiarFiltrosGenerico({
       filtros: [
         { id: "buscarPapeleria", type: "text" },
@@ -355,8 +355,8 @@ formComentario?.addEventListener("submit", function(e) {
 
   window.aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenar;
   window.aplicarFiltrosYOrdenarPapeleria = aplicarFiltrosYOrdenarPapeleria;
-  window.limpiarTodosLosFiltros = limpiarTodosLosFiltrosArticulos;
-  window.limpiarTodosLosFiltrosPapeleria = limpiarTodosLosFiltrosArticulos;
+  window.limpiarTodosLosFiltros = limpiarTodosLosFiltrosPapeleria;
+  window.limpiarTodosLosFiltrosPapeleria = limpiarTodosLosFiltrosPapeleria;
 
   window.ordenarPorFecha = ordenarPorFechaPapeleria;
   window.ordenarAscendente = ordenarAscendentePapeleria;

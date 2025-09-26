@@ -37,10 +37,14 @@ function escapeHtml(unsafe) {
     if (typeof unsafe !== "string") return "";
     return unsafe
         .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function abrirImagenNuevaVentana(imageUrl) {
+    if (imageUrl) window.open(imageUrl, '_blank');
 }
 
 // --- Manejo de Respuestas del Servidor ---
@@ -70,6 +74,7 @@ function handleServerError(error) {
     console.error("Error en servidor:", error);
     mostrarMensaje("Error de comunicación con el servidor: " + error.message, "error");
 }
+
 function loadDataGenerico(config) {
     const {
         endpoint,          // Nombre de la función en Apps Script
@@ -94,24 +99,31 @@ function loadDataGenerico(config) {
                     onSuccess(response.data); // ✅ Callback específico
                 } else {
                     console.error(`[ERROR] Formato inesperado en respuesta de ${endpoint}`, response);
-                    if (tbodyId) document.getElementById(tbodyId).innerHTML =
-                        "<tr><td colspan='15'>Error al cargar los datos.</td></tr>";
+                    if (tbodyId) {
+                        document.getElementById(tbodyId).innerHTML =
+                            "<tr><td colspan='15'>Error al cargar los datos.</td></tr>";
+                    }
                     if (noDataId && containerId) {
                         document.getElementById(noDataId).style.display = "block";
                         document.getElementById(containerId).style.display = "none";
                     }
                 }
             } catch (e) {
+                hideLoading(); // Ocultar loading si el parseo falla
                 console.error(`[ERROR] Fallo al parsear respuesta de ${endpoint}:`, e, responseString);
-                if (tbodyId) document.getElementById(tbodyId).innerHTML =
-                    "<tr><td colspan='15'>Error al procesar los datos.</td></tr>";
+                if (tbodyId) {
+                    document.getElementById(tbodyId).innerHTML =
+                        "<tr><td colspan='15'>Error al procesar los datos.</td></tr>";
+                }
             }
         })
         .withFailureHandler(function (error) {
             hideLoading();
             console.error(`[ERROR] ${endpoint} falló:`, error);
-            if (tbodyId) document.getElementById(tbodyId).innerHTML =
-                "<tr><td colspan='15'>Fallo al cargar los datos.</td></tr>";
+            if (tbodyId) {
+                document.getElementById(tbodyId).innerHTML =
+                    "<tr><td colspan='15'>Fallo al cargar los datos.</td></tr>";
+            }
             mostrarMensaje(`Error al cargar los datos: ${error.message}`, "error");
         });
 
@@ -120,10 +132,14 @@ function loadDataGenerico(config) {
     } else {
         hideLoading();
         console.error(`[ERROR] El endpoint '${endpoint}' no existe o no es una función.`);
-        if (tbodyId) document.getElementById(tbodyId).innerHTML = `<tr><td colspan='15'>Error: El endpoint '${endpoint}' no es válido.</td></tr>`;
+        if (tbodyId) {
+            document.getElementById(tbodyId).innerHTML = 
+                `<tr><td colspan='15'>Error: El endpoint '${endpoint}' no es válido.</td></tr>`;
+        }
     }
 }
 
+// --- Manejo de Filtros y Ordenamiento ---
 function aplicarFiltrosYOrdenarGenerico(config) {
     const {
         dataSource,      // array global con todos los datos (ej: fullComidaData)
@@ -135,12 +151,13 @@ function aplicarFiltrosYOrdenarGenerico(config) {
 
     console.log("[INFO] aplicando filtros genéricos...");
 
-    let resultados = [...dataSource];
+    let resultados = Array.isArray(dataSource) ? [...dataSource] : [];
 
     // --- Aplicar cada filtro definido ---
     filters.forEach(f => {
         const el = document.getElementById(f.id);
         if (!el) return;
+        
         let valor = el.value.toLowerCase().trim();
         if (!valor) return;
 
@@ -202,19 +219,18 @@ function limpiarFiltrosGenerico(config) {
 
     if (typeof aplicarFn === "function") aplicarFn();
 }
-// Buscar
+
+// --- Funciones de Búsqueda y Ordenamiento ---
 function searchItemsGenerico(aplicarFn) {
     if (typeof aplicarFn === "function") aplicarFn();
 }
 
-// Limpiar búsqueda específica
 function clearSearchGenerico(inputId, aplicarFn) {
     const el = document.getElementById(inputId);
     if (el) el.value = "";
     if (typeof aplicarFn === "function") aplicarFn();
 }
 
-// Abrir menú de ordenamiento
 function ordenarPorFechaGenerico(event, sortOptionsId) {
     event.preventDefault();
     const menu = document.getElementById(sortOptionsId);
@@ -226,24 +242,20 @@ function ordenarPorFechaGenerico(event, sortOptionsId) {
     event.stopPropagation();
 }
 
-// Orden ascendente/descendente
 function ordenarAscendenteGenerico(aplicarFn, sortOptionsId, setOrdenAsc) {
     setOrdenAsc(true);
     if (typeof aplicarFn === "function") aplicarFn();
-    document.getElementById(sortOptionsId).classList.remove("show");
+    const sortOptionsEl = document.getElementById(sortOptionsId);
+    if (sortOptionsEl) sortOptionsEl.classList.remove("show");
 }
 
 function ordenarDescendenteGenerico(aplicarFn, sortOptionsId, setOrdenAsc) {
     setOrdenAsc(false);
     if (typeof aplicarFn === "function") aplicarFn();
-    document.getElementById(sortOptionsId).classList.remove("show");
+    const sortOptionsEl = document.getElementById(sortOptionsId);
+    if (sortOptionsEl) sortOptionsEl.classList.remove("show");
 }
 
-// Mostrar/Ocultar filtros adicionales
-function toggleFiltrosAdicionalesGenerico(containerId) {
-    document.getElementById(containerId).classList.toggle("filtros-adicionales-ocultos");
-}
-// Ordenar por ID reciente
 function ordenarPorIdRecienteGenerico(aplicarFn, sortOptionsId, setCriterioFn) {
     setCriterioFn("id"); // 👈 Cambia la variable global criterioDeOrden
     if (typeof aplicarFn === "function") aplicarFn();
@@ -252,7 +264,14 @@ function ordenarPorIdRecienteGenerico(aplicarFn, sortOptionsId, setCriterioFn) {
     if (sortOptionsEl) sortOptionsEl.classList.remove("show");
 }
 
-// Listener Escape que cierra modales
+// --- Manejo de UI ---
+function toggleFiltrosAdicionalesGenerico(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.classList.toggle("filtros-adicionales-ocultos");
+    }
+}
+
 function registrarEscapeCierraModales(modales) {
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") {
@@ -262,87 +281,178 @@ function registrarEscapeCierraModales(modales) {
         }
     });
 }
-// ===============================
-  // --- FUNCIONES DE PRECIOS ---
-  // ===============================
 
-  function convertirPrecioFormateadoAStringNumericoParaServidor(valorFormateado) {
+// ===============================
+// --- FUNCIONES DE PRECIOS ---
+// ===============================
+
+function convertirPrecioFormateadoAStringNumericoParaServidor(valorFormateado) {
     if (typeof valorFormateado !== 'string' || !valorFormateado) return '0.00';
     const valorLimpio = valorFormateado.replace(/\.(?=\d{3})/g, '').replace(',', '.');
     const num = parseFloat(valorLimpio.replace(/[^\d.-]/g, ''));
     return isNaN(num) ? '0.00' : num.toFixed(2);
-  }
+}
 
-  function validarFormatoPrecio(inputElement) {
+function validarFormatoPrecio(inputElement) {
     const errorSpanId = inputElement.id === 'precioAgregarComida' ? 'errorPrecioAgregarComida' : 'errorPrecioEditarComida';
     const errorSpan = document.getElementById(errorSpanId);
     let valor = inputElement.value.trim();
 
     if (valor === '') {
-      if (errorSpan) {
-        errorSpan.textContent = 'El precio es obligatorio.';
-        errorSpan.style.display = 'inline';
-      }
-      return false;
+        if (errorSpan) {
+            errorSpan.textContent = 'El precio es obligatorio.';
+            errorSpan.style.display = 'inline';
+        }
+        return false;
     }
+    
     const valorNumerico = parseInputPrecioCOP(valor);
     if (isNaN(valorNumerico) || valorNumerico < 0) {
-      if (errorSpan) {
-        errorSpan.textContent = 'Formato de precio inválido. Use números positivos (ej: 1234,50 o 20.000).';
-        errorSpan.style.display = 'inline';
-      }
-      return false;
+        if (errorSpan) {
+            errorSpan.textContent = 'Formato de precio inválido. Use números positivos (ej: 1234,50 o 20.000).';
+            errorSpan.style.display = 'inline';
+        }
+        return false;
     }
+    
     if (errorSpan) errorSpan.style.display = 'none';
     return true;
-  }
+}
 
-  function parseInputPrecioCOP(valorActual) {
+function parseInputPrecioCOP(valorActual) {
     if (typeof valorActual !== 'string') return NaN;
     let cleanedForParse = valorActual.replace(/[$\s]/g, '');
     cleanedForParse = cleanedForParse.replace(/\./g, '');
     cleanedForParse = cleanedForParse.replace(/,/g, '.');
     return parseFloat(cleanedForParse);
-  }
+}
 
-  function formatearPrecio(inputElement, moneda = 'COP', locale = 'es-CO') {
+function formatearPrecio(inputElement, moneda = 'COP', locale = 'es-CO') {
     if (!inputElement) return;
     let valorNumerico = parseInputPrecioCOP(inputElement.value);
     if (isNaN(valorNumerico)) {
-      if (inputElement.value.trim() !== '') return;
-      valorNumerico = 0;
+        if (inputElement.value.trim() !== '') return;
+        valorNumerico = 0;
     }
     inputElement.value = valorNumerico.toLocaleString(locale, {
-      style: 'currency',
-      currency: moneda,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+        style: 'currency',
+        currency: moneda,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
-  }
+}
 
-  // ===============================
-  // --- FUNCIONES DE FECHAS ---
-  // ===============================
+// ===============================
+// --- FUNCIONES DE FECHAS ---
+// ===============================
 
-  function formatDate(dateString) {
+function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return 'Fecha Inválida';
-    return date.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC' });
-  }
+    return date.toLocaleDateString('es-CO', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit', 
+        timeZone: 'UTC' 
+    });
+}
 
-  function formatDateForComparison(dateString) {
+function formatDateForComparison(dateString) {
     if (!dateString) return null;
     if (dateString instanceof Date) return dateString;
+    
     let date;
     if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      const parts = dateString.split('-');
-      date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const parts = dateString.split('-');
+        date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     } else {
-      date = new Date(dateString);
+        date = new Date(dateString);
     }
     return isNaN(date.getTime()) ? null : date;
-  }
+}
 
+// ===============================
+// --- UTILIDADES ADICIONALES ---
+// ===============================
+
+function normalizeKeys(item) {
+    const normalized = {};
+    for (let key in item) {
+        normalized[key.trim().toLowerCase()] = item[key];
+    }
+    return normalized;
+}
+
+/**
+ * @summary Registra un comentario desde cualquier módulo y lo guarda en la hoja.
+ * @param {object} options - Datos del comentario.
+ * @param {string} options.productoId - ID del producto.
+ * @param {string} options.producto - Nombre del producto.
+ * @param {string} options.programa - Nombre del módulo (Comida, Artículos, etc.).
+ * @param {string} options.comentario - Texto del comentario.
+ * @param {string} options.usuario - Usuario que hace el comentario.
+ */
+function registrarComentarioGenerico({ productoId, producto, programa, comentario, usuario }) {
+    if (!productoId || !comentario) {
+        mostrarMensajeComentario("Debe ingresar un comentario válido.");
+        return;
+    }
+
+    showLoading(); // ✅ usamos el genérico
+
+    google.script.run
+        .withSuccessHandler(response => {
+            hideLoading(); // ✅ usamos el genérico
+            try {
+                const res = typeof response === "string" ? JSON.parse(response) : response;
+                if (res.success) {
+                    mostrarMensajeComentario("Comentario agregado correctamente.");
+                    // 🔄 Recargar tabla de comentarios centralizada
+                    loadComentarios(); // ⚠️ aquí tenías "loadComentario" (en singular)
+                } else {
+                    mostrarMensajeComentario("Error al guardar comentario: " + (res.message || ""));
+                }
+            } catch (e) {
+                console.error("Error parseando respuesta:", e);
+            }
+        })
+        .withFailureHandler(err => {
+            hideLoading(); // ✅ corregido
+            console.error("Error registrando comentario:", err);
+            mostrarMensajeComentario("Error al registrar comentario.");
+        })
+        .guardarComentarioEnSheet(productoId, producto, programa, comentario, usuario);
+}
+
+// ==============================
+// USUARIO ACTIVO (GLOBAL)
+// ==============================
+var currentUser = currentUser || null;
+
+// Cargar usuario al iniciar la app
+google.script.run
+    .withSuccessHandler(function(userJson) {
+        if (userJson) {
+            currentUser = JSON.parse(userJson);
+            console.log("✅ Usuario activo:", currentUser);
+        } else {
+            console.warn("⚠️ No hay usuario en sesión");
+        }
+    })
+    .getCurrentUser();
+
+// ===============================
+// --- FUNCIONES DE MENSAJE COMENTARIO ---
+// ===============================
+
+function mostrarMensajeComentario(mensaje, tipo = 'info') {
+    console.log(`[COMENTARIO - ${tipo}]`, mensaje);
+    if (typeof showToastNotification === "function") {
+        showToastNotification(mensaje, tipo);
+    } else {
+        alert(mensaje);
+    }
+}
 
 </script>

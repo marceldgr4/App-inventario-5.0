@@ -566,3 +566,12 @@ function recoverPassword(correo) {
     };
   }
 }
+
+/**
+ * @summary Devuelve el usuario activo guardado en la sesión.
+ * @returns {string|null} El usuario en JSON o null si no hay sesión.
+ */
+function getCurrentUser() {
+  const usuario = getActiveUser(); // 👈 ya lo tienes implementado
+  return usuario ? JSON.stringify(usuario) : null;
+}
