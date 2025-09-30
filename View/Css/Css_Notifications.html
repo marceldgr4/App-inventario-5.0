@@ -1,0 +1,48 @@
+<style>
+/* =================================================================
+    --- ESTILOS PARA NOTIFICACIONES Y MENSAJES ---
+================================================================= */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    padding: 15px 20px;
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--box-shadow);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.notification.success {
+    border-left: 5px solid var(--success-color);
+}
+.notification.success .icon {
+    color: var(--success-color);
+}
+.notification.error {
+    border-left: 5px solid var(--danger-color);
+}
+.notification.error .icon {
+    color: var(--danger-color);
+}
+.no-data {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text-color);
+}
+.no-data-icon {
+    font-size: 4em;
+    color: var(--border-color);
+    margin-bottom: 10px;
+}
+</style>

@@ -1,0 +1,172 @@
+<style>
+/* =================================================================
+    --- VARIABLES CSS (SISTEMA DE DISEÑO) ---
+================================================================= */
+:root {
+    /* Paleta de Colores de Intouch */
+    --digital-lavender: #766dfa;
+    --royal-purple: #160644;
+    --emerald-green: #169968;
+    --khaki-green: #2b5243;
+    --dark-moss-green: #001705;
+    --summer-yellow: #ffc844;
+    --soft-grey: #f3f1e5;
+    --maple-red: #f5333f;
+    --white: #ffffff;
+    --hot-green: #4ce467;
+
+    /* Colores para el Tema Claro */
+    --bg-color-light: var(--soft-grey);
+    --card-bg-light: var(--white);
+    --text-color-light: var(--dark-moss-green);
+    --border-color-light: #e0e0e0;
+
+    /* Colores para el Tema Oscuro */
+    --bg-color-dark: #2c3e50;
+    --card-bg-dark: #34495e;
+    --text-color-dark: var(--soft-grey);
+    --border-color-dark: #4d5c6b;
+
+    /* Asignación de Colores Base */
+    --background-color: var(--bg-color-light);
+    --card-bg-color: var(--card-bg-light);
+    --text-color: var(--text-color-light);
+    --border-color: var(--border-color-light);
+
+    /* Colores de Funcionalidad */
+    --primary-color: var(--khaki-green);
+    --secondary-color: var(--digital-lavender);
+    --success-color: var(--hot-green);
+    --warning-color: var(--summer-yellow);
+    --danger-color: var(--maple-red);
+
+    /* Tipografía */
+    --main-font: "Piazzolla", serif;
+
+    /* Sombra y Radio de Borde */
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --border-radius-lg: 12px;
+    --border-radius-sm: 8px;
+}
+
+/* Modo Oscuro (se activa con la clase 'dark-mode' en el body) */
+body.dark-mode {
+    --background-color: var(--bg-color-dark);
+    --card-bg-color: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --border-color: var(--border-color-dark);
+    --primary-color: var(--emerald-green);
+    --khaki-green: var(--emerald-green);
+}
+
+/* =================================================================
+    --- ESTILOS BASE Y GENERALES ---
+================================================================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--main-font);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+    line-height: 1.6;
+}
+
+/* --- Contenedores y Tarjetas --- */
+.container {
+    padding: 25px;
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow);
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+/* --- Títulos y Encabezados --- */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-color);
+}
+
+/* --- Botones --- */
+.btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-family: var(--main-font);
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+.btn-primary:hover {
+    background-color: color-mix(in srgb, var(--primary-color) 80%, black);
+    box-shadow: 0 4px 8px color-mix(in srgb, var(--primary-color) 40%, black);
+}
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: var(--white);
+}
+.btn-secondary:hover {
+    background-color: color-mix(in srgb, var(--secondary-color) 80%, black);
+}
+.btn-danger {
+    background-color: var(--danger-color);
+    color: var(--white);
+}
+.btn-danger:hover {
+    background-color: color-mix(in srgb, var(--danger-color) 80%, black);
+}
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+.btn-outline:hover {
+    background-color: var(--soft-grey);
+}
+
+/* --- Formularios e Inputs --- */
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+.search-input {
+    max-width: 300px;
+     padding: 15px 50px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+/*--- Barras --*/
+.action-bar {
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+}
+
+</style>

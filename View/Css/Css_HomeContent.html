@@ -1,0 +1,73 @@
+<style>
+    /* Estilos del nuevo Dashboard adaptados a tu App */
+    :root {
+      --dash-bg: #f5f7fa;
+      --dash-card-bg: #ffffff;
+      --dash-text-primary: #021640;
+      --dash-text-secondary: rgba(2, 22, 64, 0.7);
+      --dash-accent1: #0066CC;
+      --dash-accent2: #0099CC;
+    }
+    .main-content { font-family: 'Poppins', sans-serif; background-color: var(--dash-bg); }
+    #dash-container { width: 100%; padding: 10px; }
+    .dash-header h2 { font-size: 1.8rem; color: var(--dash-text-primary); margin-bottom: 4px; }
+    .dash-header p { font-size: 1rem; color: var(--dash-text-secondary); }
+    .dash-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin: 25px 0;
+    }
+    .dash-kpi-card {
+      background: var(--dash-card-bg);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: var(--dash-text-primary);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .dash-kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .dash-kpi-card h3 {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--dash-text-secondary);
+      display: flex;
+      align-items: center;
+    }
+    .dash-kpi-card h3 i {
+      margin-right: 10px;
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+    .dash-kpi-card h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      text-align: right;
+    }
+    .dash-charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+    }
+    .dash-chart-card {
+      background: var(--dash-card-bg);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 20px;
+      color: var(--dash-text-primary);
+    }
+    .dash-chart-card h3 { font-size: 1.1rem; margin-bottom: 15px; font-weight: 600; }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+        .dash-charts-row { grid-template-columns: 1fr; }
+    }
+  </style>

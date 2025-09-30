@@ -1,0 +1,706 @@
+<script>
+(function() {
+    // =================================================
+    // --- VARIABLES GLOBALES DE ESTADO DE LA APLICACIÓN
+    // =================================================
+    const pageState = {
+        fullData: [],
+        datosMostrados: [],
+        productosProximosAVencer: [],
+        currentPage: 1,
+        itemsPerPage: 10,
+        productoAEditarId: null,
+        productoRetiroSeleccionado: null,
+        fechaOrdenAscendente: false,
+        productoComentarioSeleccionado: null,
+        criterioDeOrden: 'id',
+    };
+
+    console.log("[INFO] Js_Comida cargado correctamente.");
+
+    // =======================================
+    // --- 1. CARGA DE DATOS Y MANEJO DE RESPUESTAS ---
+    // =======================================
+    function loadComida() {
+        loadDataGenerico({
+            endpoint: "getComidaData",
+            tbodyId: "tablaComidaBody",
+            noDataId: "noData",
+            containerId: "comidaContent",
+            onSuccess: function(data) {
+                pageState.fullData = data;
+                pageState.currentPage = 1;
+                aplicarFiltrosYOrdenar();
+                if(pageState.fullData.length === 0){
+                    document.getElementById("noData").style.display = "block";
+                } else {
+                    document.getElementById("noData").style.display = "none";
+                    document.getElementById("comidaContent").style.display = "block";
+                }
+                loadNotificacionesComida();
+                hideLoading();
+            }
+        });
+    }
+
+    function loadNotificacionesComida() {
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(function (productosServer) {
+                if (Array.isArray(productosServer)) {
+                    pageState.productosProximosAVencer = productosServer.map(p => {
+                        let dias;
+                        if (typeof p.diasRestantes === 'string') {
+                            if (p.diasRestantes.toLowerCase().includes('vencido')) {
+                                const match = p.diasRestantes.match(/-?\d+/);
+                                dias = match ? -parseInt(match[0]) : -1;
+                            } else if (p.diasRestantes.toLowerCase().includes('hoy')) {
+                                dias = 0;
+                            } else if (p.diasRestantes === 'Sin fecha de vencimiento') {
+                                dias = 'Sin fecha de vencimiento';
+                            } else {
+                                const match = p.diasRestantes.match(/\d+/);
+                                dias = match ? parseInt(match[0]) : 'Error';
+                            }
+                        } else if (typeof p.diasRestantes === 'number') {
+                            dias = p.diasRestantes;
+                        } else {
+                            dias = 'Error';
+                        }
+                        return {
+                            id: p["ID"] || p.id || "N/A",
+                            producto: p["PRODUCTO"] || p.producto || "N/A",
+                            estado: p["ESTADO DEL PRODUCTO"] || p.estadoProducto || p.estado || "N/A",
+                            diasRestantes: dias,
+                            ubicacion: p["UBICACION"] || p.ubicacion || "N/A",
+                            unidadesDisponibles: p["UNIDADES DISPONIBLES"] ?? p.unidades ?? p.unidadesDisponibles ?? "N/A",
+                        };
+                    });
+                    mostrarNotificaciones();
+                } else {
+                    pageState.productosProximosAVencer = [];
+                    mostrarNotificaciones();
+                }
+                 hideLoading();
+            })
+            .withFailureHandler(function (error) {
+                console.error("Error al obtener productos próximos a vencer:", error);
+                pageState.productosProximosAVencer = [];
+                mostrarNotificaciones();
+            })
+            .getProductosProximosAVencerCompleto("Inventario comida");
+    }
+
+    function handleComidaServerResponse(responseString) {
+        showLoading(false);
+        try {
+            const response = JSON.parse(responseString);
+            if (response.success) {
+                mostrarMensaje(response.message || 'Operación exitosa.', 'success');
+                showToastNotification(response.message || 'Operación exitosa.', 'success');
+                loadComida(); 
+                
+                // Cierra todos los modales activos relacionados con comida
+                ['modalAgregarComida', 'modalEditarComida', 'modalRetiroComida', 'modalComentarioComida'].forEach(modalId => {
+                    const modal = document.getElementById(modalId);
+                    if (modal && modal.classList.contains('is-active')) {
+                        cerrarModal(modalId);
+                    }
+                });
+
+            } else {
+                const message = 'Error: ' + (response.message || 'Ocurrió un error desconocido.');
+                mostrarMensaje(message, 'error');
+                showToastNotification(message, 'error');
+            }
+        } catch (e) {
+            // Si no es JSON, es un string simple de éxito/error
+            const message = responseString;
+            const type = message.toLowerCase().includes('error') ? 'error' : 'success';
+            mostrarMensaje(message, type);
+            showToastNotification(message, type);
+            if (type === 'success') {
+                loadComida();
+                 ['modalAgregarComida', 'modalEditarComida', 'modalRetiroComida', 'modalComentarioComida'].forEach(modalId => {
+                    const modal = document.getElementById(modalId);
+                    if (modal && modal.classList.contains('is-active')) {
+                        cerrarModal(modalId);
+                    }
+                });
+            }
+        }
+    }
+
+    function handleComidaServerError(error) {
+        showLoading(false);
+        const message = 'Error de comunicación con el servidor: ' + error.message;
+        mostrarMensaje(message, 'error');
+        showToastNotification(message, 'error');
+    }
+
+    // =================================================
+    // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN ---
+    // =================================================
+    function renderComidaTable() {
+        const tbody = document.getElementById("tablaComidaBody");
+        if (!tbody) {
+            console.error("[ERROR] Elemento tablaComidaBody no encontrado");
+            return;
+        }
+        tbody.innerHTML = "";
+
+        if (pageState.datosMostrados.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='12' style='text-align:center;'>No hay productos que coincidan con los filtros.</td></tr>";
+            const paginationEl = document.getElementById("comidaPagination");
+          
+            return;
+        }
+
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        const oneMonthLater = new Date(currentDate);
+        oneMonthLater.setMonth(currentDate.getMonth() + 1);
+
+        pageState.datosMostrados.forEach(item => {
+            const row = tbody.insertRow();
+
+            // --- Colorear fila según vencimiento ---
+            const fechaVencimientoStr = item["FECHA DE VENCIMIENTO"];
+            if (fechaVencimientoStr) {
+                const fechaVencimientoDate = new Date(formatDateForComparison(fechaVencimientoStr));
+                if (!isNaN(fechaVencimientoDate.getTime())) {
+                    fechaVencimientoDate.setHours(0, 0, 0, 0);
+                    if (fechaVencimientoDate < currentDate) row.classList.add("vencido");
+                    else if (fechaVencimientoDate.getTime() === currentDate.getTime()) row.classList.add("vencido-hoy");
+                    else if (fechaVencimientoDate < oneMonthLater) row.classList.add("proximo-a-vencer");
+                }
+            }
+
+            // --- Calcular unidades disponibles ---
+            const ingresos = parseInt(item["Ingresos"]) || 0;
+            const salidas = parseInt(item["Salidas"]) || 0;
+
+            const unidades =
+                item["Unidades disponibles"] !== undefined && item["Unidades disponibles"] !== ""
+                    ? parseInt(item["Unidades disponibles"]) || 0
+                    : ingresos - salidas;
+            const agotadoClass = unidades === 0 ? "agotado" : "";
+           
+
+            // --- Formato de precio ---
+            let precioFormateado = "$ 0,00";
+            if (item["PRECIO"] != null && !isNaN(parseFloat(item["PRECIO"]))) {
+                const priceValue = parseFloat(item["PRECIO"]);
+                precioFormateado = priceValue.toLocaleString("es-CO", { style: "currency", currency: "COP" });
+            }
+
+            const id = item.Id || item.id || item.ID;
+
+            // --- Dataset para eventos ---
+            row.dataset.id = id;
+            row.dataset.producto = item["PRODUCTO"] || "";
+            row.dataset.unidades = unidades;
+
+            // --- Renderizado de fila ---
+            row.innerHTML = `
+                <td>${id || ""}</td>
+                <td>${item["PRODUCTO"] || ""}</td>
+                <td>${precioFormateado}</td>
+                <td>${item["UBICACION"] || ""}</td>
+                <td>${item["ESTADO DEL PRODUCTO"] || ""}</td>
+                <td>${formatDate(item["FECHA DE INGRESO"])}</td>
+                <td>${ingresos}</td>
+                <td>${salidas}</td>
+                <td class="${agotadoClass}">${unidades}</td>
+                <td>${formatDate(item["FECHA DE VENCIMIENTO"])}</td>
+                <td>${item["COMENTARIOS"] || ""}</td>
+                <td>
+                    <button class="btn-modificar"><ion-icon name="create-outline"></ion-icon></button>
+                    <button class="btn-retirar"><ion-icon name="bag-remove-outline"></ion-icon></button>
+                    <button class="btn-comentario"><ion-icon name="chatbubbles-outline"></ion-icon></button>
+                    <button class="btn-eliminar"><ion-icon name="trash-bin-outline"></ion-icon></button>
+                </td>
+            `;
+        });
+
+    }
+
+    // --- Delegación de eventos en la tabla ---
+    const tablaBody = document.getElementById("tablaComidaBody");
+    if (tablaBody) {
+        tablaBody.addEventListener("click", e => {
+            const row = e.target.closest("tr");
+            if (!row) return;
+            const id = row.dataset.id;
+            const producto = row.dataset.producto;
+            const unidades = parseInt(row.dataset.unidades) || 0;
+
+            if (e.target.closest(".btn-modificar")) abrirModalEditarComida(id);
+            if (e.target.closest(".btn-retirar")) abrirModalRetiroComida(id, producto, unidades);
+            if (e.target.closest(".btn-comentario")) abrirModalComentarioComida(id, producto);
+            if (e.target.closest(".btn-eliminar")) confirmarEliminarComida(id, producto);
+        });
+    } else {
+        console.error("[ERROR] Elemento tablaComidaBody no encontrado para delegación de eventos");
+    }
+
+    // =================================================
+    // --- 3. NOTIFICACIONES (RENDERIZADO Y MANEJO) ---
+    // =================================================
+    function mostrarNotificaciones() {
+        console.log("[INFO] Mostrando notificaciones de comida...");
+        const proximos = pageState.productosProximosAVencer.filter(p => typeof p.diasRestantes === "number" && p.diasRestantes >= 0);
+        const vencidos = pageState.productosProximosAVencer.filter(p => typeof p.diasRestantes === "number" && p.diasRestantes < 0);
+
+        const tabSinVencimientoButton = document.querySelector('button[data-tab="sin-vencimiento"]');
+        if (tabSinVencimientoButton) tabSinVencimientoButton.style.display = 'none';
+        const tabSinVencimientoContent = document.getElementById('sin-vencimiento');
+        if (tabSinVencimientoContent) tabSinVencimientoContent.style.display = 'none';
+
+        const cantidadEl = document.getElementById("notificacionCantidad");
+        const itemsNotificables = proximos.length + vencidos.length;
+
+        if (cantidadEl) {
+            if (itemsNotificables > 0) {
+                cantidadEl.style.display = "inline-block";
+                cantidadEl.textContent = itemsNotificables.toString();
+            } else {
+                cantidadEl.style.display = "none";
+            }
+        }
+
+        mostrarTablaVencimiento(proximos, "tablaProximosVencimientoBody");
+        mostrarTablaVencimiento(vencidos, "tablaVencidosBody");
+
+        if (vencidos.length > 0 && proximos.length === 0) {
+            mostrarTab('vencidos', document.querySelector('[data-tab="vencidos"]'));
+        } else {
+            mostrarTab('proximos', document.querySelector('[data-tab="proximos"]'));
+        }
+    }
+
+    function mostrarTablaVencimiento(items, tablaBodyId) {
+        const tbody = document.getElementById(tablaBodyId);
+        if (!tbody) {
+            console.error(`[ERROR] Elemento ${tablaBodyId} no encontrado`);
+            return;
+        }
+        tbody.innerHTML = '';
+
+        if (items.length === 0) {
+            const message = tablaBodyId === "tablaProximosVencimientoBody" ? "No hay productos próximos a vencer." : "No hay productos vencidos.";
+            tbody.innerHTML = `<tr><td colspan='6' style='text-align:center;'>${message}</td></tr>`;
+            return;
+        }
+
+        items.forEach(item => {
+            const row = document.createElement("tr");
+            let diasTexto;
+            if (tablaBodyId === "tablaProximosVencimientoBody") {
+                diasTexto = item.diasRestantes === 0 ? "Vence hoy" : `${item.diasRestantes} días`;
+            } else {
+                diasTexto = `Hace ${Math.abs(item.diasRestantes)} días`;
+            }
+            row.innerHTML = `
+                <td>${escapeHtml(item.id || "N/A")}</td>
+                <td>${escapeHtml(item.producto || "N/A")}</td>
+                <td>${diasTexto}</td>
+                <td>${escapeHtml(item.estado || "N/A")}</td>
+                <td>${escapeHtml(item.ubicacion || "N/A")}</td>
+                <td>${escapeHtml(item.unidadesDisponibles != null ? item.unidadesDisponibles : "N/A")}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function mostrarTab(tabId, boton) {
+        document.querySelectorAll(".tab-content").forEach(tab => {
+            tab.classList.remove("active");
+            tab.style.display = "none";
+        });
+        document.querySelectorAll(".tab-button").forEach(btn => {
+            btn.classList.remove("active");
+        });
+        const tabActiva = document.getElementById(tabId);
+        if (tabActiva) {
+            tabActiva.classList.add("active");
+            tabActiva.style.display = "block";
+        }
+        if (boton) boton.classList.add("active");
+    }
+
+    function limpiarNotificaciones() {
+        pageState.productosProximosAVencer = [];
+        const cantidadEl = document.getElementById("notificacionCantidad");
+        if (cantidadEl) {
+            cantidadEl.style.display = "none";
+            cantidadEl.textContent = "";
+        }
+        mostrarTablaVencimiento([], "tablaProximosVencimientoBody");
+        mostrarTablaVencimiento([], "tablaVencidosBody");
+        mostrarMensaje("Notificaciones de vencimiento limpiadas.", "success");
+    }
+
+    function deactivateSelectedNotifications() {
+        const seleccionados = [...document.querySelectorAll('.notificacion-checkbox:checked')].map(cb => cb.value);
+        if (seleccionados.length === 0) return;
+        
+        if (confirm("¿Seguro que deseas desactivar las notificaciones seleccionadas?")) {
+            google.script.run
+                .withSuccessHandler(() => {
+                    loadNotificacionesComida();
+                    mostrarMensaje("Notificaciones desactivadas correctamente", "success");
+                })
+                .withFailureHandler(err => {
+                    mostrarMensaje("Error al desactivar notificaciones: " + err.message, "error");
+                })
+                .desactivarNotificacionesComida(seleccionados);
+        }
+    }
+
+    function handleIndividualCheckboxChange(checkbox) {
+        const anyChecked = document.querySelectorAll('.notificacion-checkbox:checked').length > 0;
+        const btn = document.getElementById("btnDesactivarSeleccionados");
+        if (btn) btn.disabled = !anyChecked;
+    }
+
+    function loadComentarios() {
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(function(responseString) {
+                showLoading(false);
+                try {
+                    const response = JSON.parse(responseString);
+                    if (response.data) {
+                        renderComentarios(response.data);
+                    } else {
+                        console.error("No data in response:", response);
+                        mostrarMensaje("No se encontraron comentarios.", "info");
+                    }
+                } catch (e) {
+                    console.error("Error parsing comments response:", e);
+                    mostrarMensaje("Error al procesar la respuesta de comentarios.", "error");
+                }
+            })
+            .withFailureHandler(function(error) {
+                showLoading(false);
+                console.error("Error loading comments:", error);
+                mostrarMensaje("Error al cargar los comentarios.", "error");
+            })
+            .getComentarioData();
+    }
+
+    function renderComentarios(comentarios) {
+        const pendientesBody = document.getElementById("tablaComentariosPendientesBody");
+        const leidasBody = document.getElementById("tablaComentariosLeidasBody");
+
+        if (!pendientesBody || !leidasBody) {
+            console.error("[ERROR] Elementos de comentarios no encontrados");
+            return;
+        }
+
+        pendientesBody.innerHTML = "";
+        leidasBody.innerHTML = "";
+
+        // Assuming comments have a "Leido" property
+        const pendientes = comentarios.filter(c => !c.Leido);
+        const leidas = comentarios.filter(c => c.Leido);
+
+        if (pendientes.length === 0) {
+            pendientesBody.innerHTML = "<tr><td colspan='4'>No hay comentarios pendientes.</td></tr>";
+        } else {
+            pendientes.forEach(c => {
+                const row = pendientesBody.insertRow();
+                row.innerHTML = `
+                    <td>${escapeHtml(c.Id)}</td>
+                    <td>${escapeHtml(c.Producto)}</td>
+                    <td>${formatDate(c.Fecha)}</td>
+                    <td>${escapeHtml(c.Comentario)}</td>
+                `;
+            });
+        }
+
+        if (leidas.length === 0) {
+            leidasBody.innerHTML = "<tr><td colspan='4'>No hay comentarios leídos.</td></tr>";
+        } else {
+            leidas.forEach(c => {
+                const row = leidasBody.insertRow();
+                row.innerHTML = `
+                    <td>${escapeHtml(c.Id)}</td>
+                    <td>${escapeHtml(c.Producto)}</td>
+                    <td>${formatDate(c.Fecha)}</td>
+                    <td>${escapeHtml(c.Comentario)}</td>
+                `;
+            });
+        }
+    }
+
+    // =================================================
+    // --- 4. FILTROS Y ORDENAMIENTO ---
+    // =================================================
+    function aplicarFiltrosYOrdenarComida() {
+        aplicarFiltrosYOrdenarGenerico({
+            dataSource: pageState.fullData,
+            setResultados: val => (pageState.datosMostrados = val),
+            fechaOrdenAsc: pageState.fechaOrdenAscendente,
+            renderFn: renderComidaTable,
+            filters: [
+                { id: "buscarComida", field: "PRODUCTO", type: "text" },
+                { id: "filtroUbicacionComida", field: "UBICACION", type: "text" },
+                { id: "filtroEstadoProductoComida", field: "ESTADO DEL PRODUCTO", type: "text" },
+                { id: "filtroUnidadesComida", field: "Unidades disponibles", type: "number" },
+                { id: "filtroEstadoComidaSelect", field: "Estado", type: "text" }
+            ]
+        });
+    }
+    const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarComida;
+
+    function limpiarTodosLosFiltrosComida() {
+        limpiarFiltrosGenerico({
+            filtros: [
+                { id: "buscarComida", type: "text" },
+                { id: "filtroUbicacionComida", type: "text" },
+                { id: "filtroEstadoProductoComida", type: "text" },
+                { id: "filtroUnidadesComida", type: "number" },
+                { id: "filtroEstadoComidaSelect", type: "select", defaultValue: "activo" }
+            ],
+            aplicarFn: aplicarFiltrosYOrdenarComida
+        });
+    }
+/*quiatr es si no es necesario 
+    function searchItemsComida() { searchItemsGenerico(aplicarFiltrosYOrdenarComida); }
+    function clearSearchComida() { clearSearchGenerico("buscarComida", aplicarFiltrosYOrdenarComida); }
+    function ordenarPorFechaComida(event) { ordenarPorFechaGenerico(event, "sortOptionsComida"); }
+    function ordenarAscendenteComida() { ordenarAscendenteGenerico(aplicarFiltrosYOrdenarComida, "sortOptionsComida", val => pageState.fechaOrdenAscendente = val); }
+    function ordenarDescendenteComida() { ordenarDescendenteGenerico(aplicarFiltrosYOrdenarComida, "sortOptionsComida", val => pageState.fechaOrdenAscendente = val); }
+    
+    function ordenarPorIdRecienteComida() { ordenarPorIdRecienteGenerico(aplicarFiltrosYOrdenarComida, "sortOptionsComida", val => pageState.criterioDeOrden = val); }
+*/
+ function toggleFiltrosAdicionalesComida() { toggleFiltrosAdicionalesGenerico("filtrosAdicionalesContainer"); }
+    // ===================================
+    // --- 5. MANEJO DE MODALES ---
+    // ===================================
+    function abrirModalAgregar() {
+        abrirModal("modalAgregarComida");
+        document.getElementById("agregarComidaForm").reset();
+    }
+    function cerrarModalAgregar() { 
+        cerrarModal("modalAgregarComida"); 
+    }
+
+    function abrirModalRetiroComida(id, producto, unidadesDisponibles) {
+        pageState.productoRetiroSeleccionado = { id, producto, unidadesDisponibles };
+        abrirModal("modalRetiroComida");
+        document.getElementById("productoIdRetiroComida").textContent = id;
+        document.getElementById("productoNombreRetiroComida").textContent = producto;
+        document.getElementById("unidadesDisponiblesRetiroComida").textContent = unidadesDisponibles;   
+        document.getElementById("unidadesRetirarComida").max =unidadesDisponibles;
+    }
+    function cerrarModalRetiro() {
+        cerrarModal("modalRetiroComida");
+        pageState.productoRetiroSeleccionado = null;
+    }
+
+    function abrirModalEditarComida(id) {
+        pageState.productoAEditarId = id;
+        const producto = pageState.datosMostrados.find(item => String(item.Id) === String(id));
+        if (producto) {
+            abrirModal("modalEditarComida");
+            document.getElementById("productoIdEditarComida").textContent = id;
+            document.getElementById("productoEditarComida").value = producto["PRODUCTO"] ||"" ;
+            document.getElementById("precioEditarComida").value = producto["PRECIO"] || "";
+            document.getElementById("unidadesAgregarEditarComida").value = "0" ;
+            document.getElementById("ubicacionEditarComida").value = producto["UBICACION"] || "";
+            document.getElementById("estadoEditarComida").value = producto["ESTADO DEL PRODUCTO"] || "";
+            document.getElementById("fechaVencimientoEditarComida").value = producto["FECHA DE VENCIMIENTO"]
+                ? new Date (producto["FECHA DE VENCIMIENTO"]).toISOString().split('T')[0] : '';
+            document.getElementById("comentariosEditarComida").value = producto["COMENTARIOS"] || "";
+        } else {
+            mostrarMensaje("Error: No se pudo encontrar el producto para editar.", "error");
+        }
+    }
+    function cerrarModalEditar() {
+        cerrarModal("modalEditarComida");
+        pageState.productoAEditarId = null;
+    }
+
+    function abrirModalComentarioComida(id, producto) {
+        pageState.productoComentarioSeleccionado = { id,producto };
+        abrirModal("modalComentarioComida");
+        document.getElementById("comentarioProductoIdComida").textContent = id;
+        document.getElementById("comentarioProductoNombreComida").textContent = producto;
+        document.getElementById("comentarioTextoComida").value = "";
+    }   
+
+    function cerrarModalComentario() {
+        cerrarModal("modalComentarioComida");
+        pageState.productoComentarioSeleccionado = null;
+    }
+
+    function abrirModalVencimientoComida() {
+        abrirModal("modalVencimiento-Comida");
+    }
+    function cerrarModalVencimiento() { cerrarModal("modalVencimiento-Comida"); }
+
+    function abrirModalNotificacionComentario() {
+        abrirModal("modalNotificacion-Comentario");
+        loadComentarios();
+    }
+    function cerrarModalNotificacionComentario() {
+        cerrarModal("modalNotificacion-Comentario");
+    }
+
+    // =================================================
+    // --- 6. ENVÍO DE FORMULARIOS (EVENT LISTENERS) ---
+    // =================================================
+     handleSubmitGenerico({
+        formId: "agregarComidaForm",
+        buildDataFn: () => ({
+            productoAgregar: document.getElementById("productoAgregarComida").value.trim(),
+            ingresosAgregar: document.getElementById("ingresosAgregarComida").value,
+            precioAgregar: convertirPrecioFormateadoAStringNumericoParaServidor(document.getElementById("precioAgregarComida").value),
+            ubicacionAgregar: document.getElementById("ubicacionAgregarComida").value.trim(),
+            estadoAgregar: document.getElementById("estadoAgregarComida").value.trim(),
+            fechaVencimientoAgregar: document.getElementById("fechaVencimientoAgregarComida").value,
+            comentariosAgregar: document.getElementById("comentariosAgregarComida").value.trim()
+        }),
+        endpoint: "agregarComida",
+        onSuccess: () => loadComida()
+    });
+
+    handleSubmitGenerico({
+        formId: "editarComidaForm",
+        buildDataFn: () => ({
+            idEditar: pageState.productoAEditarId,
+            productoEditar: document.getElementById("productoEditarComida").value.trim(),
+            precioEditar: convertirPrecioFormateadoAStringNumericoParaServidor(document.getElementById("precioEditarComida").value),
+            ubicacionEditar: document.getElementById("ubicacionEditarComida").value.trim(),
+            estadoEditar: document.getElementById("estadoEditarComida").value.trim(),
+            unidadesAgregarEditar: parseInt(document.getElementById("unidadesAgregarEditarComida").value) || 0,
+            fechaVencimientoEditar: document.getElementById("fechaVencimientoEditarComida").value,
+            comentariosEditar: document.getElementById("comentariosEditarComida").value.trim()
+        }),
+        endpoint: "actualizarComida",
+        onSuccess: () => loadComida()
+    });
+
+    handleSubmitGenerico({
+        formId: "retiroComidaForm",
+        buildDataFn: () => {
+            const unidades = parseInt(document.getElementById("unidadesRetirarComida").value);
+            return { id: pageState.productoRetiroSeleccionado.id, unidades };
+        },
+        endpoint: "retirarComida",
+        onSuccess: () => loadComida()
+    });
+
+    handleSubmitGenerico({
+        formId: "comentarioComidaForm",
+        buildDataFn: () => ({
+            productoId: pageState.productoComentarioSeleccionado.id,
+            producto: pageState.productoComentarioSeleccionado.producto,
+            programa: "Comida",
+            comentario: document.getElementById("comentarioTextoComida").value.trim(),
+            usuario: currentUser ? (currentUser.name || currentUser.email) : "Anónimo"
+        }),
+        endpoint: "registrarComentario",
+        onSuccess: () => loadComida()
+    });
+    // =================================================
+    // --- 7. FUNCIONES DE UTILIDAD (HELPERS) ---
+    // =================================================
+    function confirmarEliminarComida(id,nombreProducto) {
+        if (confirm(` ¿Seguro que deseas desactivar este producto" ${nombreProducto}? "`)) {
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(handleComidaServerResponse)
+                .withFailureHandler(handleComidaServerError)
+                .eliminarComida(id); 
+        }
+    }
+
+    // ===============================================
+    // --- 8. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
+    // ===============================================
+    function inicializarPaginaComida() {
+        const setupFilterListener = (id, eventType, handler) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener(eventType, handler);
+            } else {
+                console.warn(`[WARN] Elemento ${id} no encontrado para listener`);
+            }
+        };
+        setupFilterListener("buscarComida", "input", aplicarFiltrosYOrdenar);
+        setupFilterListener("filtroUbicacionComida", "input", aplicarFiltrosYOrdenar);
+        setupFilterListener("filtroEstadoProductoComida", "input", aplicarFiltrosYOrdenar);
+        setupFilterListener("filtroUnidadesComida", "input", aplicarFiltrosYOrdenar);
+        setupFilterListener("filtroEstadoComidaSelect", "change", aplicarFiltrosYOrdenar);
+      
+        const toggleFiltrosBtn = document.getElementById("toggleFiltrosComidaIconContainer");
+        const filtrosContainer = document.getElementById("filtrosAdicionalesContainer");
+        if (toggleFiltrosBtn && filtrosContainer) {
+            filtrosContainer.classList.add("filtros-adicionales-ocultos");
+            toggleFiltrosBtn.addEventListener("click", toggleFiltrosAdicionalesComida);
+        } else {
+            console.warn("[WARN] Elementos de toggle filtros no encontrados");
+        }
+      
+        loadComida();
+    }
+
+    // Registrar cierre de modales con ESC
+    registrarEscapeCierraModales([
+        cerrarModalAgregar,
+        cerrarModalEditar,
+        cerrarModalRetiro,
+        cerrarModalComentario,
+        cerrarModalVencimiento,
+        cerrarModalNotificacionComentario
+    ]);
+
+    // Exponer funciones al scope global para que los `onclick` y `event listeners` funcionen
+    window.abrirModalAgregarComida = abrirModalAgregar;
+    window.cerrarModalAgregarComida = cerrarModalAgregar;
+    window.abrirModalRetiroComida = abrirModalRetiroComida;
+    window.cerrarModalRetiroComida = cerrarModalRetiro;
+    window.abrirModalEditarComida = abrirModalEditarComida;
+    window.cerrarModalEditarComida = cerrarModalEditar;
+    window.abrirModalComentarioComida = abrirModalComentarioComida;
+    window.cerrarModalComentarioComida = cerrarModalComentario;
+    window.abrirModalVencimientoComida = abrirModalVencimientoComida;
+    window.cerrarModalVencimientoComida = cerrarModalVencimiento;
+    window.abrirModalNotificacionComentario = abrirModalNotificacionComentario;
+    window.cerrarModalNotificacionComentarioComida = cerrarModalNotificacionComentario;
+    window.loadNotificacionesComida = loadNotificacionesComida;
+    window.loadComentarios = loadComentarios;
+    window.limpiarNotificaciones = limpiarNotificaciones;
+    window.mostrarTab = mostrarTab;
+    window.confirmarEliminarComida = confirmarEliminarComida;
+ 
+    window.deactivateSelectedNotifications = deactivateSelectedNotifications;
+    window.handleIndividualCheckboxChange = handleIndividualCheckboxChange;
+
+    // Alias para que el HTML no se rompa
+window.cerrarModalAgregar = cerrarModalAgregarComida;
+window.cerrarModalEditar = cerrarModalEditarComida;
+window.cerrarModalRetiro = cerrarModalRetiroComida;
+window.cerrarModalComentario = cerrarModalComentarioComida;
+window.cerrarModalVencimiento = cerrarModalVencimientoComida;
+window.cerrarModalNotificacionComentario = cerrarModalNotificacionComentarioComida;
+
+
+    // Funciones de paginación de notificaciones (placeholders)
+    window.paginaAnteriorNotificaciones = () => console.warn("Función paginaAnteriorNotificaciones no implementada.");
+    window.paginaSiguienteNotificaciones = () => console.warn("Función paginaSiguienteNotificaciones no implementada.");
+
+    // Alias para compatibilidad con botones que llaman "abrirModalComentariosComida"
+    window.abrirModalComentariosComida = function() {
+        abrirModalComentarioComida(null, null);
+    };
+
+    // --- INICIO ---
+    inicializarPaginaComida();
+    
+})();
+</script>

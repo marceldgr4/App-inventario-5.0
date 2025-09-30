@@ -1,0 +1,236 @@
+<script>
+/**
+ * @summary Objeto principal de la aplicación para encapsular la lógica del login.
+ * @description Utiliza el patrón Módulo para evitar la contaminación del espacio global.
+ */
+const App = {
+    /**
+     * Almacena referencias a los elementos del DOM para un acceso eficiente.
+     */
+    elements: {
+        recoveryModal: null,
+        loginForm: null,
+        loaderContainer: null,
+        errorBox: null,
+        alertMessage: null,
+        customAlert: null,
+        passwordInput: null,
+        toggleIcon: null,
+        recoveryEmailInput: null,
+        recoveryButton: null,
+        closeAlertButton: null,
+        openRecoveryModalLink: null,
+        closeRecoveryModalButton: null,
+        togglePasswordIcon: null,
+    },
+
+    /**
+     * @summary Inicializa la aplicación.
+     * @description Se ejecuta cuando el DOM está listo, cachea elementos y asigna eventos.
+     */
+    init() {
+        try {
+            // Cache de elementos del DOM
+            this.elements.recoveryModal = document.getElementById('recoveryModal');
+            this.elements.loginForm = document.getElementById('loginForm');
+            this.elements.loaderContainer = document.querySelector('.loader-container');
+            this.elements.errorBox = document.getElementById('errorBox');
+            this.elements.alertMessage = document.getElementById('alertMessage');
+            this.elements.customAlert = document.getElementById('customAlert');
+            this.elements.passwordInput = document.getElementById('password');
+            this.elements.toggleIcon = document.querySelector('.show-password i');
+            this.elements.togglePasswordIcon = document.getElementById('togglePasswordIcon');
+            this.elements.recoveryEmailInput = document.getElementById('recoveryEmail');
+            this.elements.recoveryButton = document.getElementById('recoveryButton');
+            this.elements.closeAlertButton = document.getElementById('closeAlertButton');
+            this.elements.openRecoveryModalLink = document.getElementById('openRecoveryModal');
+            this.elements.closeRecoveryModalButton = document.getElementById('closeRecoveryModalButton');
+
+            // Asignación de eventos
+            if (this.elements.loginForm) {
+                this.elements.loginForm.addEventListener('submit', this.handleSubmit.bind(this));
+            }
+            this.elements.togglePasswordIcon?.addEventListener('click', this.togglePassword.bind(this));
+            this.elements.closeAlertButton?.addEventListener('click', this.closeAlert.bind(this));
+            this.elements.openRecoveryModalLink?.addEventListener('click', this.openRecoveryModal.bind(this));
+            this.elements.closeRecoveryModalButton?.addEventListener('click', this.closeRecoveryModal.bind(this));
+            this.elements.recoveryButton?.addEventListener('click', this.recoverPassword.bind(this));
+
+        } catch (error) {
+            console.error("Error al inicializar la aplicación:", error);
+        }
+    },
+
+    /**
+     * @summary Alterna la visibilidad del campo de contraseña.
+     */
+    togglePassword() {
+        const { passwordInput, togglePasswordIcon: toggleIcon } = this.elements;
+        if (passwordInput && toggleIcon) {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            toggleIcon.classList.replace(isHidden ? 'bxs-low-vision' : 'bxs-show', isHidden ? 'bxs-show' : 'bxs-low-vision');
+        }
+    },
+
+    /**
+     * @summary Gestiona el estado de un botón (texto y si está deshabilitado).
+     * @param {HTMLButtonElement} button - El botón a modificar.
+     * @param {string} text - El texto a mostrar en el botón.
+     * @param {boolean} disabled - Si el botón debe estar deshabilitado.
+     */
+    setButtonState(button, text, disabled) {
+        if (button) {
+            button.innerText = text;
+            button.disabled = disabled;
+        }
+    },
+
+    showLoader() {
+        this.elements.loaderContainer?.classList.remove('hidden');
+    },
+
+    hideLoader() {
+        this.elements.loaderContainer?.classList.add('hidden');
+    },
+
+    showError(message) {
+        const { errorBox } = this.elements;
+        if (errorBox) {
+            errorBox.innerText = message;
+            errorBox.classList.remove('hidden');
+            setTimeout(() => {
+                errorBox.classList.add('hidden');
+            }, 3000);
+        } else {
+            alert(message);
+        }
+    },
+
+    showAlert(message) {
+        if (this.elements.alertMessage && this.elements.customAlert) {
+            this.elements.alertMessage.innerText = message;
+            this.elements.customAlert.classList.remove('hidden');
+        } else {
+            alert(message);
+        }
+    },
+
+    closeAlert() {
+        this.elements.customAlert?.classList.add('hidden');
+    },
+
+    openRecoveryModal() {
+        this.elements.recoveryModal?.classList.remove('hidden');
+    },
+
+    closeRecoveryModal() {
+        this.elements.recoveryModal?.classList.add('hidden');
+    },
+
+    // --- MANEJADORES DE LÓGICA DE NEGOCIO ---
+
+    /**
+     * @summary Maneja el envío del formulario de inicio de sesión.
+     */
+    handleSubmit(event) {
+        event.preventDefault();
+        const username = this.elements.loginForm.elements.userName?.value.trim();
+        const password = this.elements.loginForm.elements.password?.value.trim();
+
+        if (!username || !password) {
+            this.showError('⚠️ Por favor, ingrese usuario y contraseña');
+            return;
+        }
+
+        this.showLoader();
+        google.script.run
+            .withSuccessHandler(this.onLoginSuccess.bind(this))
+            .withFailureHandler(this.onLoginFailure.bind(this))
+            .loginCheck(username, password);
+    },
+
+    onLoginSuccess(response) {
+        this.hideLoader();
+        if (response?.status) {
+            if (response.page) {
+                this.showAlert('✅ Inicio de sesión exitoso. Redirigiendo...');
+                window.location.href = response.page;
+            } else {
+                this.showError('❌ No se encontró la página de destino.');
+            }
+        } else {
+            this.showError(response?.message || '⚠️ Usuario o contraseña incorrectos.');
+        }
+    },
+
+    onLoginFailure(error) {
+        this.hideLoader();
+        this.showError('❌ Error en el servidor. Intente nuevamente.');
+        console.error("Fallo en loginCheck:", error);
+    },
+
+    /**
+     * @summary Inicia el proceso de recuperación de contraseña.
+     */
+    recoverPassword() {
+        const email = this.elements.recoveryEmailInput.value.trim();
+        const button = this.elements.recoveryButton;
+
+        if (!email) {
+            this.showError('⚠️ Ingrese su correo electrónico');
+            return;
+        }
+
+        this.setButtonState(button, '⏳ Enviando...', true);
+        this.showLoader();
+
+        google.script.run
+            .withSuccessHandler(this.onRecoverySuccess.bind(this))
+            .withFailureHandler(this.onRecoveryFailure.bind(this))
+            .recoverPassword(email);
+    },
+
+    onRecoverySuccess(response) {
+        this.hideLoader();
+        this.setButtonState(this.elements.recoveryButton, 'Recuperar Contraseña', false);
+        this.closeRecoveryModal();
+        
+        if (response.status) {
+            this.showAlert('✅ ' + response.message);
+        } else {
+            this.showError('❌ ' + response.message);
+        }
+    },
+
+    onRecoveryFailure(error) {
+        this.hideLoader();
+        this.setButtonState(this.elements.recoveryButton, 'Recuperar Contraseña', false);
+        this.closeRecoveryModal();
+        this.showError('❌ Error al procesar la solicitud. Inténtelo de nuevo.');
+        console.error("Fallo en recoverPassword:", error);
+    },
+};
+
+/**
+ * Se ejecuta cuando el DOM está completamente cargado para inicializar la aplicación.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+});
+
+
+var currentUser = currentUser || null;
+
+// Cargar el usuario desde Apps Script
+google.script.run
+  .withSuccessHandler(function(userJson) {
+    if (userJson) {
+      currentUser = JSON.parse(userJson);
+      console.log("Usuario activo:", currentUser);
+    } else {
+      console.warn("No hay usuario en sesión");
+    }
+  })
+  .getCurrentUser();
+</script>

@@ -1,0 +1,296 @@
+<script>
+/**
+ * @summary Actualiza el dashboard con los datos del inventario usando Chart.js.
+ * @param {object} data - El objeto de datos proveniente de `obtenerDatosDashboard`.
+ */
+function updateDashboard(data) {
+  // --- Resumen General ---
+    // Calcula los totales sumando los valores de cada categoría de inventario.
+  const totalProductos =
+    (data.inventario.totalProductos || 0) +
+    (data.comida.totalProductos || 0) +
+    (data.decoracion.totalProductos || 0) +
+    (data.papeleria.totalProductos || 0);
+  const totalUnidadesDisponibles =
+    (data.inventario.unidadesDisponibles || 0) +
+    (data.comida.unidadesDisponibles || 0) +
+    (data.decoracion.unidadesDisponibles || 0) +
+    (data.papeleria.unidadesDisponibles || 0);
+  const totalUnidadesAgotadas =
+    (data.inventario.unidadesAgotadas || 0) +
+    (data.comida.unidadesAgotadas || 0) +
+    (data.decoracion.unidadesAgotadas || 0) +
+    (data.papeleria.unidadesAgotadas || 0);
+  const totalStockMas8Meses = data.inventario.masDeOchoMeses || 0; // Solo de inventario por ahora
+ // Actualiza los elementos del DOM con los valores calculados.
+  document.getElementById('total-productos').textContent = totalProductos;
+  document.getElementById('total-unidades-disponibles').textContent = totalUnidadesDisponibles;
+  document.getElementById('total-unidades-agotadas').textContent = totalUnidadesAgotadas;
+  document.getElementById('total-stock-mas-8meses').textContent = totalStockMas8Meses;
+
+  // --- Gráfico de Pastel General (Unidades por Categoría) ---
+  const labelsTotalPie = ['Articulos', 'Comida', 'Decoración', 'Papelería'];
+  const dataTotalPie = [
+    data.inventario.unidadesDisponibles || 0,
+    data.comida.unidadesDisponibles || 0,
+    data.decoracion.unidadesDisponibles || 0,
+    data.papeleria.unidadesDisponibles || 0,
+  ];
+  renderPieChart('total-pie-chart',labelsTotalPie,dataTotalPie, 'Unidades Disponibles por Categoría'
+  );
+
+// --- Gráfico de Barras General (Productos Totales por Categoría) ---
+  const labelsTotalBar = ['Articulos', 'Comida', 'Decoración', 'Papelería'];
+  const dataTotalBar = [
+    data.inventario.totalProductos || 0,
+    data.comida.totalProductos || 0,
+    data.decoracion.totalProductos || 0,
+    data.papeleria.totalProductos || 0,
+  ];
+  renderBarChart('total-bar-chart',  labelsTotalBar,  dataTotalBar,  'Total de Productos Categoría' );
+}
+/**
+ * @summary Calcula el número de productos activos (con unidades > 0) para cada programa.
+ * @param {Array<object>} productosPorPrograma - Un arreglo de objetos de productos.
+ * @returns {object} Un objeto donde las claves son los nombres de los programas y los valores son la cantidad de productos activos.
+ */
+function calcularConteoPorPrograma(productosPorPrograma) {
+  const conteoPorPrograma = {};
+  productosPorPrograma.forEach(p => {
+    if (p.unidades > 0) {
+      conteoPorPrograma[p.programa] = (conteoPorPrograma[p.programa] || 0) + 1;
+    }
+  });
+  return conteoPorPrograma;
+}
+/**
+ * @summary Renderiza un gráfico de pastel en un elemento canvas usando Chart.js.
+ * @description Función reutilizable para crear gráficos de pastel con configuraciones personalizadas para leyendas,
+ * tooltips (que muestran porcentajes) y etiquetas de datos.
+ * @param {string} canvasId - El ID del elemento `<canvas>` donde se dibujará el gráfico.
+ * @param {Array<string>} labels - Un arreglo de etiquetas para cada segmento del pastel.
+ * @param {Array<number>} data - Un arreglo de valores numéricos correspondientes a cada etiqueta.
+ * @param {string} titleText - El título que se mostrará sobre el gráfico.
+ */
+function renderPieChart(canvasId, labels, data, titleText) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          data: data,
+          backgroundColor: [/* ... colores ... */
+            'rgba(0, 23, 5, 0.7)',
+            'rgba(77, 227, 102, 0.7)',
+            'rgba(255, 200, 68, 0.7)',
+            'rgba(118, 109, 250, 0.7)',
+            'rgba(22, 6, 68, 0.7)',
+            'rgba(252, 128, 95, 0.7)',
+            'rgba(243, 51, 63, 0.7)',
+            'rgba(22, 153, 104, 0.7)',
+            'rgba(43, 82, 67, 0.7)',
+          ],
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            usePointStyle: true,
+            boxWidth: 12,
+            padding: 8,
+            font: {
+              size: 10,
+            },
+          },
+          align: 'center',
+          maxWidth: 200,
+          columnWidth: 100,
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              let label = context.label || '';
+              if (context.parsed !== null) {
+                const percentage = (
+                  (context.parsed /
+                    context.dataset.data.reduce((a, b) => a + b, 0)) *
+                  100
+                ).toFixed(2);
+                label += `: ${context.parsed} (${percentage}%)`;
+              }
+              return label;
+            },
+          },
+        },
+        title: {
+          display: true,
+          text: titleText,
+        },
+        datalabels: {
+          color: '#fff',
+          formatter: (value, context) => {
+            const chart = context.chart;
+            const dataset = context.dataset;
+            const dataIndex = context.dataIndex;
+            const visibleData = dataset.data.filter((_, i) =>
+              chart.getDataVisibility(i)
+            );
+            const visibleTotal = visibleData.reduce((a, b) => a + b, 0);
+            const percentage = ((value / visibleTotal) * 100).toFixed(1);
+            const isVisible = chart.getDataVisibility(dataIndex);
+            if (!isVisible) return null;
+            const visibleCount = visibleData.length;
+            if (parseFloat(percentage) >= 5 || visibleCount <= 5) {
+              return `${percentage}%`;
+            }
+            return '';
+          },
+          font: {
+            size: 10,
+          },
+        },
+      },
+    },
+    plugins: [ChartDataLabels],
+  });
+}
+/**
+ * @summary Renderiza un gráfico de barras en un elemento canvas usando Chart.js.
+ * @description Función reutilizable para crear gráficos de barras verticales.
+ * @param {string} canvasId - El ID del elemento `<canvas>`.
+ * @param {Array<string>} labels - Un arreglo de etiquetas para el eje X.
+ * @param {Array<number>} data - Un arreglo de valores para la altura de las barras.
+ * @param {string} labelText - La etiqueta para el conjunto de datos (usada en la leyenda y tooltips).
+ */
+function renderBarChart(canvasId, labels, data, labelText) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const newChart = new Chart(ctx, {
+    // Asignamos la instancia a newChart
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: labelText,
+          data: data,
+          backgroundColor: 'rgba(118, 109, 250, 0.7)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+      plugins: {
+        legend: { display: true },
+        title: {
+          display: true,
+          text:
+            labelText +
+            (labelText === 'Cantidad de productos' ? ' por Categoría' : ''),
+        },
+      },
+    },
+  });
+}
+</script>
+  <script>
+    // 1. Llamada al servidor para obtener los datos (igual que antes)
+    google.script.run.withSuccessHandler(actualizarDashboard).obtenerDatosDashboard();
+
+    /**
+     * @summary Actualiza el dashboard con los datos del inventario usando ApexCharts.
+     * @param {object} data - El objeto de datos proveniente de `obtenerDatosDashboard`.
+     */
+    function actualizarDashboard(data) {
+      console.log(data);
+      // 2. Calcular los totales generales (igual que antes)
+      const totalProductos = (data.inventario.totalProductos || 0) + (data.comida.totalProductos || 0) + (data.decoracion.totalProductos || 0) + (data.papeleria.totalProductos || 0);
+      const totalUnidadesDisponibles = (data.inventario.unidadesDisponibles || 0) + (data.comida.unidadesDisponibles || 0) + (data.decoracion.unidadesDisponibles || 0) + (data.papeleria.unidadesDisponibles || 0);
+      const totalUnidadesAgotadas = (data.inventario.unidadesAgotadas || 0) + (data.comida.unidadesAgotadas || 0) + (data.decoracion.unidadesAgotadas || 0) + (data.papeleria.unidadesAgotadas || 0);
+      const totalStockMas8Meses = data.inventario.masDeOchoMeses || 0;
+
+      // 3. Actualizar las tarjetas de KPIs
+      const totalProductosEl = document.getElementById('total-productos');
+      if (totalProductosEl) totalProductosEl.textContent = totalProductos;
+
+      const totalUnidadesDisponiblesEl = document.getElementById('total-unidades-disponibles');
+      if (totalUnidadesDisponiblesEl) totalUnidadesDisponiblesEl.textContent = totalUnidadesDisponibles;
+
+      const totalUnidadesAgotadasEl = document.getElementById('total-unidades-agotadas');
+      if (totalUnidadesAgotadasEl) totalUnidadesAgotadasEl.textContent = totalUnidadesAgotadas;
+
+      const totalStockMas8MesesEl = document.getElementById('total-stock-mas-8meses');
+      if (totalStockMas8MesesEl) totalStockMas8MesesEl.textContent = totalStockMas8Meses;
+
+      // 4. Renderizar los gráficos con ApexCharts
+      if (document.getElementById('bar-chart-container') && document.getElementById('pie-chart-container')) {
+        renderizarGraficoBarras(data);
+        renderizarGraficoPastel(data);
+      }
+    }
+
+    /**
+     * @summary Dibuja el gráfico de barras para el total de productos.
+     */
+    function renderizarGraficoBarras(data) {
+      const options = {
+        chart: { type: 'bar', height: 350, toolbar: { show: false } },
+        series: [{
+          name: 'Total Productos',
+          data: [
+            data.inventario.totalProductos || 0,
+            data.comida.totalProductos || 0,
+            data.decoracion.totalProductos || 0,
+            data.papeleria.totalProductos || 0,
+          ]
+        }],
+        xaxis: {
+          categories: ['Artículos', 'Comida', 'Decoración', 'Papelería']
+        },
+        plotOptions: { bar: { horizontal: false, borderRadius: 4 } },
+        dataLabels: { enabled: false },
+        colors: ['#021640'],
+        grid: { strokeDashArray: 4 }
+      };
+      // Limpiamos el contenedor por si se recarga y renderizamos el nuevo gráfico
+      document.getElementById('bar-chart-container').innerHTML = '';
+      const chart = new ApexCharts(document.querySelector("#bar-chart-container"), options);
+      chart.render();
+    }
+
+    /**
+     * @summary Dibuja el gráfico de pastel para las unidades disponibles.
+     */
+    function renderizarGraficoPastel(data) {
+        const options = {
+            chart: { type: 'pie', height: 350 },
+            series: [
+                data.inventario.unidadesDisponibles || 0,
+                data.comida.unidadesDisponibles || 0,
+                data.decoracion.unidadesDisponibles || 0,
+                data.papeleria.unidadesDisponibles || 0,
+            ],
+            labels: ['Artículos', 'Comida', 'Decoración', 'Papelería'],
+            colors:['#021640', '#0066CC', '#0099CC', '#4572C4'],
+            legend: { position: 'bottom' }
+        };
+        // Limpiamos el contenedor y renderizamos el nuevo gráfico
+        document.getElementById('pie-chart-container').innerHTML = '';
+        const chart = new ApexCharts(document.querySelector("#pie-chart-container"), options);
+        chart.render();
+    }
+  </script>
