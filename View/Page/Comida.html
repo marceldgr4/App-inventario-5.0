@@ -137,9 +137,10 @@
                     <label for="estadoAgregarComida">Estado del producto:</label>
                     <select id="estadoAgregarComida" name="estadoAgregar" class="form-control">
                         <option value="" selected disabled>Seleccione un estado</option>
-                        <option value="Agotado">Agotado</option>
-                        <option value="En Uso">En Uso</option>
-                        <option value="Guardado">Guardado</option>
+                        <option value="Disponible">Disponible / Bueno</option>
+                        <option value="Usado">Usado</option>
+                        <option value="Perdido">Perdido Con Observaciones</option>
+                       
                     </select>
                 </div>
                 <div class="form-group">
@@ -184,7 +185,16 @@
                 </div>
                 <div class="form-group">
                     <label for="estadoEditarComida">Estado del producto:</label>
-                    <input type="text" id="estadoEditarComida" class="form-control">
+                    <!--input type="text" id="estadoEditarComida" class="form-control"-->
+                    <select id="estadoEditarComida" name="estadoEditar" class="form-control">
+                    <option value="" selected disabled>Seleccione un estado</option>
+                        <option value="Disponible">Disponible / Bueno</option>
+                        <option value="Usado">Usado</option>
+                        <option value="Perdido">Perdido Con Observaciones</option>
+                        <option value="Vencido">Vencido</option>
+                        <option value="Dañado">Dañado</option>
+                       
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="unidadesAgregarEditarComida">Unidades a agregar*:</label>
