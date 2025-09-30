@@ -274,6 +274,35 @@ function toggleFiltrosAdicionalesGenerico(containerId) {
     }
 }
 
+function handleSubmitGenerico(config) {
+    const { formId, buildDataFn, endpoint, onSuccess, validateFn } = config;
+    const form = document.getElementById(formId);
+
+    if (!form) {
+        console.error(`[ERROR] Formulario con ID "${formId}" no encontrado.`);
+        return;
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (typeof validateFn === 'function' && !validateFn()) {
+            // La validación falló, los mensajes se muestran dentro de validateFn
+            return;
+        }
+
+        showLoading(true);
+        const data = buildDataFn();
+
+        google.script.run
+            .withSuccessHandler(function(responseString) {
+                handleServerResponse(responseString, onSuccess, config.reloadFn);
+            })
+            .withFailureHandler(handleServerError)
+            [endpoint](data);
+    });
+}
+
 function registrarEscapeCierraModales(modales) {
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") {
