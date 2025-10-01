@@ -431,7 +431,7 @@ function normalizeKeys(item) {
 // --- FUNCIONES DE COMENTARIOS ---
 // ===============================
 
-function registrarComentarioGenerico({ productoId, producto, programa, comentario, usuario }) {
+function registrarComentarioGenerico({ productoId, producto, programa, comentario, usuario, reloadFn }) {
     if (!productoId || !comentario) {
         mostrarMensajeComentario("Debe ingresar un comentario válido.");
         return;
@@ -446,8 +446,8 @@ function registrarComentarioGenerico({ productoId, producto, programa, comentari
                 const res = typeof response === "string" ? JSON.parse(response) : response;
                 if (res.success) {
                     mostrarMensajeComentario("Comentario agregado correctamente.");
-                    // 🔄 Recargar tabla de comentarios centralizada
-                    loadComentarios(); // ⚠️ aquí tenías "loadComentario" (en singular)
+                    // 🔄 Recargar tabla de comentarios si se proveyó la función
+                    if (typeof reloadFn === 'function') reloadFn();
                 } else {
                     mostrarMensajeComentario("Error al guardar comentario: " + (res.message || ""));
                 }
