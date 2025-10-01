@@ -25,13 +25,23 @@ function getSheetByName(name) {
  * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
  * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
  */
+/**
+ * @summary Busca en una hoja específica el número de fila que corresponde a un Id único usando TextFinder (Optimizado).
+ * @param {string|number} id El identificador único del registro que se está buscando.
+ * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
+ * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
+ */
 function findRowById(id, sheetName) {
   const sheet = getSheetByName(sheetName);
   if (!sheet) return -1;
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const idIndex = headers.indexOf("Id");
-  if (idIndex === -1) return -1;
+  const idIndex = headers.findIndex(header => header.toUpperCase() === "ID");
+
+  if (idIndex === -1) {
+    Logger.log(`findRowById: No se encontró la columna de ID en la hoja "${sheetName}".`);
+    return -1;
+  }
 
   const numRows = sheet.getLastRow() - 1;
   if (numRows <= 0) return -1;

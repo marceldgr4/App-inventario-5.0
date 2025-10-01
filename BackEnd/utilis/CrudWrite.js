@@ -275,7 +275,7 @@ function actualizarProductoGenerico(data, sheetName) {
       if (sheetName === HOJA_DECORACION) {
         formula = `=IF(ISNUMBER(F${rowIndex}); F${rowIndex}; 0) - IF(ISNUMBER(G${rowIndex}); G${rowIndex};0)`;
       } else if (sheetName === HOJA_COMIDA) {
-        formula = `=IF(ISNUMBER(G${rowIndex}); G${rowIndex}, 0) - IF(ISNUMBER(H${rowIndex}); H${rowIndex}; 0)`;
+        formula = `=IF(ISNUMBER(G${rowIndex}); G${rowIndex}; 0) - IF(ISNUMBER(H${rowIndex}); H${rowIndex}; 0)`;
       } else if (ingresosIdx !== -1 && salidasIdx !== -1) {
         const ingresosColLetter = columnToLetter(ingresosIdx + 1);
         const salidasColLetter = columnToLetter(salidasIdx + 1);
@@ -440,6 +440,14 @@ function eliminarProductoGenerico(idToDelete, sheetName) {
  * @returns {string} Una cadena JSON con el resultado de la operación (éxito o fracaso con mensaje).
  */
 function retirarProductoGenerico(idProducto, unidadesRetirar, sheetName) {
+  let effectiveId = idProducto;
+  if (typeof idProducto === 'object' && idProducto !== null) {
+    if (idProducto.id) effectiveId = idProducto.id;
+    else if (idProducto.ID) effectiveId = idProducto.ID;
+    else if (idProducto.Id) effectiveId = idProducto.Id;
+    else if (Object.keys(idProducto).length > 0) effectiveId = idProducto[Object.keys(idProducto)[0]];
+  }
+
   try {
     const sheet = getSheetByName(sheetName);
     if (!sheet) {
@@ -452,7 +460,7 @@ function retirarProductoGenerico(idProducto, unidadesRetirar, sheetName) {
     const headers = sheet
       .getRange(1, 1, 1, sheet.getLastColumn())
       .getValues()[0];
-    const rowIndex = findRowById(idProducto, sheetName);
+    const rowIndex = findRowById(effectiveId, sheetName);
 
     const activeUser = getActiveUser();
     const usuario = activeUser
@@ -552,12 +560,12 @@ function retirarProductoGenerico(idProducto, unidadesRetirar, sheetName) {
           : "";
 
       _registrarHistorialModificacion(
-        idProducto,
+        effectiveId,
         producto,
         programa,
         unidadesDisponiblesAntes,
         unidadesDisponiblesDespues,
-        `Retiro de ${numUnidadesRetirar} unidades desde ${sheetName}`, // Acción más específica
+        `Retiro de ${numUnidadesRetirar} unidades desde ${sheetName}`,
         usuario,
         new Date(),
         numUnidadesRetirar
@@ -565,17 +573,17 @@ function retirarProductoGenerico(idProducto, unidadesRetirar, sheetName) {
 
       return JSON.stringify({
         success: true,
-        message: `${numUnidadesRetirar} unidad(es) del producto "${producto}" (ID: ${idProducto}) se retiraron. Quedan ${unidadesDisponiblesDespues}.`,
+        message: `${numUnidadesRetirar} unidad(es) del producto "${producto}" (ID: ${effectiveId}) se retiraron. Quedan ${unidadesDisponiblesDespues}.`,
       });
     }
 
     return JSON.stringify({
       success: false,
-      message: `Error: Producto con ID ${idProducto} no encontrado.`,
+      message: `Error: Producto con ID ${effectiveId} no encontrado.`,
     });
   } catch (error) {
     Logger.log(
-      `Error en retirarProductoGenerico para ${sheetName}, ID ${idProducto}, Unidades ${unidadesRetirar}: ${error.toString()}\nStack: ${
+      `Error en retirarProductoGenerico para ${sheetName}, ID ${effectiveId}, Unidades ${unidadesRetirar}: ${error.toString()}\nStack: ${
         error.stack
       }`
     );

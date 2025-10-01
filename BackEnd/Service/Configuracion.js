@@ -133,7 +133,7 @@ function retirar(id, unidades, sheetName) {
   return retirarProductoGenerico(id, unidades, sheetName);
 }
 function agregarComentario(id, comentario, sheetName) {
-  return agregarComentarioGenerico(id, comentario, sheetName);
+    return agregarComentarioGenerico(id, comentario, sheetName);
 }
 
 /**

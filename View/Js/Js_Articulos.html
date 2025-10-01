@@ -345,8 +345,10 @@ function renderPaginatedTable() {
     // ===================================
     // --- 5. MANEJO DE MODALES ---
     // ===================================
-    function abrirModalAgregar() { abrirModal("modalAgregar"); document.getElementById("agregarForm").reset(); }
+    function abrirModalAgregar() { abrirModal("modalAgregar"); 
+    document.getElementById("agregarForm").reset(); }
     function cerrarModalAgregar() { cerrarModal("modalAgregar"); }
+    
     function abrirModalRetiro(id, producto, programa, unidadesDisponibles) {
         pageState.productoRetiroSeleccionado = { id, producto, programa, unidadesDisponibles };
         abrirModal("modalRetiro");
@@ -356,7 +358,9 @@ function renderPaginatedTable() {
         document.getElementById("unidadesDisponiblesRetiro").textContent = unidadesDisponibles;
         document.getElementById("unidadesRetirar").max = unidadesDisponibles;
     }
-    function cerrarModalRetiro() { cerrarModal("modalRetiro"); pageState.productoRetiroSeleccionado = null; }
+    function cerrarModalRetiro() { cerrarModal("modalRetiro"); 
+    pageState.productoRetiroSeleccionado = null; }
+    
     function abrirModalEditar(id) {
         pageState.productoAEditarId = id;
         const producto = pageState.fullData.find(item => String(item.Id) === String(id));

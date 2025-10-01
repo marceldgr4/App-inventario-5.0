@@ -113,7 +113,7 @@
         <div class="modal-content-A">
             <div class="modal-header">
                 <h2>Agregar Comida</h2>
-                <span class="close-btn" onclick="cerrarModalAgregar()">&times;</span>
+                <span class="close-btn" onclick="cerrarModalAgregarComida()">&times;</span>
             </div>
             <form id="agregarComidaForm">
                 <div class="form-group">
@@ -137,9 +137,10 @@
                     <label for="estadoAgregarComida">Estado del producto:</label>
                     <select id="estadoAgregarComida" name="estadoAgregar" class="form-control">
                         <option value="" selected disabled>Seleccione un estado</option>
-                        <option value="Agotado">Agotado</option>
-                        <option value="En Uso">En Uso</option>
-                        <option value="Guardado">Guardado</option>
+                        <option value="Disponible">Disponible / Bueno</option>
+                        <option value="Usado">Usado</option>
+                        <option value="Perdido">Perdido Con Observaciones</option>
+                       
                     </select>
                 </div>
                 <div class="form-group">
@@ -165,7 +166,7 @@
         <div class="modal-content-A">
             <div class="modal-header">
                 <h2>Modificar Comida</h2>
-                <span class="close-btn" onclick="cerrarModalEditar()">&times;</span>
+                <span class="close-btn" onclick="cerrarModalEditarComida()">&times;</span>
             </div>
             <p>ID de Comida: <span id="productoIdEditarComida"></span></p>
             <form id="editarComidaForm">
@@ -184,7 +185,16 @@
                 </div>
                 <div class="form-group">
                     <label for="estadoEditarComida">Estado del producto:</label>
-                    <input type="text" id="estadoEditarComida" class="form-control">
+                    <!--input type="text" id="estadoEditarComida" class="form-control"-->
+                    <select id="estadoEditarComida" name="estadoEditar" class="form-control">
+                    <option value="" selected disabled>Seleccione un estado</option>
+                        <option value="Disponible">Disponible / Bueno</option>
+                        <option value="Usado">Usado</option>
+                        <option value="Perdido">Perdido Con Observaciones</option>
+                        <option value="Vencido">Vencido</option>
+                        <option value="Dañado">Dañado</option>
+                       
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="unidadesAgregarEditarComida">Unidades a agregar*:</label>
@@ -211,7 +221,7 @@
         <div class="modal-content-A">
             <div class="modal-header">
                 <h2>Retirar producto de Comida</h2>
-                <span class="close-btn" onclick="cerrarModalRetiro()">&times;</span>
+                <span class="close-btn" onclick="cerrarModalRetiroComida()">&times;</span>
             </div>
             <p>ID de Comida: <span id="productoIdRetiroComida"></span></p>
             <p>Producto: <span id="productoNombreRetiroComida"></span></p>
@@ -234,7 +244,7 @@
         <div class="modal-content-A">
             <div class="modal-header">
                 <h2>Agregar Comentario</h2>
-                <span class="close-btn" onclick="cerrarModalComentario()">&times;</span>
+                <span class="close-btn" onclick="cerrarModalComentarioComida()">&times;</span>
             </div>
             <p>ID de Comida: <span id="comentarioProductoIdComida"></span></p>
             <p>Producto: <span id="comentarioProductoNombreComida"></span></p>
@@ -260,7 +270,7 @@
       <button class="btn-warning" onclick="loadComentarios()">
                     <ion-icon name="refresh-circle-outline"></ion-icon> Cargar Nuevas
                 </button>
-                <button class="close-btn" onclick="cerrarModalVencimiento()">&times;</button>
+                <button class="close-btn" onclick="cerrarModalVencimientoComida()">&times;</button>
             </div>
 
             <div class="modal-body">
