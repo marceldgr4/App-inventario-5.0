@@ -273,7 +273,7 @@ function actualizarProductoGenerico(data, sheetName) {
 
       let formula = "";
       if (sheetName === HOJA_DECORACION) {
-        formula = `=IF(ISNUMBER(F${rowIndex}); F${rowIndex}; 0) - IF(ISNUMBER(G${rowIndex}); G${rowIndex};0)`;
+        formula = `=IF(ISNUMBER(E${rowIndex}); E${rowIndex}; 0) - IF(ISNUMBER(F${rowIndex}); F${rowIndex};0)`;
       } else if (sheetName === HOJA_COMIDA) {
         formula = `=IF(ISNUMBER(G${rowIndex}); G${rowIndex}; 0) - IF(ISNUMBER(H${rowIndex}); H${rowIndex}; 0)`;
       } else if (ingresosIdx !== -1 && salidasIdx !== -1) {
