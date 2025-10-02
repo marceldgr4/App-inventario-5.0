@@ -22,7 +22,7 @@ function deactivateProducts(ids, sheetName) {
 
   // Se usa 'Estado' y 'ID' como están definidos en su código.
   const estadoIndex = headers.indexOf("Estado");
-  const idIndex = headers.indexOf("ID");
+  const idIndex = headers.indexOf("Id");
 
   if (estadoIndex === -1 || idIndex === -1) {
     return JSON.stringify({
