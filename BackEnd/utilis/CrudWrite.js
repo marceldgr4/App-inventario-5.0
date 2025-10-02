@@ -23,27 +23,64 @@ function agregarProductoGenerico(data, sheetName) {
 
   const idx = {};
   [
-    "Id", "PRODUCTO", "FECHA DE INGRESO", "Ingresos", "Salidas", "Estado",
-    "Unidades disponibles", "PROGRAMA", "Tiempo en Storage", "Imagen",
-    "Entregas fecha", "Entregas cantidad", "TIPO", "PRECIO", "Comentarios",
-    "FECHA DE ACTUALIZACION", "UBICACION", "FECHA DE VENCIMIENTO",
-    "ESTADO DEL PRODUCTO", "COMENTARIOS", "NombreCompleto", "UserName",
-    "Rol", "Fecha de Registro", "Comentario", "Autor", "Fecha", "Password",
-    "CDE", "Email"
-  ].forEach(col => { idx[col] = headers.indexOf(col); });
+    "Id",
+    "PRODUCTO",
+    "FECHA DE INGRESO",
+    "Ingresos",
+    "Salidas",
+    "Estado",
+    "Unidades disponibles",
+    "PROGRAMA",
+    "Tiempo en Storage",
+    "Imagen",
+    "Entregas fecha",
+    "Entregas cantidad",
+    "TIPO",
+    "PRECIO",
+    "Comentarios",
+    "FECHA DE ACTUALIZACION",
+    "UBICACION",
+    "FECHA DE VENCIMIENTO",
+    "ESTADO DEL PRODUCTO",
+    "COMENTARIOS",
+    "NombreCompleto",
+    "UserName",
+    "Rol",
+    "Fecha de Registro",
+    "Comentario",
+    "Autor",
+    "Fecha",
+    "Password",
+    "CDE",
+    "Email",
+  ].forEach((col) => {
+    idx[col] = headers.indexOf(col);
+  });
 
   let newId = 1;
   if (idx["Id"] !== -1 && lastDataRow >= firstDataRowIndex) {
-    const ids = sheet.getRange(firstDataRowIndex, idx["Id"] + 1, lastDataRow - firstDataRowIndex + 1, 1)
-      .getValues().flat().map(Number).filter(id => !isNaN(id));
+    const ids = sheet
+      .getRange(
+        firstDataRowIndex,
+        idx["Id"] + 1,
+        lastDataRow - firstDataRowIndex + 1,
+        1
+      )
+      .getValues()
+      .flat()
+      .map(Number)
+      .filter((id) => !isNaN(id));
     if (ids.length > 0) newId = Math.max(...ids) + 1;
   }
 
   const newRowData = Array(headers.length).fill("");
   if (idx["Id"] !== -1) newRowData[idx["Id"]] = newId;
-  if (idx["PRODUCTO"] !== -1) newRowData[idx["PRODUCTO"]] = data.productoAgregar;
-  if (idx["FECHA DE INGRESO"] !== -1) newRowData[idx["FECHA DE INGRESO"]] = new Date();
-  if (idx["Ingresos"] !== -1) newRowData[idx["Ingresos"]] = parseFloat(data.ingresosAgregar) || 0;
+  if (idx["PRODUCTO"] !== -1)
+    newRowData[idx["PRODUCTO"]] = data.productoAgregar;
+  if (idx["FECHA DE INGRESO"] !== -1)
+    newRowData[idx["FECHA DE INGRESO"]] = new Date();
+  if (idx["Ingresos"] !== -1)
+    newRowData[idx["Ingresos"]] = parseFloat(data.ingresosAgregar) || 0;
   if (idx["Salidas"] !== -1) newRowData[idx["Salidas"]] = 0;
   if (idx["Estado"] !== -1) newRowData[idx["Estado"]] = "Activo";
 
@@ -59,52 +96,74 @@ function agregarProductoGenerico(data, sheetName) {
       const salidasCol = columnToLetter(idx["Salidas"] + 1);
       formula = `=IF(ISNUMBER(${ingresosCol}${rowNum}); ${ingresosCol}${rowNum}; 0) - IF(ISNUMBER(${salidasCol}${rowNum}); ${salidasCol}${rowNum}; 0)`;
     }
-    newRowData[idx["Unidades disponibles"]] = formula || (parseFloat(data.ingresosAgregar) || 0);
+    newRowData[idx["Unidades disponibles"]] =
+      formula || parseFloat(data.ingresosAgregar) || 0;
   }
 
   // Lógica específica por hoja para poblar la nueva fila
   switch (sheetName) {
     case HOJA_ARTICULOS:
-      if (idx["PROGRAMA"] !== -1) newRowData[idx["PROGRAMA"]] = data.programaAgregar || "";
-      if (idx["Tiempo en Storage"] !== -1) newRowData[idx["Tiempo en Storage"]] = 0;
-      if (idx["Imagen"] !== -1) newRowData[idx["Imagen"]] = data.imagenAgregar || "";
+      if (idx["PROGRAMA"] !== -1)
+        newRowData[idx["PROGRAMA"]] = data.programaAgregar || "";
+      if (idx["Tiempo en Storage"] !== -1)
+        newRowData[idx["Tiempo en Storage"]] = 0;
+      if (idx["Imagen"] !== -1)
+        newRowData[idx["Imagen"]] = data.imagenAgregar || "";
       if (idx["Entregas fecha"] !== -1) newRowData[idx["Entregas fecha"]] = "";
-      if (idx["Entregas cantidad"] !== -1) newRowData[idx["Entregas cantidad"]] = 0;
+      if (idx["Entregas cantidad"] !== -1)
+        newRowData[idx["Entregas cantidad"]] = 0;
       break;
     case HOJA_PAPELERIA:
-      if (idx["Tiempo en Storage"] !== -1) newRowData[idx["Tiempo en Storage"]] = 0;
-      if (idx["Imagen"] !== -1) newRowData[idx["Imagen"]] = data.imagenAgregar || "";
+      if (idx["Tiempo en Storage"] !== -1)
+        newRowData[idx["Tiempo en Storage"]] = 0;
+      if (idx["Imagen"] !== -1)
+        newRowData[idx["Imagen"]] = data.imagenAgregar || "";
       break;
     case HOJA_DECORACION:
       if (idx["TIPO"] !== -1) newRowData[idx["TIPO"]] = data.tipoAgregar || "";
-      if (idx["PRECIO"] !== -1) newRowData[idx["PRECIO"]] = data.precioAgregar || "";
-      if (idx["Comentarios"] !== -1) newRowData[idx["Comentarios"]] = data.comentariosAgregar || "";
-      if (idx["Imagen"] !== -1) newRowData[idx["Imagen"]] = data.imagenAgregar || "";
-      if (idx["FECHA DE ACTUALIZACION"] !== -1) newRowData[idx["FECHA DE ACTUALIZACION"]] = new Date();
+      if (idx["PRECIO"] !== -1)
+        newRowData[idx["PRECIO"]] = data.precioAgregar || "";
+      if (idx["Comentarios"] !== -1)
+        newRowData[idx["Comentarios"]] = data.comentariosAgregar || "";
+      if (idx["Imagen"] !== -1)
+        newRowData[idx["Imagen"]] = data.imagenAgregar || "";
+      if (idx["FECHA DE ACTUALIZACION"] !== -1)
+        newRowData[idx["FECHA DE ACTUALIZACION"]] = new Date();
       break;
     case HOJA_COMIDA:
-      if (idx["PRECIO"] !== -1) newRowData[idx["PRECIO"]] = data.precioAgregar || "";
-      if (idx["UBICACION"] !== -1) newRowData[idx["UBICACION"]] = data.ubicacionAgregar || "";
+      if (idx["PRECIO"] !== -1)
+        newRowData[idx["PRECIO"]] = data.precioAgregar || "";
+      if (idx["UBICACION"] !== -1)
+        newRowData[idx["UBICACION"]] = data.ubicacionAgregar || "";
       if (idx["FECHA DE VENCIMIENTO"] !== -1)
-        newRowData[idx["FECHA DE VENCIMIENTO"]] = data.fechaVencimientoAgregar ? new Date(data.fechaVencimientoAgregar) : "";
-      if (idx["ESTADO DEL PRODUCTO"] !== -1) newRowData[idx["ESTADO DEL PRODUCTO"]] = data.estadoAgregar || "ok";
-      if (idx["COMENTARIOS"] !== -1) newRowData[idx["COMENTARIOS"]] = data.comentariosAgregar || "";
+        newRowData[idx["FECHA DE VENCIMIENTO"]] = data.fechaVencimientoAgregar
+          ? new Date(data.fechaVencimientoAgregar)
+          : "";
+      if (idx["ESTADO DEL PRODUCTO"] !== -1)
+        newRowData[idx["ESTADO DEL PRODUCTO"]] = data.estadoAgregar || "ok";
+      if (idx["COMENTARIOS"] !== -1)
+        newRowData[idx["COMENTARIOS"]] = data.comentariosAgregar || "";
       if (idx["Entregas fecha"] !== -1) newRowData[idx["Entregas fecha"]] = "";
-      if (idx["Entregas cantidad"] !== -1) newRowData[idx["Entregas cantidad"]] = 0;
+      if (idx["Entregas cantidad"] !== -1)
+        newRowData[idx["Entregas cantidad"]] = 0;
       break;
     case HOJA_USUARIO:
-      if (idx["NombreCompleto"] !== -1) newRowData[idx["NombreCompleto"]] = data.nombreCompletoAgregar;
-      if (idx["UserName"] !== -1) newRowData[idx["UserName"]] = data.userNameAgregar;
+      if (idx["NombreCompleto"] !== -1)
+        newRowData[idx["NombreCompleto"]] = data.nombreCompletoAgregar;
+      if (idx["UserName"] !== -1)
+        newRowData[idx["UserName"]] = data.userNameAgregar;
       if (idx["Rol"] !== -1) newRowData[idx["Rol"]] = data.rolAgregar;
-      if (idx["Fecha de Registro"] !== -1) newRowData[idx["Fecha de Registro"]] = new Date();
+      if (idx["Fecha de Registro"] !== -1)
+        newRowData[idx["Fecha de Registro"]] = new Date();
       break;
     case HOJA_COMENTARIOS:
-      if (idx["Comentario"] !== -1) newRowData[idx["Comentario"]] = data.comentarioAgregar || "";
+      if (idx["Comentario"] !== -1)
+        newRowData[idx["Comentario"]] = data.comentarioAgregar || "";
       const activeUserForComment = getActiveUser();
       if (idx["Autor"] !== -1)
-        newRowData[idx["Autor"]] = activeUserForComment ?
-        activeUserForComment.name || activeUserForComment.email :
-        "Anónimo";
+        newRowData[idx["Autor"]] = activeUserForComment
+          ? activeUserForComment.name || activeUserForComment.email
+          : "Anónimo";
       if (idx["Fecha"] !== -1) newRowData[idx["Fecha"]] = new Date();
       break;
   }
@@ -114,21 +173,31 @@ function agregarProductoGenerico(data, sheetName) {
     const appendedRowIndex = sheet.getLastRow();
 
     if (idx["Tiempo en Storage"] !== -1 && idx["FECHA DE INGRESO"] !== -1) {
-      const fechaIngresoVal = sheet.getRange(appendedRowIndex, idx["FECHA DE INGRESO"] + 1).getValue();
+      const fechaIngresoVal = sheet
+        .getRange(appendedRowIndex, idx["FECHA DE INGRESO"] + 1)
+        .getValue();
       if (fechaIngresoVal instanceof Date) {
-        sheet.getRange(appendedRowIndex, idx["Tiempo en Storage"] + 1).setValue(calcularTiempoEnStorage(fechaIngresoVal));
+        sheet
+          .getRange(appendedRowIndex, idx["Tiempo en Storage"] + 1)
+          .setValue(calcularTiempoEnStorage(fechaIngresoVal));
       }
     }
 
     const activeUser = getActiveUser();
-    const usuario = activeUser ? activeUser.name || activeUser.email : "Sistema";
+    const usuario = activeUser
+      ? activeUser.name || activeUser.email
+      : "Sistema";
 
     // Preparar datos para el historial de forma modular
-    let nombreItemHistorial, programaHistorial, cantidadHistorial, accionEstadoHistorial;
+    let nombreItemHistorial,
+      programaHistorial,
+      cantidadHistorial,
+      accionEstadoHistorial;
 
     switch (sheetName) {
       case HOJA_USUARIO:
-        nombreItemHistorial = data.userNameAgregar || data.nombreCompletoAgregar;
+        nombreItemHistorial =
+          data.userNameAgregar || data.nombreCompletoAgregar;
         accionEstadoHistorial = `Usuario agregado: ${nombreItemHistorial}`;
         cantidadHistorial = null;
         programaHistorial = null;
@@ -141,9 +210,14 @@ function agregarProductoGenerico(data, sheetName) {
         break;
       default:
         nombreItemHistorial = data.productoAgregar;
-        programaHistorial = sheetName === HOJA_ARTICULOS ? data.programaAgregar : null;
-        cantidadHistorial = data.ingresosAgregar ? parseFloat(data.ingresosAgregar) : null;
-        accionEstadoHistorial = `Agregado: ${data.productoAgregar || "ítem"} en ${sheetName}`;
+        programaHistorial =
+          sheetName === HOJA_ARTICULOS ? data.programaAgregar : null;
+        cantidadHistorial = data.ingresosAgregar
+          ? parseFloat(data.ingresosAgregar)
+          : null;
+        accionEstadoHistorial = `Agregado: ${
+          data.productoAgregar || "ítem"
+        } en ${sheetName}`;
         break;
     }
 
@@ -199,7 +273,9 @@ function actualizarProductoGenerico(data, sheetName) {
       const rowData = rowRange.getValues()[0];
 
       const activeUser = getActiveUser();
-      const usuario = activeUser ? activeUser.name || activeUser.email : "Sistema";
+      const usuario = activeUser
+        ? activeUser.name || activeUser.email
+        : "Sistema";
 
       // Índices de columnas para fácil acceso
       const productoIdx = headers.indexOf("PRODUCTO");
@@ -211,10 +287,12 @@ function actualizarProductoGenerico(data, sheetName) {
 
       const productoActualOriginal = rowData[productoIdx];
       const programaActualOriginal = rowData[programaIdx] || "";
-      const unidadesOriginalesEnFila = parseFloat(rowData[unidadesDispIdx]) || 0;
+      const unidadesOriginalesEnFila =
+        parseFloat(rowData[unidadesDispIdx]) || 0;
 
       // Lógica para actualizar los ingresos
-      const cantidadAgregadaDesdeFormulario = parseFloat(data.ingresosEditar) || 0;
+      const cantidadAgregadaDesdeFormulario =
+        parseFloat(data.ingresosEditar) || 0;
       if (cantidadAgregadaDesdeFormulario > 0) {
         if (unidadesOriginalesEnFila === 0) {
           // Si el producto estaba agotado, se reinicia
@@ -224,43 +302,67 @@ function actualizarProductoGenerico(data, sheetName) {
         } else {
           // Si ya había unidades, se suman
           const ingresosActuales = parseFloat(rowData[ingresosIdx]) || 0;
-          rowData[ingresosIdx] = ingresosActuales + cantidadAgregadaDesdeFormulario;
+          rowData[ingresosIdx] =
+            ingresosActuales + cantidadAgregadaDesdeFormulario;
         }
       }
 
-      if (data.productoEditar !== undefined) rowData[productoIdx] = data.productoEditar;
+      if (data.productoEditar !== undefined)
+        rowData[productoIdx] = data.productoEditar;
 
       // Lógica específica por hoja para actualizar campos
       switch (sheetName) {
         case HOJA_ARTICULOS:
-          if (data.programaEditar !== undefined) rowData[programaIdx] = data.programaEditar;
-          if (data.imagenEditar !== undefined) rowData[headers.indexOf("Imagen")] = data.imagenEditar;
+          if (data.programaEditar !== undefined)
+            rowData[programaIdx] = data.programaEditar;
+          if (data.imagenEditar !== undefined)
+            rowData[headers.indexOf("Imagen")] = data.imagenEditar;
           break;
         case HOJA_PAPELERIA:
-          if (data.imagenEditar !== undefined) rowData[headers.indexOf("Imagen")] = data.imagenEditar;
+          if (data.imagenEditar !== undefined)
+            rowData[headers.indexOf("Imagen")] = data.imagenEditar;
           break;
         case HOJA_DECORACION:
-          if (data.tipoEditar !== undefined) rowData[headers.indexOf("TIPO")] = data.tipoEditar;
-          if (data.precioEditar !== undefined) rowData[headers.indexOf("PRECIO")] = data.precioEditar;
-          if (data.comentariosEditar !== undefined) rowData[headers.indexOf("Comentarios")] = data.comentariosEditar;
+          if (data.tipoEditar !== undefined)
+            rowData[headers.indexOf("TIPO")] = data.tipoEditar;
+          if (data.precioEditar !== undefined)
+            rowData[headers.indexOf("PRECIO")] = data.precioEditar;
+          if (data.comentariosEditar !== undefined)
+            rowData[headers.indexOf("Comentarios")] = data.comentariosEditar;
           if (data.fechaActualizacionEditar) {
-            rowData[headers.indexOf("FECHA DE ACTUALIZACION")] = new Date(data.fechaActualizacionEditar);
+            rowData[headers.indexOf("FECHA DE ACTUALIZACION")] = new Date(
+              data.fechaActualizacionEditar
+            );
           }
           break;
         case HOJA_COMIDA:
-          if (data.precioEditar !== undefined) rowData[headers.indexOf("PRECIO")] = data.precioEditar;
-          if (data.ubicacionEditar !== undefined) rowData[headers.indexOf("UBICACION")] = data.ubicacionEditar;
-          if (data.estadoEditar !== undefined) rowData[headers.indexOf("ESTADO DEL PRODUCTO")] = data.estadoEditar;
-          if (data.fechaVencimientoEditar !== undefined) rowData[headers.indexOf("FECHA DE VENCIMIENTO")] = new Date(data.fechaVencimientoEditar);
-          if (data.comentariosEditar !== undefined) rowData[headers.indexOf("COMENTARIOS")] = data.comentariosEditar;
+          if (data.precioEditar !== undefined)
+            rowData[headers.indexOf("PRECIO")] = data.precioEditar;
+          if (data.ubicacionEditar !== undefined)
+            rowData[headers.indexOf("UBICACION")] = data.ubicacionEditar;
+          if (data.estadoEditar !== undefined)
+            rowData[headers.indexOf("ESTADO DEL PRODUCTO")] = data.estadoEditar;
+          if (data.fechaVencimientoEditar !== undefined)
+            rowData[headers.indexOf("FECHA DE VENCIMIENTO")] = new Date(
+              data.fechaVencimientoEditar
+            );
+          if (data.comentariosEditar !== undefined)
+            rowData[headers.indexOf("COMENTARIOS")] = data.comentariosEditar;
           break;
         case HOJA_USUARIO:
-          if (data.nombreCompletoEditar !== undefined) rowData[headers.indexOf("NombreCompleto")] = data.nombreCompletoEditar;
-          if (data.userNameEditar !== undefined) rowData[headers.indexOf("UserName")] = data.userNameEditar;
-          if (data.passwordEditar) rowData[headers.indexOf("Password")] = data.passwordEditar; // Solo si se provee una nueva
-          if (data.cdeEditar !== undefined) rowData[headers.indexOf("CDE")] = data.cdeEditar;
-          if (data.emailEditar !== undefined) rowData[headers.indexOf("Email")] = data.emailEditar;
-          if (data.rolEditar !== undefined) rowData[headers.indexOf("Rol")] = data.rolEditar;
+          if (data.nombreCompletoEditar !== undefined)
+            rowData[headers.indexOf("NombreCompleto")] =
+              data.nombreCompletoEditar;
+          if (data.userNameEditar !== undefined)
+            rowData[headers.indexOf("UserName")] = data.userNameEditar;
+          if (data.passwordEditar)
+            rowData[headers.indexOf("Password")] = data.passwordEditar; // Solo si se provee una nueva
+          if (data.cdeEditar !== undefined)
+            rowData[headers.indexOf("CDE")] = data.cdeEditar;
+          if (data.emailEditar !== undefined)
+            rowData[headers.indexOf("Email")] = data.emailEditar;
+          if (data.rolEditar !== undefined)
+            rowData[headers.indexOf("Rol")] = data.rolEditar;
           break;
       }
 
@@ -281,7 +383,7 @@ function actualizarProductoGenerico(data, sheetName) {
         const salidasColLetter = columnToLetter(salidasIdx + 1);
         formula = `=IF(ISNUMBER(${ingresosColLetter}${rowIndex}); ${ingresosColLetter}${rowIndex}; 0) - IF(ISNUMBER(${salidasColLetter}${rowIndex});${salidasColLetter}${rowIndex}; 0)`;
       }
-      
+
       if (formula) {
         rowData[unidadesDispIdx] = formula;
       }
@@ -290,12 +392,16 @@ function actualizarProductoGenerico(data, sheetName) {
       SpreadsheetApp.flush(); // Forzamos la actualización para que las fórmulas se calculen.
 
       // Leemos el valor final de las unidades DESPUÉS de que la fórmula se ha calculado.
-      const unidadesNuevasCalculadas = parseFloat(sheet.getRange(rowIndex, unidadesDispIdx + 1).getValue()) || 0;
+      const unidadesNuevasCalculadas =
+        parseFloat(sheet.getRange(rowIndex, unidadesDispIdx + 1).getValue()) ||
+        0;
 
       _registrarHistorialModificacion(
         data.idEditar,
         data.productoEditar || productoActualOriginal,
-        sheetName === HOJA_ARTICULOS && data.programaEditar !== undefined ? data.programaEditar : programaActualOriginal,
+        sheetName === HOJA_ARTICULOS && data.programaEditar !== undefined
+          ? data.programaEditar
+          : programaActualOriginal,
         unidadesOriginalesEnFila,
         unidadesNuevasCalculadas,
         `Modificado en ${sheetName} (Agregado por formulario: ${cantidadAgregadaDesdeFormulario})`,
@@ -303,15 +409,21 @@ function actualizarProductoGenerico(data, sheetName) {
         null,
         null
       );
-      
+
       return JSON.stringify({
         success: true,
         message: `Producto actualizado exitosamente en ${sheetName}.`,
       });
-
     } catch (e) {
-        Logger.log(`Error al actualizar producto ID ${data.idEditar} en ${sheetName}: ${e.toString()}`);
-        return JSON.stringify({ success: false, message: `Error del servidor: ${e.message}` });
+      Logger.log(
+        `Error al actualizar producto ID ${
+          data.idEditar
+        } en ${sheetName}: ${e.toString()}`
+      );
+      return JSON.stringify({
+        success: false,
+        message: `Error del servidor: ${e.message}`,
+      });
     }
   }
 
@@ -441,11 +553,12 @@ function eliminarProductoGenerico(idToDelete, sheetName) {
  */
 function retirarProductoGenerico(idProducto, unidadesRetirar, sheetName) {
   let effectiveId = idProducto;
-  if (typeof idProducto === 'object' && idProducto !== null) {
+  if (typeof idProducto === "object" && idProducto !== null) {
     if (idProducto.id) effectiveId = idProducto.id;
     else if (idProducto.ID) effectiveId = idProducto.ID;
     else if (idProducto.Id) effectiveId = idProducto.Id;
-    else if (Object.keys(idProducto).length > 0) effectiveId = idProducto[Object.keys(idProducto)[0]];
+    else if (Object.keys(idProducto).length > 0)
+      effectiveId = idProducto[Object.keys(idProducto)[0]];
   }
 
   try {

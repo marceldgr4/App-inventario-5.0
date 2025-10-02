@@ -7,9 +7,12 @@
 function obtenerDatosDashboard() {
   const ss = SpreadsheetApp.openById(ID_INVENTARIO);
   if (!ss) {
-    Logger.log('Error: No se pudo abrir la hoja de cálculo con el ID: ' + ID_INVENTARIO);
+    Logger.log(
+      "Error: No se pudo abrir la hoja de cálculo con el ID: " + ID_INVENTARIO
+    );
     return {
-      error: 'No se pudo acceder a la hoja de cálculo. Revise los registros de secuencia de comandos para obtener más detalles.',
+      error:
+        "No se pudo acceder a la hoja de cálculo. Revise los registros de secuencia de comandos para obtener más detalles.",
     };
   }
   return {
@@ -36,10 +39,10 @@ function _getInventarioDataForDashboard(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
-  const idxPrograma = headers.indexOf('PROGRAMA');
-  const idxTiempoStorage = headers.indexOf('Tiempo en Storage');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
+  const idxPrograma = headers.indexOf("PROGRAMA");
+  const idxTiempoStorage = headers.indexOf("Tiempo en Storage");
 
   if (
     idxProducto === -1 ||
@@ -92,7 +95,7 @@ function _getInventarioDataForDashboard(sheet) {
     }
   }
 
-  todosLosProgramas.forEach(programa => {
+  todosLosProgramas.forEach((programa) => {
     if (!(programa in inventarioData.programas)) {
       inventarioData.programas[programa] = 0;
     }
@@ -112,10 +115,10 @@ function _getComidaDataForDashboardWithMonthlySpending(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxPrecio = headers.indexOf('PRECIO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
-  const idxFechaIngreso = headers.indexOf('FECHA DE INGRESO');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxPrecio = headers.indexOf("PRECIO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
+  const idxFechaIngreso = headers.indexOf("FECHA DE INGRESO");
 
   if (
     idxProducto === -1 ||
@@ -148,7 +151,7 @@ function _getComidaDataForDashboardWithMonthlySpending(sheet) {
       if (fechaIngreso instanceof Date) {
         const ano = fechaIngreso.getFullYear();
         const mes = fechaIngreso.getMonth() + 1;
-        const anoMes = `${ano}-${mes < 10 ? '0' + mes : mes}`;
+        const anoMes = `${ano}-${mes < 10 ? "0" + mes : mes}`;
         comidaData.gastoMensual[anoMes] =
           (comidaData.gastoMensual[anoMes] || 0) + precio;
       }
@@ -167,11 +170,11 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxPrecio = headers.indexOf('PRECIO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
-  const idxCategoria = headers.indexOf('TIPO');
-  const idxFechaIngreso = headers.indexOf('FECHA DE INGRESO');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxPrecio = headers.indexOf("PRECIO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
+  const idxCategoria = headers.indexOf("TIPO");
+  const idxFechaIngreso = headers.indexOf("FECHA DE INGRESO");
 
   if (
     idxProducto === -1 ||
@@ -212,7 +215,7 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
       if (fechaIngreso instanceof Date) {
         const ano = fechaIngreso.getFullYear();
         const mes = fechaIngreso.getMonth() + 1;
-        const anoMes = `${ano}-${mes < 10 ? '0' + mes : mes}`;
+        const anoMes = `${ano}-${mes < 10 ? "0" + mes : mes}`;
         decoracionData.gastoMensual[anoMes] =
           (decoracionData.gastoMensual[anoMes] || 0) + precio;
       }
@@ -233,8 +236,8 @@ function _getPapeleriaDataForDashboard(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
 
   if (idxProducto === -1 || idxUnidades === -1) return {};
 

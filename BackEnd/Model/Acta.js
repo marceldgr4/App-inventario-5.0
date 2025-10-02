@@ -5,7 +5,9 @@
  * @returns {string} Una cadena JSON que contiene los datos de la hoja solicitada.
  */
 function getActaData() {
-  return JSON.stringify({ data: _getInventoryDataForSheet(getHojasConfig().ACTA) });
+  return JSON.stringify({
+    data: _getInventoryDataForSheet(getHojasConfig().ACTA),
+  });
 }
 
 /**

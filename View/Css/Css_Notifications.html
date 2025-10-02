@@ -1,8 +1,8 @@
 <style>
-/* =================================================================
+  /* =================================================================
     --- ESTILOS PARA NOTIFICACIONES Y MENSAJES ---
 ================================================================= */
-.notification {
+  .notification {
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -18,31 +18,31 @@
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.notification.show {
+  }
+  .notification.show {
     opacity: 1;
     transform: translateY(0);
-}
-.notification.success {
+  }
+  .notification.success {
     border-left: 5px solid var(--success-color);
-}
-.notification.success .icon {
+  }
+  .notification.success .icon {
     color: var(--success-color);
-}
-.notification.error {
+  }
+  .notification.error {
     border-left: 5px solid var(--danger-color);
-}
-.notification.error .icon {
+  }
+  .notification.error .icon {
     color: var(--danger-color);
-}
-.no-data {
+  }
+  .no-data {
     text-align: center;
     padding: 50px 20px;
     color: var(--text-color);
-}
-.no-data-icon {
+  }
+  .no-data-icon {
     font-size: 4em;
     color: var(--border-color);
     margin-bottom: 10px;
-}
+  }
 </style>

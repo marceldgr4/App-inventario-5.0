@@ -1,13 +1,15 @@
 /**
  * @fileoverview Contiene funciones de utilidad para las operaciones CRUD,
  * como la búsqueda de filas, el cálculo de fechas y la obtención de hojas.
-  * Estas funciones son utilizadas por otros módulos para interactuar con Google Sheets.
+ * Estas funciones son utilizadas por otros módulos para interactuar con Google Sheets.
  * @summary Se conecta a la hoja de cálculo de Google y obtiene una hoja específica por su nombre.
  * @param {string} name El nombre exacto de la hoja que se desea obtener (ej. "Articulos").
  * @returns {GoogleAppsScript.Spreadsheet.Sheet | null} El objeto de la hoja si se encuentra, o null si no existe.
  */
 function getSheetByName(name) {
-  Logger.log(`DEBUG: getSheetByName - Intentando abrir Spreadsheet con ID: ${ID_INVENTARIO}`);
+  Logger.log(
+    `DEBUG: getSheetByName - Intentando abrir Spreadsheet con ID: ${ID_INVENTARIO}`
+  );
   const ss = SpreadsheetApp.openById(ID_INVENTARIO);
   Logger.log(`DEBUG: getSheetByName - Buscando hoja con nombre: '${name}'`);
   const sheet = ss.getSheetByName(name);
@@ -36,10 +38,12 @@ function findRowById(id, sheetName) {
   if (!sheet) return -1;
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const idIndex = headers.findIndex(header => header.toUpperCase() === "ID");
+  const idIndex = headers.findIndex((header) => header.toUpperCase() === "ID");
 
   if (idIndex === -1) {
-    Logger.log(`findRowById: No se encontró la columna de ID en la hoja "${sheetName}".`);
+    Logger.log(
+      `findRowById: No se encontró la columna de ID en la hoja "${sheetName}".`
+    );
     return -1;
   }
 
@@ -90,65 +94,78 @@ function columnToLetter(column) {
 }
 
 function _getInventoryDataForSheet(sheetName) {
-  Logger.log(`_getInventoryDataForSheet: Obteniendo datos de la hoja '${sheetName}'`);
+  Logger.log(
+    `_getInventoryDataForSheet: Obteniendo datos de la hoja '${sheetName}'`
+  );
   const sheet = getSheetByName(sheetName);
   if (!sheet) {
-    Logger.log(`_getInventoryDataForSheet: La hoja '${sheetName}' no fue encontrada.`);
+    Logger.log(
+      `_getInventoryDataForSheet: La hoja '${sheetName}' no fue encontrada.`
+    );
     return [];
   }
 
   const dataRange = sheet.getDataRange();
   const values = dataRange.getValues();
   if (values.length < 2) {
-    Logger.log(`_getInventoryDataForSheet: No hay datos en la hoja '${sheetName}' (solo cabeceras o vacía).`);
+    Logger.log(
+      `_getInventoryDataForSheet: No hay datos en la hoja '${sheetName}' (solo cabeceras o vacía).`
+    );
     return [];
   }
 
-  const headers = values[0].map(header => header.trim());
+  const headers = values[0].map((header) => header.trim());
   const idIndex = headers.indexOf("Id");
   const fechaIngresoIndex = headers.indexOf("FECHA DE INGRESO");
 
   if (idIndex === -1) {
-    Logger.log(`_getInventoryDataForSheet: No se encontró la columna 'Id' en la hoja '${sheetName}'.`);
+    Logger.log(
+      `_getInventoryDataForSheet: No se encontró la columna 'Id' en la hoja '${sheetName}'.`
+    );
     return [];
   }
 
-  const data = values.slice(1).map((row, index) => {
-    const obj = {};
-    let hasData = false;
-    headers.forEach((header, i) => {
-      let value = row[i];
-      if (value !== "" && value !== null && value !== undefined) {
-        hasData = true;
-      }
-      if (header.toLowerCase().includes("fecha") && value) {
-        let date = value instanceof Date ? value : new Date(value);
-        if (!isNaN(date.getTime())) {
-            obj[header] = date.toISOString();
-        } else {
-            obj[header] = value; // Mantener el valor original si no es una fecha válida
+  const data = values
+    .slice(1)
+    .map((row, index) => {
+      const obj = {};
+      let hasData = false;
+      headers.forEach((header, i) => {
+        let value = row[i];
+        if (value !== "" && value !== null && value !== undefined) {
+          hasData = true;
         }
-    } else {
-        obj[header] = value;
-    }
-    });
+        if (header.toLowerCase().includes("fecha") && value) {
+          let date = value instanceof Date ? value : new Date(value);
+          if (!isNaN(date.getTime())) {
+            obj[header] = date.toISOString();
+          } else {
+            obj[header] = value; // Mantener el valor original si no es una fecha válida
+          }
+        } else {
+          obj[header] = value;
+        }
+      });
 
-    if (!obj["Id"]) {
-      obj["Id"] = `temp_${index + 2}`;
-    }
-
-    if (fechaIngresoIndex !== -1) {
-      const fechaIngreso = obj["FECHA DE INGRESO"];
-      if (fechaIngreso && fechaIngreso instanceof Date) {
-        obj["Tiempo en Storage"] = calcularTiempoEnStorage(fechaIngreso);
-      } else {
-        obj["Tiempo en Storage"] = 0;
+      if (!obj["Id"]) {
+        obj["Id"] = `temp_${index + 2}`;
       }
-    }
 
-    return hasData ? obj : null;
-  }).filter(obj => obj !== null);
+      if (fechaIngresoIndex !== -1) {
+        const fechaIngreso = obj["FECHA DE INGRESO"];
+        if (fechaIngreso && fechaIngreso instanceof Date) {
+          obj["Tiempo en Storage"] = calcularTiempoEnStorage(fechaIngreso);
+        } else {
+          obj["Tiempo en Storage"] = 0;
+        }
+      }
 
-  Logger.log(`_getInventoryDataForSheet: Se procesaron ${data.length} registros de la hoja '${sheetName}'.`);
+      return hasData ? obj : null;
+    })
+    .filter((obj) => obj !== null);
+
+  Logger.log(
+    `_getInventoryDataForSheet: Se procesaron ${data.length} registros de la hoja '${sheetName}'.`
+  );
   return data;
 }

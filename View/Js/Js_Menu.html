@@ -1,112 +1,127 @@
 <script>
-/**
- * @summary Inicializa la funcionalidad del menú de navegación, el botón de la barra lateral y el enlace de cierre de sesión.
- * @description Este script se ejecuta cuando el DOM está completamente cargado.
- * Construye dinámicamente los elementos del menú basados en los permisos del usuario,
- * maneja el colapso de la barra lateral y gestiona el proceso de cierre de sesión de forma segura.
- */
-document.addEventListener("DOMContentLoaded", () => {
-    
+  /**
+   * @summary Inicializa la funcionalidad del menú de navegación, el botón de la barra lateral y el enlace de cierre de sesión.
+   * @description Este script se ejecuta cuando el DOM está completamente cargado.
+   * Construye dinámicamente los elementos del menú basados en los permisos del usuario,
+   * maneja el colapso de la barra lateral y gestiona el proceso de cierre de sesión de forma segura.
+   */
+  document.addEventListener("DOMContentLoaded", () => {
     /**
      * Construye el menú de navegación dinámicamente.
      */
     function buildMenu() {
-        const menuDiv = document.getElementById('menu');
-        if (!menuDiv) {
-            console.error("Elemento del menú con id 'menu' no encontrado.");
-            return;
-        }
+      const menuDiv = document.getElementById("menu");
+      if (!menuDiv) {
+        console.error("Elemento del menú con id 'menu' no encontrado.");
+        return;
+      }
 
-        // Se asigna directamente el array desde el backend.
-        // El scriptlet se encarga de imprimir un array JS válido, eliminando la necesidad de JSON.parse() en el cliente.
-        // Asume que 'paginasDisponiblesParaUsuario' está definido globalmente en el entorno JS
-        const paginasParaMenu = typeof paginasDisponiblesParaUsuario !== "undefined" ? paginasDisponiblesParaUsuario : [];
-        // El controlador ahora inyecta esto como una cadena JSON, por lo que necesitamos parsearla.
-        const paginasJson = '<?!= paginasDisponiblesParaUsuario ?>';
-        const paginasParaMenu = paginasJson ? JSON.parse(paginasJson) : [];
+      // Se asigna directamente el array desde el backend.
+      // El scriptlet se encarga de imprimir un array JS válido, eliminando la necesidad de JSON.parse() en el cliente.
+      // Asume que 'paginasDisponiblesParaUsuario' está definido globalmente en el entorno JS
+      const paginasParaMenu =
+        typeof paginasDisponiblesParaUsuario !== "undefined"
+          ? paginasDisponiblesParaUsuario
+          : [];
+      // El controlador ahora inyecta esto como una cadena JSON, por lo que necesitamos parsearla.
+      const paginasJson = "<?!= paginasDisponiblesParaUsuario ?>";
+      const paginasParaMenu = paginasJson ? JSON.parse(paginasJson) : [];
 
-        // Verificación de seguridad para asegurar que los datos recibidos son un array.
-        if (!Array.isArray(paginasParaMenu)) {
-            console.error("Error: 'paginasDisponiblesParaUsuario' no es un array válido.", paginasParaMenu);
-            menuDiv.innerHTML = "<p style='color:red; padding:10px;'>Error al cargar menú.</p>";
-            return;
-        }
+      // Verificación de seguridad para asegurar que los datos recibidos son un array.
+      if (!Array.isArray(paginasParaMenu)) {
+        console.error(
+          "Error: 'paginasDisponiblesParaUsuario' no es un array válido.",
+          paginasParaMenu
+        );
+        menuDiv.innerHTML =
+          "<p style='color:red; padding:10px;'>Error al cargar menú.</p>";
+        return;
+      }
 
-        const iconos = {
-            'Home': 'home-outline',
-            'Artículos': 'cube-outline',
-            'Acta': 'folder-open-outline',
-            'Decoración': 'color-palette-outline',
-            'Comida': 'fast-food-outline',
-            'Papelería': 'document-text-outline',
-            'Historial': 'time-outline',
-            'Comentario': 'chatbubbles-outline',
-            'Usuario': 'people-outline',
-            'Registro': 'server-outline',
-            'Dashboard': 'stats-chart-outline',
-            'Perfil': 'person-outline',
-        };
+      const iconos = {
+        Home: "home-outline",
+        Artículos: "cube-outline",
+        Acta: "folder-open-outline",
+        Decoración: "color-palette-outline",
+        Comida: "fast-food-outline",
+        Papelería: "document-text-outline",
+        Historial: "time-outline",
+        Comentario: "chatbubbles-outline",
+        Usuario: "people-outline",
+        Registro: "server-outline",
+        Dashboard: "stats-chart-outline",
+        Perfil: "person-outline",
+      };
 
-        const baseUrl = '<?= getScriptUrl() ?>?page=';
+      const baseUrl = "<?= getScriptUrl() ?>?page=";
 
-        // Obtiene la página actual de la URL para poder resaltarla en el menú.
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentPage = urlParams.get('page') || 'Home'; // 'Home' es la página por defecto.
+      // Obtiene la página actual de la URL para poder resaltarla en el menú.
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentPage = urlParams.get("page") || "Home"; // 'Home' es la página por defecto.
 
-        paginasParaMenu.forEach(pagina => {
-            // No se muestra en el menú la página de Login, ya que el usuario ha iniciado sesión.
-            // Se mantiene el enlace a 'Home' para permitir siempre volver al inicio.
-            if (pagina !== 'Login') {
-                const menuItem = document.createElement('a');
-                menuItem.className = 'menu-item';
-                menuItem.href = `${baseUrl}${pagina}`;
+      paginasParaMenu.forEach((pagina) => {
+        // No se muestra en el menú la página de Login, ya que el usuario ha iniciado sesión.
+        // Se mantiene el enlace a 'Home' para permitir siempre volver al inicio.
+        if (pagina !== "Login") {
+          const menuItem = document.createElement("a");
+          menuItem.className = "menu-item";
+          menuItem.href = `${baseUrl}${pagina}`;
 
-                // Si el nombre de la página del menú coincide con la página actual, se le añade la clase 'active'.
-                if (pagina === currentPage) {
-                    menuItem.classList.add('active');
-                }
+          // Si el nombre de la página del menú coincide con la página actual, se le añade la clase 'active'.
+          if (pagina === currentPage) {
+            menuItem.classList.add("active");
+          }
 
-                const iconName = iconos[pagina] || 'document-outline'; // Icono por defecto
-                menuItem.innerHTML = `
+          const iconName = iconos[pagina] || "document-outline"; // Icono por defecto
+          menuItem.innerHTML = `
                     <span class="icon"><ion-icon name="${iconName}"></ion-icon></span>
                     <span class="title">${pagina}</span>
                 `;
-                menuDiv.appendChild(menuItem);
-            }
-        });
+          menuDiv.appendChild(menuItem);
+        }
+      });
     }
 
     /**
      * Configura el botón para colapsar/expandir la barra lateral.
      */
     function setupSidebarToggle() {
-        const sidebar = document.querySelector('.sidebar');
-        const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+      const sidebar = document.querySelector(".sidebar");
+      const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
 
-        if (toggleSidebarBtn && sidebar) {
-            toggleSidebarBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('collapsed');
-            });
-        }
+      if (toggleSidebarBtn && sidebar) {
+        toggleSidebarBtn.addEventListener("click", () => {
+          sidebar.classList.toggle("collapsed");
+        });
+      }
     }
 
     /**
      * Configura el enlace de cierre de sesión.
      */
     function setupLogout() {
-        const logoutLink = document.getElementById("logoutLink");
-        if (logoutLink) {
-            logoutLink.addEventListener("click", e => {
-                e.preventDefault();
-                logoutLink.innerHTML = '<span class="icon"><ion-icon name="hourglass-outline"></ion-icon></span><span class="title">Cerrando...</span>';
-                google.script.run.withSuccessHandler(url => { window.top.location.href = url; }).logout();
-                google.script.run.withSuccessHandler(url => { window.top.location.href = url; }).handleLogout();
-            });
-        }
+      const logoutLink = document.getElementById("logoutLink");
+      if (logoutLink) {
+        logoutLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          logoutLink.innerHTML =
+            '<span class="icon"><ion-icon name="hourglass-outline"></ion-icon></span><span class="title">Cerrando...</span>';
+          google.script.run
+            .withSuccessHandler((url) => {
+              window.top.location.href = url;
+            })
+            .logout();
+          google.script.run
+            .withSuccessHandler((url) => {
+              window.top.location.href = url;
+            })
+            .handleLogout();
+        });
+      }
     }
 
     buildMenu();
     setupSidebarToggle();
     setupLogout();
-});
+  });
 </script>

@@ -22,7 +22,11 @@ function _obtenerSiguienteId(sheet) {
  */
 function _formatearFecha(fecha) {
   const zonaHoraria = Session.getScriptTimeZone();
-  return Utilities.formatDate(new Date(fecha), zonaHoraria, 'yyyy-MM-dd HH:mm:ss');
+  return Utilities.formatDate(
+    new Date(fecha),
+    zonaHoraria,
+    "yyyy-MM-dd HH:mm:ss"
+  );
 }
 
 /**
@@ -51,22 +55,22 @@ function _registrarActaEnHoja(hoja, data, fileUrl, userEmail) {
     fileUrl,
     userEmail,
   ]);
-  
+
   return nuevoId;
 }
 
 function subirActaConPDF(data) {
   const activeUser = getActiveUser();
   if (!activeUser) {
-    throw new Error('Usuario no autenticado para subir acta.');
+    throw new Error("Usuario no autenticado para subir acta.");
   }
 
   const fileData = {
     base64: data.base64PDF,
     name: data.nombreArchivo,
-    type: 'application/pdf',
+    type: "application/pdf",
   };
-  
+
   const file = _subirArchivoADrive(ID_DRIVE_PDF, fileData);
   const fileUrl = file.getUrl();
 
@@ -93,7 +97,7 @@ function subirActaConPDF(data) {
   return JSON.stringify({
     success: true,
     fileUrl: fileUrl,
-    message: 'Acta subida y registrada correctamente.',
+    message: "Acta subida y registrada correctamente.",
   });
 }
 
@@ -120,17 +124,17 @@ function getHistorialModificacionesSheet() {
       sheet = ss.insertSheet(nombreHojaCorrecto);
       // Añade los encabezados a la nueva hoja.
       sheet.appendRow([
-        'ID Historial',
-        'ID Producto',
-        'Fecha y Hora',
-        'Producto',
-        'Programa',
-        'Unidades Anteriores',
-        'Unidades Nuevas',
-        'Acción/Estado',
-        'Usuario',
-        'Fecha de Entrega/Retiro',
-        'Cantidad Entregada/Retirada',
+        "ID Historial",
+        "ID Producto",
+        "Fecha y Hora",
+        "Producto",
+        "Programa",
+        "Unidades Anteriores",
+        "Unidades Nuevas",
+        "Acción/Estado",
+        "Usuario",
+        "Fecha de Entrega/Retiro",
+        "Cantidad Entregada/Retirada",
       ]);
     } catch (e) {
       return null;
@@ -139,17 +143,16 @@ function getHistorialModificacionesSheet() {
   return sheet;
 }
 
-
 /**
  * @summary Obtiene el último ID de la hoja de historial de forma OPTIMIZADA.
- * @description Lee únicamente el valor de la celda del ID en la última fila, 
+ * @description Lee únicamente el valor de la celda del ID en la última fila,
  * que es el método más rápido para hojas que crecen secuencialmente.
  * @returns {number} El último ID numérico encontrado, o 0 si no hay datos.
  */
 function _obtenerUltimoIdHistorialMod() {
   const sheet = getHistorialModificacionesSheet();
   const lastRow = sheet.getLastRow();
-  
+
   // Si la hoja solo tiene la fila del encabezado (o está vacía), no hay IDs.
   const firstDataRow = (sheet.getFrozenRows() || 0) + 1;
   if (lastRow < firstDataRow) {
@@ -164,7 +167,6 @@ function _obtenerUltimoIdHistorialMod() {
   // De lo contrario, devolvemos el ID encontrado.
   return isNaN(lastId) ? 0 : lastId;
 }
-
 
 function _registrarHistorialModificacion(
   productoId,
@@ -191,24 +193,26 @@ function _registrarHistorialModificacion(
 
     entregaCantidad = parseFloat(entregaCantidad);
     if (isNaN(entregaCantidad)) entregaCantidad = null;
-    
+
     // Agrega una fila a la hoja de historial con todos los detalles de la modificación.
     historialSheet.appendRow([
       nuevoIdHistorial,
       productoId,
       now, // Fecha y hora del registro de historial
-      producto || '',
-      programa || '',
+      producto || "",
+      programa || "",
       unidadesAnteriores,
       unidadesNuevas,
-      accionEstado || '',
-      usuario || 'Sistema', // Usuario que realiza la acción
+      accionEstado || "",
+      usuario || "Sistema", // Usuario que realiza la acción
       entregaFecha instanceof Date ? entregaFecha : null,
       entregaCantidad,
     ]);
   } catch (e) {
     Logger.log(
-      `Error al registrar historial de modificación para producto ID ${productoId}: ${e.toString()} Stack: ${e.stack}`
+      `Error al registrar historial de modificación para producto ID ${productoId}: ${e.toString()} Stack: ${
+        e.stack
+      }`
     );
   }
 }
@@ -222,8 +226,10 @@ function _registrarHistorialModificacion(
 function agregarDecoracion(productData, fileData) {
   try {
     if (fileData && fileData.base64Data) {
-      Logger.log(`Subiendo imagen a Decoración (carpeta ID: ${ID_DECORACION_IMG})`);
-      
+      Logger.log(
+        `Subiendo imagen a Decoración (carpeta ID: ${ID_DECORACION_IMG})`
+      );
+
       const driveFileData = {
         base64: fileData.base64Data,
         name: fileData.fileName,
@@ -232,7 +238,9 @@ function agregarDecoracion(productData, fileData) {
 
       const file = _subirArchivoADrive(ID_DECORACION_IMG, driveFileData);
       productData.imagenAgregar = file.getUrl();
-      Logger.log(`Imagen de Decoración subida. URL: ${productData.imagenAgregar}`);
+      Logger.log(
+        `Imagen de Decoración subida. URL: ${productData.imagenAgregar}`
+      );
     }
 
     // La función agregarProductoGenerico no está definida en este archivo,
@@ -257,37 +265,54 @@ function getProductosProximosAVencer() {
     const sheetName = getHojasConfig().COMIDA.nombre;
     const sheet = getSheet(sheetName);
     if (!sheet) {
-      Logger.log(`getProductosProximosAVencer: No se encontró la hoja '${sheetName}'.`);
+      Logger.log(
+        `getProductosProximosAVencer: No se encontró la hoja '${sheetName}'.`
+      );
       return [];
     }
 
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return []; // No hay datos además del encabezado
 
-    const headers = data.shift().map(h => h.toString().trim().toUpperCase());
+    const headers = data.shift().map((h) => h.toString().trim().toUpperCase());
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0); // Para comparar solo fechas
 
-    const colIndexProducto = headers.indexOf('PRODUCTO');
-    const colIndexVencimiento = headers.indexOf('FECHA DE VENCIMIENTO');
-    const colIndexEstado = headers.indexOf('ESTADO');
+    const colIndexProducto = headers.indexOf("PRODUCTO");
+    const colIndexVencimiento = headers.indexOf("FECHA DE VENCIMIENTO");
+    const colIndexEstado = headers.indexOf("ESTADO");
 
-    if (colIndexVencimiento === -1 || colIndexProducto === -1 || colIndexEstado === -1) {
-      Logger.log(`getProductosProximosAVencer: Faltan columnas requeridas (PRODUCTO, FECHA DE VENCIMIENTO, ESTADO) en la hoja '${sheetName}'.`);
+    if (
+      colIndexVencimiento === -1 ||
+      colIndexProducto === -1 ||
+      colIndexEstado === -1
+    ) {
+      Logger.log(
+        `getProductosProximosAVencer: Faltan columnas requeridas (PRODUCTO, FECHA DE VENCIMIENTO, ESTADO) en la hoja '${sheetName}'.`
+      );
       return [];
     }
 
     const productos = data
-      .filter(row => row[colIndexEstado] && row[colIndexEstado].toLowerCase() === 'activo' && row[colIndexVencimiento])
-      .map(row => {
+      .filter(
+        (row) =>
+          row[colIndexEstado] &&
+          row[colIndexEstado].toLowerCase() === "activo" &&
+          row[colIndexVencimiento]
+      )
+      .map((row) => {
         const fechaVencimiento = new Date(row[colIndexVencimiento]);
         if (isNaN(fechaVencimiento.getTime())) return null;
 
         const diffTime = fechaVencimiento.getTime() - hoy.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return { producto: row[colIndexProducto], diasRestantes: diffDays, estado: diffDays < 0 ? 'Vencido' : 'Próximo a vencer' };
+        return {
+          producto: row[colIndexProducto],
+          diasRestantes: diffDays,
+          estado: diffDays < 0 ? "Vencido" : "Próximo a vencer",
+        };
       })
-      .filter(p => p && p.diasRestantes <= 30); // Filtra productos que vencen en 30 días o ya vencieron.
+      .filter((p) => p && p.diasRestantes <= 30); // Filtra productos que vencen en 30 días o ya vencieron.
 
     return productos;
   } catch (e) {
@@ -306,26 +331,34 @@ function getComentariosPorHoja(sheetName) {
   try {
     const comentariosSheet = getSheet(HOJA_COMENTARIOS);
     if (!comentariosSheet) {
-      Logger.log(`getComentariosPorHoja: No se encontró la hoja de comentarios '${HOJA_COMENTARIOS}'.`);
+      Logger.log(
+        `getComentariosPorHoja: No se encontró la hoja de comentarios '${HOJA_COMENTARIOS}'.`
+      );
       return [];
     }
 
     const data = comentariosSheet.getDataRange().getValues();
     if (data.length < 2) return []; // No hay datos además del encabezado
 
-    const headers = data.shift().map(h => h.toString().trim().toUpperCase());
-    const colIndexSheetName = headers.indexOf('SHEETNAME');
+    const headers = data.shift().map((h) => h.toString().trim().toUpperCase());
+    const colIndexSheetName = headers.indexOf("SHEETNAME");
 
     if (colIndexSheetName === -1) {
-      Logger.log(`getComentariosPorHoja: No se encontró la columna 'SheetName' en la hoja de comentarios.`);
+      Logger.log(
+        `getComentariosPorHoja: No se encontró la columna 'SheetName' en la hoja de comentarios.`
+      );
       return []; // Si no hay columna para filtrar, devuelve vacío para evitar errores.
     }
 
-    const comentariosFiltrados = data.filter(row => row[colIndexSheetName] === sheetName).map(row => {
-      const comentarioObj = {};
-      headers.forEach((header, index) => comentarioObj[header] = row[index]);
-      return comentarioObj;
-    });
+    const comentariosFiltrados = data
+      .filter((row) => row[colIndexSheetName] === sheetName)
+      .map((row) => {
+        const comentarioObj = {};
+        headers.forEach(
+          (header, index) => (comentarioObj[header] = row[index])
+        );
+        return comentarioObj;
+      });
 
     return comentariosFiltrados;
   } catch (e) {

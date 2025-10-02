@@ -9,7 +9,7 @@ function getRegistroSheet() {
   var sheet = ss.getSheetByName(getHojasConfig().REGISTRO);
   if (!sheet) {
     sheet = ss.insertSheet(getHojasConfig().REGISTRO);
-    sheet.appendRow(['Id', 'Fecha', 'User Name', 'Registro']);
+    sheet.appendRow(["Id", "Fecha", "User Name", "Registro"]);
   }
   return sheet;
 }

@@ -7,10 +7,14 @@ function getComidaData() {
   Logger.log("getComidaData: Solicitando datos de comida.");
   try {
     const data = _getInventoryDataForSheet(getHojasConfig().COMIDA.nombre);
-    Logger.log(`getComidaData: Se obtuvieron ${data.length} registros de comida.`);
+    Logger.log(
+      `getComidaData: Se obtuvieron ${data.length} registros de comida.`
+    );
     return JSON.stringify({ data: data });
   } catch (e) {
-    Logger.log(`ERROR: getComidaData - Fallo al obtener datos de comida: ${e.message}`);
+    Logger.log(
+      `ERROR: getComidaData - Fallo al obtener datos de comida: ${e.message}`
+    );
     return JSON.stringify({ data: [], error: e.message });
   }
 }

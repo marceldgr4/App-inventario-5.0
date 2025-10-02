@@ -6,7 +6,9 @@ function getUsuarioSheet() {
 }
 /** @summary Obtiene todos los datos de la hoja de 'Usuario' en formato JSON. */
 function getUsuarioData() {
-  return JSON.stringify({ data: _getInventoryDataForSheet(getHojasConfig().USUARIO) });
+  return JSON.stringify({
+    data: _getInventoryDataForSheet(getHojasConfig().USUARIO),
+  });
 }
 /** @summary Obtiene la información de un usuario específico por su ID. */
 function getUsuarioInfo(id) {
