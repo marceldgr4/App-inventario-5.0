@@ -1,23 +1,23 @@
 <style>
-/* =================================================================
+  /* =================================================================
     --- ESTILOS DE TABLAS ---
 ================================================================= */
 
-/* Estilo para el contenedor que envuelve la tabla */
-.table-container {
+  /* Estilo para el contenedor que envuelve la tabla */
+  .table-container {
     overflow-x: auto;
     margin-top: 20px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--box-shadow);
-}
-.inventory-table {
+  }
+  .inventory-table {
     width: 100%;
     border-collapse: collapse;
     background-color: var(--card-bg-color);
-}
-/* Encabezado de la tabla */
-.inventory-table thead th {
+  }
+  /* Encabezado de la tabla */
+  .inventory-table thead th {
     background-color: var(--khaki-green);
     color: var(--white);
     padding: 12px 14px;
@@ -26,62 +26,71 @@
     font-size: 0.9em;
     text-transform: capitalize;
     border: none;
-}
-/* Filas alternas para mejor legibilidad */
-.inventory-table tbody tr:nth-child(even) {
+  }
+  /* Filas alternas para mejor legibilidad */
+  .inventory-table tbody tr:nth-child(even) {
     background-color: var(--soft-grey);
-}
-.inventory-table tbody tr:nth-child(odd) {
+  }
+  .inventory-table tbody tr:nth-child(odd) {
     background-color: var(--white);
-}
+  }
 
-/* Celdas del cuerpo */
-.inventory-table tbody td {
+  /* Celdas del cuerpo */
+  .inventory-table tbody td {
     padding: 10px;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-color);
     vertical-align: middle;
-}
-/* Estilo si el producto está agotado */
-.agotado {
-  color: var(--danger-color);
-  font-weight: bold;
-}
-.agotado:before {
-    content: '⚠️ ';
-}
-/* --- Acciones de la Tabla --- */
-.table-actions {
+  }
+  /* Estilo si el producto está agotado */
+  .agotado {
+    color: var(--danger-color);
+    font-weight: bold;
+  }
+  .agotado:before {
+    content: "⚠️ ";
+  }
+  /* --- Acciones de la Tabla --- */
+  .table-actions {
     display: flex;
     gap: 8px;
-}
-.btn-modificar,
-.btn-retirar,
-.btn-comentario,
-.btn-eliminar {
+  }
+  .btn-modificar,
+  .btn-retirar,
+  .btn-comentario,
+  .btn-eliminar {
     padding: 6px 10px;
     border: none;
     border-radius: 4px;
     font-size: 1em;
     cursor: pointer;
     color: var(--white);
-}
-.btn-modificar { background-color: var(--digital-lavender); }
-.btn-retirar { background-color: var(--emerald-green); }
-.btn-comentario { background-color: var(--summer-yellow); color: var(--text-color-dark); }
-.btn-eliminar { background-color: var(--maple-red); }
+  }
+  .btn-modificar {
+    background-color: var(--digital-lavender);
+  }
+  .btn-retirar {
+    background-color: var(--emerald-green);
+  }
+  .btn-comentario {
+    background-color: var(--summer-yellow);
+    color: var(--text-color-dark);
+  }
+  .btn-eliminar {
+    background-color: var(--maple-red);
+  }
 
-/* =================================================================
+  /* =================================================================
     --- PAGINACIÓN ---
 ================================================================= */
-.pagination {
+  .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
     padding: 20px 0;
-}
-.page-btn {
+  }
+  .page-btn {
     padding: 8px 14px;
     border: 1px solid var(--border-color);
     background-color: var(--card-bg-color);
@@ -89,21 +98,21 @@
     cursor: pointer;
     border-radius: var(--border-radius-sm);
     transition: all 0.2s;
-}
-.page-btn:hover:not(:disabled) {
+  }
+  .page-btn:hover:not(:disabled) {
     background-color: var(--primary-color);
     color: var(--white);
     border-color: var(--primary-color);
-}
-.page-btn.active {
+  }
+  .page-btn.active {
     background-color: var(--primary-color);
     color: var(--white);
     border-color: var(--primary-color);
     font-weight: bold;
-}
-.page-btn:disabled {
+  }
+  .page-btn:disabled {
     color: #a0a0a0;
     cursor: not-allowed;
     background-color: var(--background-color);
-}
+  }
 </style>

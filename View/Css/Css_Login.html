@@ -1,263 +1,264 @@
 <style>
-/* ======== Estilos Globales y Reset ======== */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Piazzolla', serif;
-  background-color: #001705;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  /* Cambiado a min-height */
-}
-
-.hidden {
-  display: none !important;
-}
-
-/*======== Estilo para el Loader ========*/
-.loader-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  /* Initially hidden */
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 30px;
-  z-index: 9999;
-}
-.loader {
-  border: 8px solid #f3f3f3;
-  border-top: 8px solid #3498db;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
+  /* ======== Estilos Globales y Reset ======== */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
-  100% {
-    transform: rotate(360deg);
+
+  body {
+    font-family: "Piazzolla", serif;
+    background-color: #001705;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    /* Cambiado a min-height */
   }
-}
-/*======== Estilo para el Mensaje de Error ======== */
-.error-box {
-  background-color: #ff4d4d;
-  color: white;
-  padding: 10px;
-  text-align: center;
-  position: fixed;
-  top: 10px;
-  width: 90%;
-  left: 5%;
-  z-index: 1000;
-  border-radius: 8px;
-}
-/* ======== Logo ======== */
-.logo {
-  width: 270px;
-  height: auto;
-  display: block;
-  margin: 10px auto;
-}
-/* ======== Contenedor principal ======== */
-.container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 20px auto;
 
-  padding: 50px 20px;
-  width: 95%;
+  .hidden {
+    display: none !important;
+  }
 
-  background-color: #f3f1e5;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
-  max-width: 1200px;
-}
-/* ======== Contenedor del Título ========*/
-.container_title {
-  text-align: center;
-  flex: 1;
-  margin-right: 20px;
-}
-h1 {
-  font-size: 3.5rem;
-  color: #4ce467;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-/* ======== Contenedor del Formulario (Login) ======== */
-.container_2 {
-  background: white;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  /* Ajustado para mejor respuesta */
-  max-width: 500px;
-  text-align: center;
-  margin-right: 20px;
-}
-h2 {
-  color: #2b5243;
-  font-size: 55px;
-}
-h3 {
-  color: #2b5243;
-  font-size: 35px;
-}
-/* ======== Campos de Entrada y Botones ======== */
-.input-field {
-  position: relative;
-  width: 100%;
-  margin-bottom: 15px;
-}
+  /*======== Estilo para el Loader ========*/
+  .loader-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    /* Initially hidden */
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 30px;
+    z-index: 9999;
+  }
+  .loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+  }
 
-.input-field i {
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #888;
-}
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  /*======== Estilo para el Mensaje de Error ======== */
+  .error-box {
+    background-color: #ff4d4d;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    position: fixed;
+    top: 10px;
+    width: 90%;
+    left: 5%;
+    z-index: 1000;
+    border-radius: 8px;
+  }
+  /* ======== Logo ======== */
+  .logo {
+    width: 270px;
+    height: auto;
+    display: block;
+    margin: 10px auto;
+  }
+  /* ======== Contenedor principal ======== */
+  .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px auto;
 
-.input-field i#togglePasswordIcon {
-  cursor: pointer;
-  right: 15px;
-  left: auto;
-}
+    padding: 50px 20px;
+    width: 95%;
 
-input[type='text'],
-input[type='password'],
-input[type='email'] {
-  width: 100%;
-  padding: 10px;
-  padding-left: 45px; /* Espacio para el ícono */
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
+    background-color: #f3f1e5;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
+    max-width: 1200px;
+  }
+  /* ======== Contenedor del Título ========*/
+  .container_title {
+    text-align: center;
+    flex: 1;
+    margin-right: 20px;
+  }
+  h1 {
+    font-size: 3.5rem;
+    color: #4ce467;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  /* ======== Contenedor del Formulario (Login) ======== */
+  .container_2 {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    /* Ajustado para mejor respuesta */
+    max-width: 500px;
+    text-align: center;
+    margin-right: 20px;
+  }
+  h2 {
+    color: #2b5243;
+    font-size: 55px;
+  }
+  h3 {
+    color: #2b5243;
+    font-size: 35px;
+  }
+  /* ======== Campos de Entrada y Botones ======== */
+  .input-field {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+  }
 
-button {
-  background: #766dfa;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  margin: 30px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: 0.3s;
-}
+  .input-field i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+  }
 
-.form-options {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: -5px;
-  margin-bottom: 15px;
-}
+  .input-field i#togglePasswordIcon {
+    cursor: pointer;
+    right: 15px;
+    left: auto;
+  }
 
-.form-options a {
-  color: blue;
-  cursor: pointer;
-  text-decoration: underline;
-  font-size: 0.9em;
-}
+  input[type="text"],
+  input[type="password"],
+  input[type="email"] {
+    width: 100%;
+    padding: 10px;
+    padding-left: 45px; /* Espacio para el ícono */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
 
-.form-options a:hover {
-  color: darkblue;
-}
-/* ======== Contenido del Modal de Alertas ========= */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  overflow: auto;
-}
+  button {
+    background: #766dfa;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin: 30px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  max-width: 400px;
-}
+  .form-options {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -5px;
+    margin-bottom: 15px;
+  }
 
-.modal-content button {
-  background: #169968;
-  color: white;
-  border: none;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 5px;
-  cursor: pointer;
-}
+  .form-options a {
+    color: blue;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.9em;
+  }
 
-.modal-actions {
+  .form-options a:hover {
+    color: darkblue;
+  }
+  /* ======== Contenido del Modal de Alertas ========= */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow: auto;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+  }
+
+  .modal-content button {
+    background: #169968;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .modal-actions {
     display: flex;
     justify-content: center;
     gap: 10px;
-}
-/*========Label ========*/
-label {
-  color: #169968;
-  margin-bottom: 5px;
-  margin-right: 20px;
-  font-size: 20px;
-  font-weight: 500;
-}
-/*======== Configuración Responsiva ========*/
-/*=== Pantallas Peqeñoas === */
-@media (max-width: 600px) {
-  .container {
-    flex-direction: column;
-    /* Cambiado a columna */
-    padding: 20px;
-    width: 90%;
   }
-  .container_title,
-  .container_2 {
-    margin-right: 0;
-    /* Removido margen */
-    width: 100%;
-    /* Toma todo el ancho disponible */
-    margin-bottom: 20px;
-    /* Añadido margen */
+  /*========Label ========*/
+  label {
+    color: #169968;
+    margin-bottom: 5px;
+    margin-right: 20px;
+    font-size: 20px;
+    font-weight: 500;
   }
-  .logo {
-    width: 170px;
+  /*======== Configuración Responsiva ========*/
+  /*=== Pantallas Peqeñoas === */
+  @media (max-width: 600px) {
+    .container {
+      flex-direction: column;
+      /* Cambiado a columna */
+      padding: 20px;
+      width: 90%;
+    }
+    .container_title,
+    .container_2 {
+      margin-right: 0;
+      /* Removido margen */
+      width: 100%;
+      /* Toma todo el ancho disponible */
+      margin-bottom: 20px;
+      /* Añadido margen */
+    }
+    .logo {
+      width: 170px;
+    }
+    h1 {
+      font-size: 45px;
+    }
+    h2 {
+      font-size: 25px;
+    }
+    button {
+      font-size: 14px;
+      padding: 10px;
+    }
+    input {
+      font-size: 14px;
+    }
   }
-  h1 {
-    font-size: 45px;
-  }
-  h2 {
-    font-size: 25px;
-  }
-  button {
-    font-size: 14px;
-    padding: 10px;
-  }
-  input {
-    font-size: 14px;
-  }
-}
-
 </style>

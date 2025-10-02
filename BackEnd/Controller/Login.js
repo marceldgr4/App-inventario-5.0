@@ -13,19 +13,19 @@ function logAction(nombreUsuario, accion, hojaCalculo) {
 
     if (!hojaRegistro) {
       hojaRegistro = ss.insertSheet(HOJA_REGISTRO_USUARIO);
-      hojaRegistro.appendRow(['ID', 'Fecha', 'Usuario', 'Acción']); // encabezados
+      hojaRegistro.appendRow(["ID", "Fecha", "Usuario", "Acción"]); // encabezados
       hojaRegistro.setFrozenRows(1);
     }
 
     const lastRow = hojaRegistro.getLastRow();
     let nextId = 1;
 
-    if (lastRow >= 1 && hojaRegistro.getRange(1, 1).getValue() === 'ID') {
+    if (lastRow >= 1 && hojaRegistro.getRange(1, 1).getValue() === "ID") {
       // Si hay encabezado 'ID'
       if (lastRow > 1) {
         // Si hay datos además del encabezado
         const lastIdCell = hojaRegistro.getRange(lastRow, 1).getValue();
-        if (typeof lastIdCell === 'number' && !isNaN(lastIdCell)) {
+        if (typeof lastIdCell === "number" && !isNaN(lastIdCell)) {
           nextId = lastIdCell + 1;
         } else {
           // Si la última celda no es un número, buscar el último ID numérico
@@ -33,14 +33,14 @@ function logAction(nombreUsuario, accion, hojaCalculo) {
             .getRange(2, 1, lastRow - 1, 1)
             .getValues()
             .flat()
-            .filter(id => typeof id === 'number');
+            .filter((id) => typeof id === "number");
           if (ids.length > 0) nextId = Math.max(...ids) + 1;
         }
       }
     } else if (lastRow >= 1) {
       // No hay encabezado 'ID' o está mal
       const lastIdCell = hojaRegistro.getRange(lastRow, 1).getValue();
-      if (typeof lastIdCell === 'number' && !isNaN(lastIdCell)) {
+      if (typeof lastIdCell === "number" && !isNaN(lastIdCell)) {
         nextId = lastIdCell + 1;
       }
     }
@@ -56,7 +56,7 @@ function logAction(nombreUsuario, accion, hojaCalculo) {
         error.toString()
     );
     Logger.log(
-      'Error en logAction: ' + error.message + ' Stack: ' + error.stack
+      "Error en logAction: " + error.message + " Stack: " + error.stack
     );
   }
 }
@@ -125,10 +125,10 @@ function clearAllUserProperties() {
   try {
     const propiedadesUsuario = PropertiesService.getUserProperties();
     propiedadesUsuario.deleteAllProperties();
-    Logger.log('Todas las propiedades de usuario han sido limpiadas.');
+    Logger.log("Todas las propiedades de usuario han sido limpiadas.");
   } catch (e) {
     Logger.log(
-      'Error al limpiar todas las propiedades de usuario: ' + e.toString()
+      "Error al limpiar todas las propiedades de usuario: " + e.toString()
     );
   }
 }
@@ -153,13 +153,13 @@ function setActiveUser(usuario) {
       rol: usuario.Rol,
     };
     setUserProperty(CLAVE_PROPIEDAD_USUARIO, userData);
-    Logger.log('Usuario activo establecido: ' + JSON.stringify(userData));
+    Logger.log("Usuario activo establecido: " + JSON.stringify(userData));
   } else {
     Logger.logError(
-      'setActiveUser: Objeto de usuario no válido o incompleto: ' +
+      "setActiveUser: Objeto de usuario no válido o incompleto: " +
         JSON.stringify(usuario)
     );
-    console.error('setActiveUser: Objeto de usuario no válido:', usuario);
+    console.error("setActiveUser: Objeto de usuario no válido:", usuario);
   }
 }
 
@@ -177,11 +177,11 @@ function getActiveUser() {
  */
 function clearActiveUser() {
   deleteUserProperty(CLAVE_PROPIEDAD_USUARIO);
-  Logger.log('Usuario activo limpiado de PropertiesService.');
+  Logger.log("Usuario activo limpiado de PropertiesService.");
 }
 
 // --- CONSTANTES DE RUTAS Y PLANTILLAS ---
-const PATH_LOGIN_TEMPLATE = 'View/Login';
+const PATH_LOGIN_TEMPLATE = "View/Login";
 
 // --- LÓGICA DE LOGIN ---
 
@@ -192,13 +192,13 @@ const PATH_LOGIN_TEMPLATE = 'View/Login';
  */
 function processSignin(mensaje) {
   const plantilla = HtmlService.createTemplateFromFile(PATH_LOGIN_TEMPLATE);
-  plantilla.mensajeMensaje = mensaje || '';
+  plantilla.mensajeMensaje = mensaje || "";
   return plantilla
     .evaluate()
     .setFaviconUrl(URL_FAVICON)
-    .addMetaTag('viewport', 'width=device-width,initial-scale=1.0')
-    .addMetaTag('mobile-web-app-capable', 'yes')
-    .setTitle('Login Inventario EX')
+    .addMetaTag("viewport", "width=device-width,initial-scale=1.0")
+    .addMetaTag("mobile-web-app-capable", "yes")
+    .setTitle("Login Inventario EX")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -208,12 +208,12 @@ function processSignin(mensaje) {
  * @returns {GoogleAppsScript.Content.TextOutput} Una respuesta JSON de error.
  */
 function doPost(e) {
-  Logger.log('Solicitud POST recibida. Contenido: ' + JSON.stringify(e));
+  Logger.log("Solicitud POST recibida. Contenido: " + JSON.stringify(e));
   return ContentService.createTextOutput(
     JSON.stringify({
-      status: 'error',
+      status: "error",
       message:
-        'Las solicitudes POST no son compatibles de forma genérica. Usa funciones específicas expuestas vía google.script.run.',
+        "Las solicitudes POST no son compatibles de forma genérica. Usa funciones específicas expuestas vía google.script.run.",
     })
   ).setMimeType(ContentService.MimeType.JSON);
 }
@@ -228,7 +228,7 @@ function doPost(e) {
  * y opcionalmente la URL a la que redirigir y el rol del usuario.
  */
 function loginCheck(nombreUsuario, contrasena) {
-  Logger.log('Intento de inicio de sesión para usuario: ' + nombreUsuario);
+  Logger.log("Intento de inicio de sesión para usuario: " + nombreUsuario);
 
   try {
     const hojaCalculo = SpreadsheetApp.openById(ID_INVENTARIO);
@@ -240,7 +240,7 @@ function loginCheck(nombreUsuario, contrasena) {
       return {
         status: false,
         message:
-          'Error del sistema: No se encontró la configuración de usuarios.',
+          "Error del sistema: No se encontró la configuración de usuarios.",
       };
     }
 
@@ -252,20 +252,20 @@ function loginCheck(nombreUsuario, contrasena) {
           HOJA_USUARIO +
           "'."
       );
-      return { status: false, message: 'No hay usuarios registrados.' };
+      return { status: false, message: "No hay usuarios registrados." };
     }
 
-    const encabezados = datos[0].map(h => String(h).trim().toLowerCase());
+    const encabezados = datos[0].map((h) => String(h).trim().toLowerCase());
 
     // Mapeo de nombres de propiedad deseados a los nombres de columna en la hoja
     const MAPA_COLUMNAS = {
-      id: 'id',
-      userName: 'username',
-      password: 'password',
-      email: 'email',
-      estado: 'estado_user',
-      rol: 'rol',
-      nombreCompleto: 'nombrecompleto',
+      id: "id",
+      userName: "username",
+      password: "password",
+      email: "email",
+      estado: "estado_user",
+      rol: "rol",
+      nombreCompleto: "nombrecompleto",
     };
 
     const indices = {};
@@ -282,21 +282,21 @@ function loginCheck(nombreUsuario, contrasena) {
 
     if (columnasFaltantes.length > 0) {
       const mensajeError = `loginCheck: Faltan las siguientes columnas requeridas en la hoja de usuarios: ${columnasFaltantes.join(
-        ', '
-      )}. Encabezados encontrados: ${encabezados.join(', ')}`;
+        ", "
+      )}. Encabezados encontrados: ${encabezados.join(", ")}`;
       Logger.logError(mensajeError);
       return {
         status: false,
         message:
-          'Error en la configuración del sistema de usuarios. Contacte al administrador.',
+          "Error en la configuración del sistema de usuarios. Contacte al administrador.",
       };
     }
 
     const usuarios = datos.slice(1);
     const filaUsuario = usuarios.find(
-      fila =>
+      (fila) =>
         fila[indices.userName] &&
-        typeof fila[indices.userName] === 'string' &&
+        typeof fila[indices.userName] === "string" &&
         fila[indices.userName].trim() === nombreUsuario &&
         fila[indices.password] &&
         String(fila[indices.password]) === String(contrasena) // Comparar como strings por si las contraseñas son numéricas
@@ -305,21 +305,21 @@ function loginCheck(nombreUsuario, contrasena) {
     if (!filaUsuario) {
       logAction(
         nombreUsuario,
-        'Intento de inicio de sesión fallido: Usuario/Contraseña incorrectos',
+        "Intento de inicio de sesión fallido: Usuario/Contraseña incorrectos",
         hojaCalculo
       );
-      return { status: false, message: 'Usuario o contraseña incorrectos.' };
+      return { status: false, message: "Usuario o contraseña incorrectos." };
     }
 
-    if (String(filaUsuario[indices.estado]).trim().toLowerCase() !== 'activo') {
+    if (String(filaUsuario[indices.estado]).trim().toLowerCase() !== "activo") {
       logAction(
         nombreUsuario,
-        'Intento de inicio de sesión fallido: Cuenta inactiva',
+        "Intento de inicio de sesión fallido: Cuenta inactiva",
         hojaCalculo
       );
       return {
         status: false,
-        message: 'Tu cuenta está inactiva. Contacta al administrador.',
+        message: "Tu cuenta está inactiva. Contacta al administrador.",
       };
     }
 
@@ -338,29 +338,29 @@ function loginCheck(nombreUsuario, contrasena) {
       !usuarioParaSesion.Rol
     ) {
       Logger.logError(
-        'loginCheck: Datos de usuario incompletos después de encontrar la fila. ' +
+        "loginCheck: Datos de usuario incompletos después de encontrar la fila. " +
           JSON.stringify(usuarioParaSesion)
       );
       logAction(
         nombreUsuario,
-        'Error de inicio de sesión: datos de usuario incompletos',
+        "Error de inicio de sesión: datos de usuario incompletos",
         hojaCalculo
       );
       return {
         status: false,
         message:
-          'Error al obtener los detalles del usuario. Contacte al administrador.',
+          "Error al obtener los detalles del usuario. Contacte al administrador.",
       };
     }
 
     setActiveUser(usuarioParaSesion); // Establece el usuario en PropertiesService
-    logAction(nombreUsuario, 'Inicio de sesión exitoso', hojaCalculo);
+    logAction(nombreUsuario, "Inicio de sesión exitoso", hojaCalculo);
 
     return {
       status: true,
-      message: 'Inicio de sesión correcto',
+      message: "Inicio de sesión correcto",
       // Redirige a Home. doGet se encargará de verificar si Home es accesible para este rol.
-      page: getScriptUrl() + '?page=Index',
+      page: getScriptUrl() + "?page=Index",
       rol: usuarioParaSesion.Rol, // Devolver el rol para posible uso en el cliente
     };
   } catch (error) {
@@ -369,7 +369,7 @@ function loginCheck(nombreUsuario, contrasena) {
         nombreUsuario +
         "': " +
         error.toString() +
-        '\nStack: ' +
+        "\nStack: " +
         error.stack
     );
     // Intentar abrir la hoja de cálculo solo si no se ha hecho ya, para loguear el error.
@@ -378,13 +378,13 @@ function loginCheck(nombreUsuario, contrasena) {
       ssForLog = SpreadsheetApp.openById(ID_INVENTARIO);
     } catch (e) {
       Logger.logError(
-        'No se pudo abrir el Spreadsheet para loguear el error de login: ' +
+        "No se pudo abrir el Spreadsheet para loguear el error de login: " +
           e.toString()
       );
     }
     if (ssForLog) {
       logAction(
-        nombreUsuario || 'Desconocido',
+        nombreUsuario || "Desconocido",
         `Error crítico de inicio de sesión: ${error.message}`,
         ssForLog
       );
@@ -392,7 +392,7 @@ function loginCheck(nombreUsuario, contrasena) {
     return {
       status: false,
       message:
-        'Ocurrió un error inesperado durante el inicio de sesión. Por favor, inténtalo de nuevo más tarde.',
+        "Ocurrió un error inesperado durante el inicio de sesión. Por favor, inténtalo de nuevo más tarde.",
     };
   }
 }
@@ -408,35 +408,35 @@ function loginCheck(nombreUsuario, contrasena) {
  */
 function recoverPassword(correo) {
   Logger.log(
-    'Solicitud de recuperación de contraseña para el correo: ' + correo
+    "Solicitud de recuperación de contraseña para el correo: " + correo
   );
   try {
     const hojaCalculo = SpreadsheetApp.openById(ID_INVENTARIO);
     const hoja = hojaCalculo.getSheetByName(HOJA_USUARIO);
     if (!hoja) {
-      Logger.log('recoverPassword: No se encontró la hoja de usuarios.');
+      Logger.log("recoverPassword: No se encontró la hoja de usuarios.");
       return {
         status: false,
-        message: '⚠️ No se encontró la hoja de usuarios.',
+        message: "⚠️ No se encontró la hoja de usuarios.",
       };
     }
     const datos = hoja.getDataRange().getValues();
     if (datos.length < 2) {
       // Encabezados + al menos un usuario
-      Logger.log('recoverPassword: No hay datos de usuarios en la hoja.');
-      return { status: false, message: '⚠️ No hay datos de usuarios.' };
+      Logger.log("recoverPassword: No hay datos de usuarios en la hoja.");
+      return { status: false, message: "⚠️ No hay datos de usuarios." };
     }
 
-    const encabezados = datos[0].map(h => String(h).trim().toLowerCase());
+    const encabezados = datos[0].map((h) => String(h).trim().toLowerCase());
     const usuarios = datos.slice(1);
 
     // Mapeo consistente con loginCheck
     const MAPA_COLUMNAS = {
-      email: 'email',
-      userName: 'username',
-      password: 'password',
-      estado: 'estado_user',
-      nombreCompleto: 'nombrecompleto',
+      email: "email",
+      userName: "username",
+      password: "password",
+      estado: "estado_user",
+      nombreCompleto: "nombrecompleto",
     };
 
     const indices = {};
@@ -454,30 +454,30 @@ function recoverPassword(correo) {
     if (columnasFaltantes.length > 0) {
       Logger.logError(
         `recoverPassword: Error en la estructura de la hoja. Faltan columnas: ${columnasFaltantes.join(
-          ', '
+          ", "
         )}`
       );
       return {
         status: false,
-        message: '⚠️ Error en la estructura de la hoja de datos de usuario.',
+        message: "⚠️ Error en la estructura de la hoja de datos de usuario.",
       };
     }
 
     const filaUsuario = usuarios.find(
-      fila =>
+      (fila) =>
         fila[indices.email] &&
         String(fila[indices.email]).trim().toLowerCase() ===
           String(correo).trim().toLowerCase()
     );
 
     if (!filaUsuario) {
-      Logger.log('recoverPassword: Correo no registrado: ' + correo);
+      Logger.log("recoverPassword: Correo no registrado: " + correo);
       logAction(
         correo,
-        'Intento de recuperación de contraseña fallido: Correo no registrado',
+        "Intento de recuperación de contraseña fallido: Correo no registrado",
         hojaCalculo
       );
-      return { status: false, message: '⚠️ Correo no registrado.' };
+      return { status: false, message: "⚠️ Correo no registrado." };
     }
 
     const nombreDelUsuario =
@@ -487,8 +487,8 @@ function recoverPassword(correo) {
 
     const opcionesCorreo = {
       to: correo,
-      subject: '',
-      htmlBody: '', // Usar htmlBody para un formato más amigable
+      subject: "",
+      htmlBody: "", // Usar htmlBody para un formato más amigable
     };
 
     // =================================================================================================
@@ -499,11 +499,11 @@ function recoverPassword(correo) {
     //    enviar un enlace de un solo uso con un token de tiempo limitado que permita al usuario ESTABLECER UNA NUEVA contraseña.
     // Este código se mantiene para no romper la funcionalidad existente, pero DEBE SER REEMPLAZADO.
     // =================================================================================================
-    if (estado !== 'activo') {
+    if (estado !== "activo") {
       opcionesCorreo.subject =
-        '⚠️ Intento de recuperación de contraseña: Cuenta Inactiva';
+        "⚠️ Intento de recuperación de contraseña: Cuenta Inactiva";
       opcionesCorreo.htmlBody = `
-        <p>Hola ${nombreDelUsuario || 'usuario'},</p>
+        <p>Hola ${nombreDelUsuario || "usuario"},</p>
         <p>Hemos recibido una solicitud para recuperar la contraseña de tu cuenta asociada a este correo electrónico.</p>
         <p>Actualmente, <strong>tu cuenta se encuentra inactiva</strong>. Por favor, contacta con el administrador del sistema para reactivar tu cuenta.</p>
         <p>Saludos,<br>El equipo de Soporte del Inventario</p>
@@ -511,20 +511,20 @@ function recoverPassword(correo) {
       MailApp.sendEmail(opcionesCorreo);
       logAction(
         correo,
-        'Intento de recuperación de contraseña: Cuenta inactiva',
+        "Intento de recuperación de contraseña: Cuenta inactiva",
         hojaCalculo
       );
       return {
         status: false,
         message:
-          '⚠️ Tu cuenta está inactiva. Se ha enviado una notificación a tu correo con más detalles.',
+          "⚠️ Tu cuenta está inactiva. Se ha enviado una notificación a tu correo con más detalles.",
       };
     }
 
     opcionesCorreo.subject =
-      '🔑 Recuperación de Credenciales de Acceso - Inventario';
+      "🔑 Recuperación de Credenciales de Acceso - Inventario";
     opcionesCorreo.htmlBody = `
-      <p>Hola ${nombreDelUsuario || 'usuario'},</p>
+      <p>Hola ${nombreDelUsuario || "usuario"},</p>
       <p>Hemos recibido una solicitud para recuperar tus credenciales de acceso al sistema de inventario.</p>
       <p>Aquí están tus datos:</p>
       <ul>
@@ -540,15 +540,15 @@ function recoverPassword(correo) {
     MailApp.sendEmail(opcionesCorreo);
     logAction(
       correo,
-      'Recuperación de contraseña exitosa (correo enviado)',
+      "Recuperación de contraseña exitosa (correo enviado)",
       hojaCalculo
     );
     return {
       status: true,
       message:
-        '📧 Se ha enviado un correo electrónico con tus credenciales a ' +
+        "📧 Se ha enviado un correo electrónico con tus credenciales a " +
         correo +
-        '.',
+        ".",
     };
   } catch (error) {
     Logger.logError(
@@ -556,7 +556,7 @@ function recoverPassword(correo) {
         correo +
         "': " +
         error.toString() +
-        '\nStack: ' +
+        "\nStack: " +
         error.stack
     );
     // No loguear la acción aquí porque podría ser el mismo error que impidió abrir la hoja.

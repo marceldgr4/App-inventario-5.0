@@ -1,4 +1,3 @@
-
 function getProductosProximosAVencer(sheetName) {
   const sheet = getSheetByName(sheetName);
   if (!sheet) return [];
@@ -6,60 +5,72 @@ function getProductosProximosAVencer(sheetName) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const productosProximos = [];
-  const fechaActual = new Date();
+  const fechaActual = new Date(); // 🔑 Columnas Ajustadas a su lista
 
-  // 🔑 Columnas
-  const idIndex = headers.indexOf("Id");                // Columna Id
-  const productoIndex = headers.indexOf("PRODUCTO");    // Columna Producto
+  const idIndex = headers.indexOf("Id"); // Antes buscaba 'Id', es correcto
+  const productoIndex = headers.indexOf("PRODUCTO");
   const fechaVencimientoIndex = headers.indexOf("FECHA DE VENCIMIENTO");
+  const unidadesIndex = headers.indexOf("Unidades disponibles"); // ✅ AJUSTADO // ✅ Estado flexible
 
-  // ✅ Estado flexible
-  let estadoIndex = headers.indexOf("Estado");
+  let estadoIndex = headers.indexOf("Estado del Producto"); // ✅ AJUSTADO (Usa "Estado del Producto")
   if (estadoIndex === -1) {
-    estadoIndex = headers.indexOf("ESTADO DEL PRODUCTO");
+    estadoIndex = headers.indexOf("Estado");
   }
 
-  if (fechaVencimientoIndex === -1 || productoIndex === -1) {
-    Logger.log(`getProductosProximosAVencer: Columnas requeridas no encontradas en ${sheetName}`);
+  if (
+    fechaVencimientoIndex === -1 ||
+    productoIndex === -1 ||
+    unidadesIndex === -1
+  ) {
+    Logger.log(
+      `getProductosProximosAVencer: Columnas requeridas no encontradas en ${sheetName}`
+    );
     return [];
   }
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    const id = idIndex !== -1 ? row[idIndex] : i; // 👈 ahora sí tomamos el valor del Id
+    const id = idIndex !== -1 ? row[idIndex] : i;
     const producto = row[productoIndex];
     const fechaVencimientoValue = row[fechaVencimientoIndex];
-    const estadoProducto = estadoIndex !== -1 ? (row[estadoIndex] || "Activo") : "Activo";
+    const estadoProducto =
+      estadoIndex !== -1 ? row[estadoIndex] || "Activo" : "Activo";
 
     if (String(estadoProducto).toLowerCase() !== "activo") {
       continue;
-    }
+    } // Lógica de cálculo de días (omitido por brevedad)
 
-    if (fechaVencimientoValue) {
-      const fechaVencimiento = fechaVencimientoValue instanceof Date
-        ? fechaVencimientoValue
-        : new Date(fechaVencimientoValue);
-
-      if (isNaN(fechaVencimiento.getTime())) continue;
-
-      const utcHoy = Date.UTC(fechaActual.getFullYear(), fechaActual.getMonth(), fechaActual.getDate());
-      const utcVencimiento = Date.UTC(fechaVencimiento.getFullYear(), fechaVencimiento.getMonth(), fechaVencimiento.getDate());
-      const diferenciaMs = utcVencimiento - utcHoy;
-      const diasRestantes = Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24));
+    if (fechaVencimientoValue && fechaVencimientoValue instanceof Date) {
+      const fechaVencimiento = fechaVencimientoValue;
+      const utcHoy = Date.UTC(
+        fechaActual.getFullYear(),
+        fechaActual.getMonth(),
+        fechaActual.getDate()
+      );
+      const utcVencimiento = Date.UTC(
+        fechaVencimiento.getFullYear(),
+        fechaVencimiento.getMonth(),
+        fechaVencimiento.getDate()
+      );
+      diasRestantes = Math.ceil(
+        (utcVencimiento - utcHoy) / (1000 * 60 * 60 * 24)
+      ); // 🚨 FILTRO DE 30 DÍAS: Si quedan más de 30 días, saltar este producto
+      if (diasRestantes > 30) {
+        continue;
+      }
 
       productosProximos.push({
-        id: id || "N/A",   // 👈 ahora siempre se envía Id
+        id: id || "N/A",
         producto: producto,
         diasRestantes: diasRestantes,
         estado: estadoProducto,
+        unidadesDisponibles: unidadesIndex !== -1 ? row[unidadesIndex] : 0, // ✅ CLAVE CORREGIDA
       });
     }
   }
 
   return productosProximos;
 }
-
-
 
 /**
  * @summary Obtiene toda la información de una fila (un producto) basado en su ID y la devuelve como un objeto.
@@ -109,7 +120,11 @@ function getProductosViejos(sheetName) {
   const unidadesIndex = headers.indexOf("Unidades disponibles");
   const estadoIndex = headers.indexOf("Estado");
 
-  if (fechaIngresoIndex === -1 || productoIndex === -1 || unidadesIndex === -1) {
+  if (
+    fechaIngresoIndex === -1 ||
+    productoIndex === -1 ||
+    unidadesIndex === -1
+  ) {
     Logger.log(
       `getProductosViejos: Columnas requeridas (FECHA DE INGRESO, PRODUCTO, Unidades disponibles) no encontradas en ${sheetName}`
     );
@@ -145,12 +160,15 @@ function getProductosViejos(sheetName) {
       months -= fechaIngreso.getMonth();
       months += hoy.getMonth();
       if (months >= 0 && hoy.getDate() < fechaIngreso.getDate()) {
-        if (hoy.getMonth() === fechaIngreso.getMonth() && hoy.getFullYear() === fechaIngreso.getFullYear()) {
+        if (
+          hoy.getMonth() === fechaIngreso.getMonth() &&
+          hoy.getFullYear() === fechaIngreso.getFullYear()
+        ) {
         } else {
           months--;
         }
       }
-      
+
       if (months >= 8) {
         const programaIndex = headers.indexOf("PROGRAMA");
         const programa = programaIndex !== -1 ? row[programaIndex] : "N/A";
@@ -179,57 +197,86 @@ function getProductosViejos(sheetName) {
 function getProductosProximosAVencerCompleto(sheetName) {
   const sheet = getSheetByName(sheetName);
   if (!sheet) {
-    Logger.log(`getProductosProximosAVencerCompleto: Hoja "${sheetName}" no encontrada.`);
+    Logger.log(
+      `getProductosProximosAVencerCompleto: Hoja "${sheetName}" no encontrada.`
+    );
     return [];
   }
 
   const data = sheet.getDataRange().getValues();
-  const headers = data[0].map(h => h.toUpperCase());
+  const headers = data[0];
   const productos = [];
-  const fechaActual = new Date();
+  const fechaActual = new Date(); // 🔑 Búsqueda de índices usando los nombres EXACTOS de su lista de columnas
 
-  const idIndex = headers.indexOf("ID");
+  const idIndex = headers.indexOf("Id");
   const productoIndex = headers.indexOf("PRODUCTO");
   const fechaVencimientoIndex = headers.indexOf("FECHA DE VENCIMIENTO");
-  const estadoProductoIndex = headers.indexOf("ESTADO DEL PRODUCTO");
   const ubicacionIndex = headers.indexOf("UBICACION");
-  const unidadesIndex = headers.indexOf("UNIDADES DISPONIBLES");
-  const estadoGeneralIndex = headers.indexOf("ESTADO");
-
-  if (fechaVencimientoIndex === -1 || productoIndex === -1 || idIndex === -1) {
-    Logger.log(`Columnas requeridas (ID, PRODUCTO, FECHA DE VENCIMIENTO) no encontradas en ${sheetName}`);
+  const unidadesIndex = headers.indexOf("Unidades disponibles");
+  const estadoGeneralIndex = headers.indexOf("Estado"); // Usado para filtrar 'Activo' // El estado descriptivo (ESTADO DEL PRODUCTO) es opcional en este punto
+  const estadoProductoIndex = headers.indexOf("Estado del Producto"); // Comprobación de índices críticos. Si faltan, retorna lista vacía.
+  if (
+    fechaVencimientoIndex === -1 ||
+    productoIndex === -1 ||
+    idIndex === -1 ||
+    unidadesIndex === -1 ||
+    estadoGeneralIndex === -1
+  ) {
+    const missingCols = [];
+    if (idIndex === -1) missingCols.push("Id");
+    if (productoIndex === -1) missingCols.push("PRODUCTO");
+    if (fechaVencimientoIndex === -1) missingCols.push("FECHA DE VENCIMIENTO");
+    if (unidadesIndex === -1) missingCols.push("Unidades disponibles");
+    if (estadoGeneralIndex === -1) missingCols.push("Estado");
+    Logger.log(
+      `[ERROR CRÍTICO] Columnas faltantes: ${missingCols.join(
+        ", "
+      )} en la hoja ${sheetName}.`
+    );
     return [];
   }
 
   for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    
-    const estadoGeneral = estadoGeneralIndex !== -1 ? row[estadoGeneralIndex] : "Activo";
+    const row = data[i]; // 1. FILTRO DE ESTADO: Solo procesar productos con Estado = 'Activo'
+    const estadoGeneral = row[estadoGeneralIndex];
     if (String(estadoGeneral).toLowerCase() !== "activo") {
       continue;
-    }
+    } // 2. CÁLCULO DE DÍAS RESTANTES
 
     const fechaVencimientoValue = row[fechaVencimientoIndex];
     let diasRestantes = "Sin fecha";
 
-    if (fechaVencimientoValue) {
-      const fechaVencimiento = new Date(fechaVencimientoValue);
-      if (!isNaN(fechaVencimiento.getTime())) {
-        const utcHoy = Date.UTC(fechaActual.getFullYear(), fechaActual.getMonth(), fechaActual.getDate());
-        const utcVencimiento = Date.UTC(fechaVencimiento.getFullYear(), fechaVencimiento.getMonth(), fechaVencimiento.getDate());
-        diasRestantes = Math.ceil((utcVencimiento - utcHoy) / (1000 * 60 * 60 * 24));
-      }
-    }
+    if (fechaVencimientoValue && fechaVencimientoValue instanceof Date) {
+      const fechaVencimiento = fechaVencimientoValue;
+      const utcHoy = Date.UTC(
+        fechaActual.getFullYear(),
+        fechaActual.getMonth(),
+        fechaActual.getDate()
+      );
+      const utcVencimiento = Date.UTC(
+        fechaVencimiento.getFullYear(),
+        fechaVencimiento.getMonth(),
+        fechaVencimiento.getDate()
+      );
+      diasRestantes = Math.ceil(
+        (utcVencimiento - utcHoy) / (1000 * 60 * 60 * 24)
+      );
 
-    // Solo incluir productos que tienen fecha de vencimiento y están próximos a vencer o vencidos
-    if (typeof diasRestantes === 'number') {
+      // 🚨 CORRECCIÓN CLAVE: Aplicar el filtro de 30 días aquí también
+      if (diasRestantes > 30) {
+        continue;
+      }
+    } // 3. FILTRO DE VENCIMIENTO: Solo incluir productos que tengan una fecha válida (diasRestantes es un número)
+
+    if (typeof diasRestantes === "number") {
       productos.push({
         id: row[idIndex],
         producto: row[productoIndex],
         diasRestantes: diasRestantes,
-        estadoProducto: estadoProductoIndex !== -1 ? row[estadoProductoIndex] : "N/A",
+        estadoProducto:
+          estadoProductoIndex !== -1 ? row[estadoProductoIndex] : "N/A",
         ubicacion: ubicacionIndex !== -1 ? row[ubicacionIndex] : "N/A",
-        unidades: unidadesIndex !== -1 ? row[unidadesIndex] : "N/A",
+        unidadesDisponibles: unidadesIndex !== -1 ? row[unidadesIndex] : "N/A",
       });
     }
   }

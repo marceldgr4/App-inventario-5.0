@@ -9,10 +9,14 @@ function getDecoracionData() {
   Logger.log("getDecoracionData: Solicitando datos de Decoracion.");
   try {
     const data = _getInventoryDataForSheet(getHojasConfig().DECORACION.nombre);
-    Logger.log(`getDecoracionData: Se obtuvieron ${data.length} registros de Decoracion.`);
-   return JSON.stringify({ data: data });
+    Logger.log(
+      `getDecoracionData: Se obtuvieron ${data.length} registros de Decoracion.`
+    );
+    return JSON.stringify({ data: data });
   } catch (e) {
-    Logger.log(`ERROR: getDecoracionData - Fallo al obtener datos de Decoracion: ${e.message}`);
+    Logger.log(
+      `ERROR: getDecoracionData - Fallo al obtener datos de Decoracion: ${e.message}`
+    );
     return JSON.stringify({ data: [] });
   }
 }
@@ -50,7 +54,7 @@ function retirarProductoGenerico(sheetName, id, numUnidadesRetirar) {
 
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idIndex]) === String(id)) {
-      rowIndex = i + 1; 
+      rowIndex = i + 1;
       break;
     }
   }
@@ -62,10 +66,14 @@ function retirarProductoGenerico(sheetName, id, numUnidadesRetirar) {
     });
   }
 
-  const ingresos = parseFloat(sheet.getRange(rowIndex, ingresosIndex + 1).getValue()) || 0;
-  const salidas = parseFloat(sheet.getRange(rowIndex, salidasIndex + 1).getValue()) || 0;
+  const ingresos =
+    parseFloat(sheet.getRange(rowIndex, ingresosIndex + 1).getValue()) || 0;
+  const salidas =
+    parseFloat(sheet.getRange(rowIndex, salidasIndex + 1).getValue()) || 0;
 
-  let disponibles = parseFloat(sheet.getRange(rowIndex, disponiblesIndex + 1).getValue());
+  let disponibles = parseFloat(
+    sheet.getRange(rowIndex, disponiblesIndex + 1).getValue()
+  );
   if (isNaN(disponibles)) {
     disponibles = ingresos - salidas;
   }
@@ -98,13 +106,16 @@ function agregarComentarioDecoracion(idProducto, comentario) {
     const data = sheet.getDataRange().getValues();
 
     // Buscar fila por ID en la columna A
-    const rowIndex = data.findIndex(r => r[0] == idProducto);
+    const rowIndex = data.findIndex((r) => r[0] == idProducto);
     if (rowIndex === -1) {
-      return JSON.stringify({ success: false, error: "Producto no encontrado" });
+      return JSON.stringify({
+        success: false,
+        error: "Producto no encontrado",
+      });
     }
 
     // 👉 índice de la columna "Comentarios" (ajústalo según tu hoja)
-    const comentariosColIndex = 9; 
+    const comentariosColIndex = 9;
 
     // Guardar solo el comentario en la columna de la hoja Decoracion
     sheet.getRange(rowIndex + 1, comentariosColIndex + 1).setValue(comentario);
@@ -112,11 +123,9 @@ function agregarComentarioDecoracion(idProducto, comentario) {
     return JSON.stringify({
       success: true,
       producto: data[rowIndex][1], // nombre producto (columna B)
-      comentario: comentario
+      comentario: comentario,
     });
-
   } catch (err) {
     return JSON.stringify({ success: false, error: err.message });
   }
 }
-

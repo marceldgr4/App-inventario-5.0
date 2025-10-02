@@ -24,7 +24,7 @@
                     </div>
                 </button>
                 <!--Notificacion de comentarios-->
-                <button class="btn btn-secondary" onclick="abrirModalNotificacionComentario()">
+                <button class="btn btn-secondary" onclick="abrirModalNotificacionComentarioComida()">
                     <ion-icon name="chatbubble-ellipses-outline"></ion-icon> Notificaciones de Comentarios
                     <div id="notificacionContainerComentariosComida">
                     <span id="notificacionCantidadComentarios" style="display: none;"></span>
@@ -314,17 +314,14 @@
                 </div>
             </div>
 
-            <div id="paginationNotificaciones" class="pagination-controls">
-                <button id="btnAnteriorNotif" class="page-btn" onclick="paginaAnteriorNotificaciones()">Anterior</button>
-                <span id="infoPaginaNotificaciones" class="page-info">Página 1 de 1</span>
-                <button id="btnSiguienteNotif" class="page-btn" onclick="paginaSiguienteNotificaciones()">Siguiente</button>
+            <div id="paginationNotificacionesVencimiento" class="pagination-controls">
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" onclick="deactivateSelectedNotifications()">
-                    <ion-icon name="close-circle-outline"></ion-icon> Dar de Baja Seleccionados
+            <div class="modal-footer"> 
+                <button class="btn btn-danger" id="btnBorrarSeleccionadosVencimiento" onclick="deactivateSelectedNotifications()">
+                    <ion-icon name="close-circle-outline"></ion-icon> Borrar Elemento
                 </button>
                 <button class="btn btn-secondary" onclick="limpiarNotificaciones()">
-                    <ion-icon name="trash-outline"></ion-icon> Limpiar Notificaciones
+                <ion-icon name="trash-outline"></ion-icon> Limpiar Notificaciones
                 </button>
             </div>
         </div>
@@ -380,14 +377,11 @@
       </div>
     </div>
 
-      <div id="paginationNotificaciones" class="pagination-controls"> 
-        <button id="btnAnteriorNotif" class="page-btn" onclick="paginaAnteriorNotificaciones()">Anterior</button>
-        <span id="infoPaginaNotificaciones" class="page-info">Página 1 de 1</span>
-        <button id="btnSiguienteNotif" class="page-btn" onclick="paginaSiguienteNotificaciones()">Siguiente</button>
+      <div id="paginationNotificacionesComentarios" class="pagination-controls"> 
       </div>
       <div class="modal-footer"> 
         <button class="btn btn-danger" onclick="deactivateSelectedNotifications()">
-          <ion-icon name="close-circle-outline"></ion-icon> Dar de Baja Seleccionados
+          <ion-icon name="close-circle-outline"></ion-icon> Borrar Elemento
         </button>
         <button class="btn btn-secondary" onclick="limpiarNotificaciones()">
           <ion-icon name="trash-outline"></ion-icon> Limpiar Notificaciones
@@ -405,3 +399,4 @@
 <?!= include("View/Js/Js_Generico.html"); ?>
 <?!= include("View/Js/Js_Comida.html"); ?>
  <?!= include("View/Js/Js_Notifications.html"); ?>
+<?!= include("View/Js/Js_Comentarios.html"); ?>

@@ -1,59 +1,63 @@
 <script>
-(function() {
+  (function () {
     // ===================================================
     // --- ESTADO Y CONFIGURACIÓN DEL MÓDULO DECORACION ---
     // ===================================================
     const pageState = {
-        fullData: [],
-        datosMostrados: [],
-        currentPage: 1,
-        itemsPerPage: 10,
-        productoAEditarId: null,
-        productoRetiroSeleccionado: null,
-        productoComentarioSeleccionado: null,
-        fechaOrdenAscendente: false,
-        criterioDeOrden: "Id",
+      fullData: [],
+      datosMostrados: [],
+      currentPage: 1,
+      itemsPerPage: 10,
+      productoAEditarId: null,
+      productoRetiroSeleccionado: null,
+      productoComentarioSeleccionado: null,
+      fechaOrdenAscendente: false,
+      criterioDeOrden: "Id",
     };
 
     console.log("[INFO] Js_Decoracion cargado correctamente.");
 
-   function loadDecoracion() {
-    loadDataGenerico({
-      endpoint: "getDecoracionData",
-      tbodyId: "tablaDecoracionBody",
-      noDataId: "noData",
-      containerId: "tableContainerDecoracion",
-      onSuccess: function(data) {
-        pageState.fullData = data || [];
-        pageState.currentPage = 1;
-        aplicarFiltrosYOrdenarDecoracion();
-        if (pageState.fullData.length === 0) {
-          const tbody = document.getElementById("tablaDecoracionBody");
-          if (tbody) tbody.innerHTML = "<tr><td colspan='10' style='text-align:center;'>No hay datos de papelería</td></tr>";
-          const pag = document.getElementById("decoracionPagination");
-          if (pag) pag.innerHTML = "";
-        } else {
-          renderPaginatedTable();
-        }
-      },
-      onError: function() { hideLoading(); }
-    });
-  }
+    function loadDecoracion() {
+      loadDataGenerico({
+        endpoint: "getDecoracionData",
+        tbodyId: "tablaDecoracionBody",
+        noDataId: "noData",
+        containerId: "tableContainerDecoracion",
+        onSuccess: function (data) {
+          pageState.fullData = data || [];
+          pageState.currentPage = 1;
+          aplicarFiltrosYOrdenarDecoracion();
+          if (pageState.fullData.length === 0) {
+            const tbody = document.getElementById("tablaDecoracionBody");
+            if (tbody)
+              tbody.innerHTML =
+                "<tr><td colspan='10' style='text-align:center;'>No hay datos de papelería</td></tr>";
+            const pag = document.getElementById("decoracionPagination");
+            if (pag) pag.innerHTML = "";
+          } else {
+            renderPaginatedTable();
+          }
+        },
+        onError: function () {
+          hideLoading();
+        },
+      });
+    }
 
-  // === render fila ===
-  function rowRenderer(item) {
-    const id = item.Id || '';
-    const producto = item.PRODUCTO || '';
-    const tipo = item.TIPO || '';
-    const fechaIngreso = formatDate(item['FECHA DE INGRESO']);
-    const ingresos = item.Ingresos|| 0;
-    const salidas = item.Salidas || 0;
-    const disponibles = parseInt(item['Unidades disponibles']) || 0;
-    const precio = item.PRECIO || '0';
-    const comentarios = item.COMENTARIOS || '';
-    const estado = item.ESTADO || '';
+    // === render fila ===
+    function rowRenderer(item) {
+      const id = item.Id || "";
+      const producto = item.PRODUCTO || "";
+      const tipo = item.TIPO || "";
+      const fechaIngreso = formatDate(item["FECHA DE INGRESO"]);
+      const ingresos = item.Ingresos || 0;
+      const salidas = item.Salidas || 0;
+      const disponibles = parseInt(item["Unidades disponibles"]) || 0;
+      const precio = item.PRECIO || "0";
+      const comentarios = item.COMENTARIOS || "";
+      const estado = item.ESTADO || "";
 
-    return `
+      return `
       <td>${id}</td>
       <td>${producto}</td>
       <td>${tipo}</td>
@@ -71,387 +75,556 @@
         <button class="btn-eliminar" title="Desactivar" onclick="confirmarEliminar('${id}', '${producto}')"><ion-icon name="trash-bin-outline"></ion-icon></button>
       </td>
     `;
-  }
-
-  // === paginación y render tabla ===
-  function renderPaginatedTable() {
-    const tbody = document.getElementById("tablaDecoracionBody");
-    if (!tbody) { console.error("[ERROR] No tbody 'tablaDecoracionBody'"); return; }
-    tbody.innerHTML = "";
-    if (!pageState.datosMostrados || pageState.datosMostrados.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='12' style='text-align:center;'>No hay productos que coincidan con los filtros.</td></tr>";
-      document.getElementById("decoracionPagination").innerHTML = "";
-      return;
     }
-    const totalPages = Math.ceil(pageState.datosMostrados.length / pageState.itemsPerPage);
-    if (pageState.currentPage > totalPages) pageState.currentPage = 1;
-    const start = (pageState.currentPage - 1) * pageState.itemsPerPage;
-    const paginatedItems = pageState.datosMostrados.slice(start, start + pageState.itemsPerPage);
 
-    paginatedItems.forEach(item => {
-      const row = tbody.insertRow();
-      const fechaIngresoStr = item["FECHA DE INGRESO"];
-      if (fechaIngresoStr) {
-        const fechaIngresoDate = formatDateForComparison(fechaIngresoStr);
-        if (fechaIngresoDate) {
-          const currentDate = new Date(); currentDate.setHours(0,0,0,0);
-          const oneMonthLater = new Date(currentDate); oneMonthLater.setMonth(currentDate.getMonth() + 1);
-          if (fechaIngresoDate < currentDate) row.classList.add("vencido");
-          else if (fechaIngresoDate.getTime() === currentDate.getTime()) row.classList.add("vencido-hoy");
-          else if (fechaIngresoDate < oneMonthLater) row.classList.add("proximo-a-vencer");
-        }
+    // === paginación y render tabla ===
+    function renderPaginatedTable() {
+      const tbody = document.getElementById("tablaDecoracionBody");
+      if (!tbody) {
+        console.error("[ERROR] No tbody 'tablaDecoracionBody'");
+        return;
       }
-      row.innerHTML = rowRenderer(item);
-    });
-    renderPaginationControls(pageState.datosMostrados.length);
-  }
-
-  function renderPaginationControls(totalItems) {
-    const paginationDiv = document.getElementById("decoracionPagination");
-    paginationDiv.innerHTML = "";
-    const totalPages = Math.ceil(totalItems / pageState.itemsPerPage);
-    if (totalPages <= 1) return;
-    const maxButtons = 5;
-    let buttonsHtml = '';
-    buttonsHtml += `<button class="page-btn" onclick="changePage(pageState.currentPage - 1)" ${pageState.currentPage === 1 ? "disabled" : ""}>Anterior</button>`;
-    let startPage = Math.max(1, pageState.currentPage - Math.floor(maxButtons / 2));
-    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-    if (endPage === totalPages) startPage = Math.max(1, totalPages - maxButtons + 1);
-    if (startPage > 1) {
-      buttonsHtml += `<button class="page-btn" onclick="changePage(1)">1</button>`;
-      if (startPage > 2) buttonsHtml += `<span class="pagination-dots">...</span>`;
-    }
-    for (let i = startPage; i <= endPage; i++) {
-      const activeClass = i === pageState.currentPage ? "active" : "";
-      buttonsHtml += `<button class="page-btn ${activeClass}" onclick="changePage(${i})">${i}</button>`;
-    }
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) buttonsHtml += `<span class="pagination-dots">...</span>`;
-      buttonsHtml += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
-    }
-    buttonsHtml += `<button class="page-btn" onclick="changePage(pageState.currentPage + 1)" ${pageState.currentPage === totalPages ? "disabled" : ""}>Siguiente</button>`;
-    paginationDiv.innerHTML = buttonsHtml;
-  }
-
-  window.changePage = function(page) {
-    const totalPages = Math.ceil(pageState.datosMostrados.length / pageState.itemsPerPage) || 1;
-    pageState.currentPage = Math.max(1, Math.min(page, totalPages));
-    renderPaginatedTable();
-  };
-
-  // === FILTROS y ORDENAMIENTO (corregido: IDs que usa tu HTML) ===
-  function aplicarFiltrosYOrdenarDecoracion() {
-    aplicarFiltrosYOrdenarGenerico({
-      dataSource: pageState.fullData,
-      setResultados: val => { pageState.datosMostrados = val; pageState.currentPage = 1; },
-      fechaOrdenAsc: pageState.fechaOrdenAscendente,
-      renderFn: renderPaginatedTable,
-      filters: [
-        { id: "buscarDecoracion", field: "PRODUCTO", type: "text" },                    // input de búsqueda principal
-        { id: "filtroFechaIngreso", field: "FECHA DE INGRESO", type: "date" },         // si existe
-        { id: "filtroUnidadesDecoracion", field: "Unidades disponibles", type: "number" },
-        { id: "filtroTiempoStorageDecoracion", field: "TiempoStorage", type: "number" }, // si tu hoja tiene ese campo ajusta 'field'
-        { id: "filtroUbicacionDecoracion", field: "Ubicación", type: "text" },         // ajusta 'field' si tu columna se llama distinto
-        { id: "filtroEstadoDecoracionSelect", field: "Estado", type: "text" }
-      ]
-    });
-  }
-  const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarDecoracion;
-
-  function limpiarTodosLosFiltrosDecoracion() {
-    limpiarFiltrosGenerico({
-      filtros: [
-        { id: "buscarDecoracion", type: "text" },
-        { id: "filtroFechaIngreso", type: "date" },
-        { id: "filtroUnidadesDecoracion", type: "number" },
-        { id: "filtroTiempoStorageDecoracion", type: "number" },
-        { id: "filtroUbicacionDecoracion", type: "text" },
-        { id: "filtroEstadoDecoracionSelect", type: "select", defaultValue: "activo" }
-      ],
-      aplicarFn: aplicarFiltrosYOrdenarDecoracion
-    });
-  }
-
-  // === funciones exclusivas ===
-  function searchItemsDecoracion() { searchItemsGenerico(aplicarFiltrosYOrdenarDecoracion); }
-  function clearSearchDecoracion() { clearSearchGenerico("buscarDecoracion", aplicarFiltrosYOrdenarDecoracion); }
-  function ordenarPorFechaDecoracion(event) { ordenarPorFechaGenerico(event, "sortOptionsDecoracion"); }
-  function ordenarAscendenteDecoracion() { ordenarAscendenteGenerico(aplicarFiltrosYOrdenarDecoracion, "sortOptionsDecoracion", val => pageState.fechaOrdenAscendente = val); }
-  function ordenarDescendenteDecoracion() { ordenarDescendenteGenerico(aplicarFiltrosYOrdenarDecoracion, "sortOptionsDecoracion", val => pageState.fechaOrdenAscendente = val); }
-  function toggleFiltrosAdicionalesDecoracion() { toggleFiltrosAdicionalesGenerico("filtrosAdicionalesContainer"); }
-  function ordenarPorIdRecienteDecoracion() { ordenarPorIdRecienteGenerico(aplicarFiltrosYOrdenarDecoracion, "sortOptionsDecoracion", val => pageState.criterioDeOrden = val); }
-
-  // === MODALES ===
-   function abrirModalAgregar() {
-    abrirModal("modalAgregarDecoracion");
-    document.getElementById("agregarDecoracionForm").reset();
-  }
-  function cerrarModalAgregar() { cerrarModal("modalAgregarDecoracion"); }
-
-  function abrirModalEditar(id) {
-    const producto = pageState.datosMostrados.find(p => String(p.Id) === String(id));
-    if (!producto) return mostrarMensaje("Producto no encontrado", "error");
-    pageState.productoAEditarId = id;
-    abrirModal("modalEditarDecoracion");
-    document.getElementById("productoIdEditarDecoracion").textContent = id;
-    document.getElementById("productoEditar").value = producto["PRODUCTO"] || "";
-    document.getElementById("unidadesAgregarEditar").value = "0";
-    // document.getElementById("imagenEditarDecoracion").value = producto["Imagen"] || "";
-  }
-  function cerrarModalEditar() { cerrarModal("modalEditarDecoracion"); }
-
-  function abrirModalRetiro(id, producto, unidades) {
-    pageState.productoRetiroSeleccionado = { id, producto, unidadesDisponibles: unidades };
-    abrirModal("modalRetiroDecoracion");
-    document.getElementById("productoIdRetiroDecoracion").textContent = id;
-    document.getElementById("productoNombreRetiroDecoracion").textContent = producto;
-    document.getElementById("unidadesDisponiblesRetiroDecoracion").textContent = unidades;
-  }
-  function cerrarModalRetiro() { cerrarModal("modalRetiroDecoracion"); }
-
-  function abrirModalComentario(id) {
-    const producto = pageState.datosMostrados.find(p => String(p.Id) === String(id));
-    if (!producto) return mostrarMensaje("Producto no encontrado", "error");
-    pageState.productoComentarioSeleccionado = { Id: id, producto: producto["PRODUCTO"] };
-    abrirModal("modalComentarioDecoracion");
-    document.getElementById("comentarioProductoIdDecoracion").textContent = id;
-    document.getElementById("comentarioProductoNombreDecoracion").textContent = producto["PRODUCTO"];
-  }
-  function cerrarModalComentario() { cerrarModal("modalComentarioDecoracion"); }
-
-  // === FORM HANDLERS ===
-  document.getElementById("agregarDecoracionForm")?.addEventListener("submit", e => {
-    e.preventDefault();
-   const data = {
-  productoAgregar: document.getElementById("productoAgregar").value,
-  tipoAgregar: document.getElementById("tipoAgregar").value,
-  cantidadAgregar: parseFloat(document.getElementById("cantidadAgregar").value),
-  precioAgregar: document.getElementById("precioAgregar").value,
-  imagenArchivo: document.getElementById("imagenArchivoAgregar").files[0] || null
-};
-
-    google.script.run
-      .withSuccessHandler(r => handleServerResponse(r, () => cerrarModal('modalAgregarDecoracion'), loadDecoracion))
-      .withFailureHandler(handleServerError)
-      .agregarDecoracion(data);
-  });
-
-  document.getElementById("editarDecoracionForm")?.addEventListener("submit", e => {
-    e.preventDefault();
-   const data = {
-  idEditar: pageState.productoAEditarId,
-  productoEditar: document.getElementById("productoEditar").value,
-  tipoEditar: document.getElementById("tipoEditar").value,
-  unidadesAgregarEditar: parseFloat(document.getElementById("unidadesAgregarEditar").value),
-  precioEditar: document.getElementById("precioEditarDecoracion").value
-};
-
-    google.script.run
-      .withSuccessHandler(r => handleServerResponse(r, () => cerrarModal('modalEditarDecoracion'), loadDecoracion))
-      .withFailureHandler(handleServerError)
-      .actualizarDecoracion(data);
-  });
-
-  document.getElementById("retiroDecoracionForm")?.addEventListener("submit", e => {
-    e.preventDefault();
-   const unidades = parseInt(document.getElementById("unidadesRetirar").value);
-
-    google.script.run
-      .withSuccessHandler(r => handleServerResponse(r, () => cerrarModal('modalRetiroDecoracion'), loadDecoracion))
-      .withFailureHandler(handleServerError)
-      .retirarDecoracion(pageState.productoRetiroSeleccionado.id, unidades);
-  });
-
-const formComentario = document.getElementById("comentarioDecoracionForm");
-
-formComentario?.addEventListener("submit", function (e) {
-  e.preventDefault();
-  showLoading(true);
-
-  if (!pageState.productoComentarioSeleccionado) {
-    hideLoading();
-    mostrarMensaje("No se ha seleccionado ningún producto para comentar.", "error");
-    return;
-  }
-
-  const comentarioTexto = document.getElementById("comentarioTextoDecoracion").value.trim();
-
-  if (!comentarioTexto) {
-    hideLoading();
-    mostrarMensaje("Por favor, ingrese un comentario.", "error");
-    return;
-  }
-
-  // 🚀 Llamar al backend
-  google.script.run
-    .withSuccessHandler(function (responseString) {
-      hideLoading();
-      try {
-        const resp = JSON.parse(responseString);
-        if (resp.success) {
-          mostrarMensaje(
-            `Comentario agregado a ${resp.producto} por ${resp.usuario} el ${new Date(resp.fecha).toLocaleString()}`,
-            "success"
-          );
-
-          // limpiar textarea
-          document.getElementById("comentarioTextoDecoracion").value = "";
-
-          // cerrar modal y recargar tabla
-          cerrarModal('modalComentarioDecoracion');
-          loadDecoracion();
-        } else {
-          mostrarMensaje("Error: " + resp.error, "error");
-        }
-      } catch (err) {
-        console.error("Error parseando respuesta:", err);
-        mostrarMensaje("Error inesperado al procesar la respuesta.", "error");
+      tbody.innerHTML = "";
+      if (!pageState.datosMostrados || pageState.datosMostrados.length === 0) {
+        tbody.innerHTML =
+          "<tr><td colspan='12' style='text-align:center;'>No hay productos que coincidan con los filtros.</td></tr>";
+        document.getElementById("decoracionPagination").innerHTML = "";
+        return;
       }
-    })
-    .withFailureHandler(function (err) {
-      hideLoading();
-      console.error("Error en servidor:", err);
-      mostrarMensaje("Error al conectar con el servidor.", "error");
-    })
-   agregarComentarioGenerico(
-    "Decoracion", // 👈 cambia según el módulo
-    pageState.productoComentarioSeleccionado.Id,
-    comentarioTexto
-  );
-});
+      const totalPages = Math.ceil(
+        pageState.datosMostrados.length / pageState.itemsPerPage
+      );
+      if (pageState.currentPage > totalPages) pageState.currentPage = 1;
+      const start = (pageState.currentPage - 1) * pageState.itemsPerPage;
+      const paginatedItems = pageState.datosMostrados.slice(
+        start,
+        start + pageState.itemsPerPage
+      );
 
-
-
-  // === ELIMINAR ===
-  function confirmarEliminar(id, producto) {
-    if (confirm("¿Desactivar producto " + producto + " (" + id + ")?")) {
-      google.script.run
-        .withSuccessHandler(r => handleServerResponse(r, null, loadDecoracion))
-        .withFailureHandler(handleServerError)
-        .eliminarDecoracion(id);
+      paginatedItems.forEach((item) => {
+        const row = tbody.insertRow();
+        const fechaIngresoStr = item["FECHA DE INGRESO"];
+        if (fechaIngresoStr) {
+          const fechaIngresoDate = formatDateForComparison(fechaIngresoStr);
+          if (fechaIngresoDate) {
+            const currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+            const oneMonthLater = new Date(currentDate);
+            oneMonthLater.setMonth(currentDate.getMonth() + 1);
+            if (fechaIngresoDate < currentDate) row.classList.add("vencido");
+            else if (fechaIngresoDate.getTime() === currentDate.getTime())
+              row.classList.add("vencido-hoy");
+            else if (fechaIngresoDate < oneMonthLater)
+              row.classList.add("proximo-a-vencer");
+          }
+        }
+        row.innerHTML = rowRenderer(item);
+      });
+      renderPaginationControls(pageState.datosMostrados.length);
     }
-  }
 
-  // === utility: guardarDecoracion (sin cambios de lógica) ===
-  function guardarDecoracion() {
-    const inputPrecio = document.getElementById("precioAgregarDecoracion");
-    if (!validarFormatoPrecio(inputPrecio)) return;
-    const precio = convertirPrecioFormateadoAStringNumericoParaServidor(inputPrecio.value);
-    console.log("💾 Guardar Papelería con precio:", precio);
-  }
+    function renderPaginationControls(totalItems) {
+      const paginationDiv = document.getElementById("decoracionPagination");
+      paginationDiv.innerHTML = "";
+      const totalPages = Math.ceil(totalItems / pageState.itemsPerPage);
+      if (totalPages <= 1) return;
+      const maxButtons = 5;
+      let buttonsHtml = "";
+      buttonsHtml += `<button class="page-btn" onclick="changePage(pageState.currentPage - 1)" ${
+        pageState.currentPage === 1 ? "disabled" : ""
+      }>Anterior</button>`;
+      let startPage = Math.max(
+        1,
+        pageState.currentPage - Math.floor(maxButtons / 2)
+      );
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      if (endPage === totalPages)
+        startPage = Math.max(1, totalPages - maxButtons + 1);
+      if (startPage > 1) {
+        buttonsHtml += `<button class="page-btn" onclick="changePage(1)">1</button>`;
+        if (startPage > 2)
+          buttonsHtml += `<span class="pagination-dots">...</span>`;
+      }
+      for (let i = startPage; i <= endPage; i++) {
+        const activeClass = i === pageState.currentPage ? "active" : "";
+        buttonsHtml += `<button class="page-btn ${activeClass}" onclick="changePage(${i})">${i}</button>`;
+      }
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1)
+          buttonsHtml += `<span class="pagination-dots">...</span>`;
+        buttonsHtml += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+      }
+      buttonsHtml += `<button class="page-btn" onclick="changePage(pageState.currentPage + 1)" ${
+        pageState.currentPage === totalPages ? "disabled" : ""
+      }>Siguiente</button>`;
+      paginationDiv.innerHTML = buttonsHtml;
+    }
 
-  // === inicialización ===
-  function inicializarPaginaDecoracion() {
-    const setupFilterListener = (id, eventType, handler) => {
-      const element = document.getElementById(id);
-      if (element) element.addEventListener(eventType, handler);
+    window.changePage = function (page) {
+      const totalPages =
+        Math.ceil(pageState.datosMostrados.length / pageState.itemsPerPage) ||
+        1;
+      pageState.currentPage = Math.max(1, Math.min(page, totalPages));
+      renderPaginatedTable();
     };
-    setupFilterListener("buscarDecoracion", "input", aplicarFiltrosYOrdenar);
-    setupFilterListener("filtroUbicacionDecoracion", "input", aplicarFiltrosYOrdenar);
-    setupFilterListener("filtroEstadoDecoracionSelect", "change", aplicarFiltrosYOrdenar);
-    setupFilterListener("filtroUnidadesDecoracion", "input", aplicarFiltrosYOrdenar);
-    setupFilterListener("filtroTiempoStorageDecoracion", "input", aplicarFiltrosYOrdenar);
 
-    const toggleFiltrosBtn = document.getElementById("toggleFiltrosDecoracionIconContainer");
-    const filtrosContainer = document.getElementById("filtrosAdicionalesContainer");
-    if (toggleFiltrosBtn && filtrosContainer) {
-      filtrosContainer.classList.add("filtros-adicionales-ocultos");
-      toggleFiltrosBtn.addEventListener("click", toggleFiltrosAdicionalesDecoracion);
+    // === FILTROS y ORDENAMIENTO (corregido: IDs que usa tu HTML) ===
+    function aplicarFiltrosYOrdenarDecoracion() {
+      aplicarFiltrosYOrdenarGenerico({
+        dataSource: pageState.fullData,
+        setResultados: (val) => {
+          pageState.datosMostrados = val;
+          pageState.currentPage = 1;
+        },
+        fechaOrdenAsc: pageState.fechaOrdenAscendente,
+        renderFn: renderPaginatedTable,
+        filters: [
+          { id: "buscarDecoracion", field: "PRODUCTO", type: "text" }, // input de búsqueda principal
+          { id: "filtroFechaIngreso", field: "FECHA DE INGRESO", type: "date" }, // si existe
+          {
+            id: "filtroUnidadesDecoracion",
+            field: "Unidades disponibles",
+            type: "number",
+          },
+          {
+            id: "filtroTiempoStorageDecoracion",
+            field: "TiempoStorage",
+            type: "number",
+          }, // si tu hoja tiene ese campo ajusta 'field'
+          { id: "filtroUbicacionDecoracion", field: "Ubicación", type: "text" }, // ajusta 'field' si tu columna se llama distinto
+          { id: "filtroEstadoDecoracionSelect", field: "Estado", type: "text" },
+        ],
+      });
+    }
+    const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarDecoracion;
+
+    function limpiarTodosLosFiltrosDecoracion() {
+      limpiarFiltrosGenerico({
+        filtros: [
+          { id: "buscarDecoracion", type: "text" },
+          { id: "filtroFechaIngreso", type: "date" },
+          { id: "filtroUnidadesDecoracion", type: "number" },
+          { id: "filtroTiempoStorageDecoracion", type: "number" },
+          { id: "filtroUbicacionDecoracion", type: "text" },
+          {
+            id: "filtroEstadoDecoracionSelect",
+            type: "select",
+            defaultValue: "activo",
+          },
+        ],
+        aplicarFn: aplicarFiltrosYOrdenarDecoracion,
+      });
     }
 
-    loadDecoracion();
-  }
+    // === funciones exclusivas ===
+    function searchItemsDecoracion() {
+      searchItemsGenerico(aplicarFiltrosYOrdenarDecoracion);
+    }
+    function clearSearchDecoracion() {
+      clearSearchGenerico("buscarDecoracion", aplicarFiltrosYOrdenarDecoracion);
+    }
+    function ordenarPorFechaDecoracion(event) {
+      ordenarPorFechaGenerico(event, "sortOptionsDecoracion");
+    }
+    function ordenarAscendenteDecoracion() {
+      ordenarAscendenteGenerico(
+        aplicarFiltrosYOrdenarDecoracion,
+        "sortOptionsDecoracion",
+        (val) => (pageState.fechaOrdenAscendente = val)
+      );
+    }
+    function ordenarDescendenteDecoracion() {
+      ordenarDescendenteGenerico(
+        aplicarFiltrosYOrdenarDecoracion,
+        "sortOptionsDecoracion",
+        (val) => (pageState.fechaOrdenAscendente = val)
+      );
+    }
+    function toggleFiltrosAdicionalesDecoracion() {
+      toggleFiltrosAdicionalesGenerico("filtrosAdicionalesContainer");
+    }
+    function ordenarPorIdRecienteDecoracion() {
+      ordenarPorIdRecienteGenerico(
+        aplicarFiltrosYOrdenarDecoracion,
+        "sortOptionsDecoracion",
+        (val) => (pageState.criterioDeOrden = val)
+      );
+    }
 
-  registrarEscapeCierraModales([ cerrarModalAgregar, cerrarModalEditar, cerrarModalRetiro, cerrarModalComentario ]);
+    // === MODALES ===
+    function abrirModalAgregar() {
+      abrirModal("modalAgregarDecoracion");
+      document.getElementById("agregarDecoracionForm").reset();
+    }
+    function cerrarModalAgregar() {
+      cerrarModal("modalAgregarDecoracion");
+    }
 
-  // === EXPONER ALIAS GLOBALES (para que los onclick inline funcionen) ===
-  // mapea tanto nombres con sufijo como sin sufijo (para compatibilidad)
-  window.abrirModalAgregar = abrirModalAgregar;
-  window.cerrarModalAgregar = cerrarModalAgregar;
-  window.abrirModalAgregarDecoracion = abrirModalAgregar;
-  window.cerrarModalAgregarDecoracion = cerrarModalAgregar;
+    function abrirModalEditar(id) {
+      const producto = pageState.datosMostrados.find(
+        (p) => String(p.Id) === String(id)
+      );
+      if (!producto) return mostrarMensaje("Producto no encontrado", "error");
+      pageState.productoAEditarId = id;
+      abrirModal("modalEditarDecoracion");
+      document.getElementById("productoIdEditarDecoracion").textContent = id;
+      document.getElementById("productoEditar").value =
+        producto["PRODUCTO"] || "";
+      document.getElementById("unidadesAgregarEditar").value = "0";
+      // document.getElementById("imagenEditarDecoracion").value = producto["Imagen"] || "";
+    }
+    function cerrarModalEditar() {
+      cerrarModal("modalEditarDecoracion");
+    }
 
-  window.abrirModalEditar = abrirModalEditar;
-  window.cerrarModalEditar = cerrarModalEditar;
-  window.abrirModalEditarDecoracion = abrirModalEditar;
-  window.cerrarModalEditarDecoracion = cerrarModalEditar;
+    function abrirModalRetiro(id, producto, unidades) {
+      pageState.productoRetiroSeleccionado = {
+        id,
+        producto,
+        unidadesDisponibles: unidades,
+      };
+      abrirModal("modalRetiroDecoracion");
+      document.getElementById("productoIdRetiroDecoracion").textContent = id;
+      document.getElementById("productoNombreRetiroDecoracion").textContent =
+        producto;
+      document.getElementById(
+        "unidadesDisponiblesRetiroDecoracion"
+      ).textContent = unidades;
+    }
+    function cerrarModalRetiro() {
+      cerrarModal("modalRetiroDecoracion");
+    }
 
- window.abrirModalAgregar = abrirModalAgregar;
-  window.cerrarModalAgregar = cerrarModalAgregar;
-  window.abrirModalEditar = abrirModalEditar;
-  window.cerrarModalEditar = cerrarModalEditar;
-  window.abrirModalRetiro = abrirModalRetiro;
-  window.cerrarModalRetiro = cerrarModalRetiro;
-  window.abrirModalComentario = abrirModalComentario;
-  window.cerrarModalComentario = cerrarModalComentario;
-  window.confirmarEliminar = confirmarEliminar;
-  window.confirmarEliminarDecoracion = confirmarEliminar;
+    function abrirModalComentario(id) {
+      const producto = pageState.datosMostrados.find(
+        (p) => String(p.Id) === String(id)
+      );
+      if (!producto) return mostrarMensaje("Producto no encontrado", "error");
+      pageState.productoComentarioSeleccionado = {
+        Id: id,
+        producto: producto["PRODUCTO"],
+      };
+      abrirModal("modalComentarioDecoracion");
+      document.getElementById("comentarioProductoIdDecoracion").textContent =
+        id;
+      document.getElementById(
+        "comentarioProductoNombreDecoracion"
+      ).textContent = producto["PRODUCTO"];
+    }
+    function cerrarModalComentario() {
+      cerrarModal("modalComentarioDecoracion");
+    }
 
-  window.aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenar;
-  window.aplicarFiltrosYOrdenarDecoracion = aplicarFiltrosYOrdenarDecoracion;
-  window.limpiarTodosLosFiltros = limpiarTodosLosFiltrosDecoracion;
-  window.limpiarTodosLosFiltrosDecoracion = limpiarTodosLosFiltrosDecoracion;
+    // === FORM HANDLERS ===
+    document
+      .getElementById("agregarDecoracionForm")
+      ?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const data = {
+          productoAgregar: document.getElementById("productoAgregar").value,
+          tipoAgregar: document.getElementById("tipoAgregar").value,
+          cantidadAgregar: parseFloat(
+            document.getElementById("cantidadAgregar").value
+          ),
+          precioAgregar: document.getElementById("precioAgregar").value,
+          imagenArchivo:
+            document.getElementById("imagenArchivoAgregar").files[0] || null,
+        };
 
-  window.ordenarPorFecha = ordenarPorFechaDecoracion;
-  window.ordenarAscendente = ordenarAscendenteDecoracion;
-  window.ordenarDescendente = ordenarDescendenteDecoracion;
-
-  // iniciar
-  inicializarPaginaDecoracion();
-
-  // =================================================
-  // --- LÓGICA DE NOTIFICACIONES DE COMENTARIOS ---
-  // =================================================
-  function loadNotificacionesComentarios() {
-      google.script.run
-          .withSuccessHandler(function(comentarios) {
-              if (Array.isArray(comentarios)) {
-                  renderizarTablasComentarios(comentarios);
-                  actualizarIconoComentarios(comentarios.length);
-              }
-          })
+        google.script.run
+          .withSuccessHandler((r) =>
+            handleServerResponse(
+              r,
+              () => cerrarModal("modalAgregarDecoracion"),
+              loadDecoracion
+            )
+          )
           .withFailureHandler(handleServerError)
-          .getComentariosPorHoja("Inventario papeleria");
-  }
+          .agregarDecoracion(data);
+      });
 
-  function renderizarTablasComentarios(comentarios) {
-      const pendientesBody = document.getElementById('tablaComentariosPendientesBody');
-      const leidasBody = document.getElementById('tablaComentariosLeidasBody');
-      pendientesBody.innerHTML = '';
-      leidasBody.innerHTML = '';
+    document
+      .getElementById("editarDecoracionForm")
+      ?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const data = {
+          idEditar: pageState.productoAEditarId,
+          productoEditar: document.getElementById("productoEditar").value,
+          tipoEditar: document.getElementById("tipoEditar").value,
+          unidadesAgregarEditar: parseFloat(
+            document.getElementById("unidadesAgregarEditar").value
+          ),
+          precioEditar: document.getElementById("precioEditarDecoracion").value,
+        };
+
+        google.script.run
+          .withSuccessHandler((r) =>
+            handleServerResponse(
+              r,
+              () => cerrarModal("modalEditarDecoracion"),
+              loadDecoracion
+            )
+          )
+          .withFailureHandler(handleServerError)
+          .actualizarDecoracion(data);
+      });
+
+    document
+      .getElementById("retiroDecoracionForm")
+      ?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const unidades = parseInt(
+          document.getElementById("unidadesRetirar").value
+        );
+
+        google.script.run
+          .withSuccessHandler((r) =>
+            handleServerResponse(
+              r,
+              () => cerrarModal("modalRetiroDecoracion"),
+              loadDecoracion
+            )
+          )
+          .withFailureHandler(handleServerError)
+          .retirarDecoracion(pageState.productoRetiroSeleccionado.id, unidades);
+      });
+
+    const formComentario = document.getElementById("comentarioDecoracionForm");
+
+    formComentario?.addEventListener("submit", function (e) {
+      e.preventDefault();
+      showLoading(true);
+
+      if (!pageState.productoComentarioSeleccionado) {
+        hideLoading();
+        mostrarMensaje(
+          "No se ha seleccionado ningún producto para comentar.",
+          "error"
+        );
+        return;
+      }
+
+      const comentarioTexto = document
+        .getElementById("comentarioTextoDecoracion")
+        .value.trim();
+
+      if (!comentarioTexto) {
+        hideLoading();
+        mostrarMensaje("Por favor, ingrese un comentario.", "error");
+        return;
+      }
+
+      // 🚀 Llamar al backend
+      google.script.run
+        .withSuccessHandler(function (responseString) {
+          hideLoading();
+          try {
+            const resp = JSON.parse(responseString);
+            if (resp.success) {
+              mostrarMensaje(
+                `Comentario agregado a ${resp.producto} por ${
+                  resp.usuario
+                } el ${new Date(resp.fecha).toLocaleString()}`,
+                "success"
+              );
+
+              // limpiar textarea
+              document.getElementById("comentarioTextoDecoracion").value = "";
+
+              // cerrar modal y recargar tabla
+              cerrarModal("modalComentarioDecoracion");
+              loadDecoracion();
+            } else {
+              mostrarMensaje("Error: " + resp.error, "error");
+            }
+          } catch (err) {
+            console.error("Error parseando respuesta:", err);
+            mostrarMensaje(
+              "Error inesperado al procesar la respuesta.",
+              "error"
+            );
+          }
+        })
+        .withFailureHandler(function (err) {
+          hideLoading();
+          console.error("Error en servidor:", err);
+          mostrarMensaje("Error al conectar con el servidor.", "error");
+        });
+      agregarComentarioGenerico(
+        "Decoracion", // 👈 cambia según el módulo
+        pageState.productoComentarioSeleccionado.Id,
+        comentarioTexto
+      );
+    });
+
+    // === ELIMINAR ===
+    function confirmarEliminar(id, producto) {
+      if (confirm("¿Desactivar producto " + producto + " (" + id + ")?")) {
+        google.script.run
+          .withSuccessHandler((r) =>
+            handleServerResponse(r, null, loadDecoracion)
+          )
+          .withFailureHandler(handleServerError)
+          .eliminarDecoracion(id);
+      }
+    }
+
+    // === utility: guardarDecoracion (sin cambios de lógica) ===
+    function guardarDecoracion() {
+      const inputPrecio = document.getElementById("precioAgregarDecoracion");
+      if (!validarFormatoPrecio(inputPrecio)) return;
+      const precio = convertirPrecioFormateadoAStringNumericoParaServidor(
+        inputPrecio.value
+      );
+      console.log("💾 Guardar Papelería con precio:", precio);
+    }
+
+    // === inicialización ===
+    function inicializarPaginaDecoracion() {
+      const setupFilterListener = (id, eventType, handler) => {
+        const element = document.getElementById(id);
+        if (element) element.addEventListener(eventType, handler);
+      };
+      setupFilterListener("buscarDecoracion", "input", aplicarFiltrosYOrdenar);
+      setupFilterListener(
+        "filtroUbicacionDecoracion",
+        "input",
+        aplicarFiltrosYOrdenar
+      );
+      setupFilterListener(
+        "filtroEstadoDecoracionSelect",
+        "change",
+        aplicarFiltrosYOrdenar
+      );
+      setupFilterListener(
+        "filtroUnidadesDecoracion",
+        "input",
+        aplicarFiltrosYOrdenar
+      );
+      setupFilterListener(
+        "filtroTiempoStorageDecoracion",
+        "input",
+        aplicarFiltrosYOrdenar
+      );
+
+      const toggleFiltrosBtn = document.getElementById(
+        "toggleFiltrosDecoracionIconContainer"
+      );
+      const filtrosContainer = document.getElementById(
+        "filtrosAdicionalesContainer"
+      );
+      if (toggleFiltrosBtn && filtrosContainer) {
+        filtrosContainer.classList.add("filtros-adicionales-ocultos");
+        toggleFiltrosBtn.addEventListener(
+          "click",
+          toggleFiltrosAdicionalesDecoracion
+        );
+      }
+
+      loadDecoracion();
+    }
+
+    registrarEscapeCierraModales([
+      cerrarModalAgregar,
+      cerrarModalEditar,
+      cerrarModalRetiro,
+      cerrarModalComentario,
+    ]);
+
+    // === EXPONER ALIAS GLOBALES (para que los onclick inline funcionen) ===
+    // mapea tanto nombres con sufijo como sin sufijo (para compatibilidad)
+    window.abrirModalAgregar = abrirModalAgregar;
+    window.cerrarModalAgregar = cerrarModalAgregar;
+    window.abrirModalAgregarDecoracion = abrirModalAgregar;
+    window.cerrarModalAgregarDecoracion = cerrarModalAgregar;
+
+    window.abrirModalEditar = abrirModalEditar;
+    window.cerrarModalEditar = cerrarModalEditar;
+    window.abrirModalEditarDecoracion = abrirModalEditar;
+    window.cerrarModalEditarDecoracion = cerrarModalEditar;
+
+    window.abrirModalAgregar = abrirModalAgregar;
+    window.cerrarModalAgregar = cerrarModalAgregar;
+    window.abrirModalEditar = abrirModalEditar;
+    window.cerrarModalEditar = cerrarModalEditar;
+    window.abrirModalRetiro = abrirModalRetiro;
+    window.cerrarModalRetiro = cerrarModalRetiro;
+    window.abrirModalComentario = abrirModalComentario;
+    window.cerrarModalComentario = cerrarModalComentario;
+    window.confirmarEliminar = confirmarEliminar;
+    window.confirmarEliminarDecoracion = confirmarEliminar;
+
+    window.aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenar;
+    window.aplicarFiltrosYOrdenarDecoracion = aplicarFiltrosYOrdenarDecoracion;
+    window.limpiarTodosLosFiltros = limpiarTodosLosFiltrosDecoracion;
+    window.limpiarTodosLosFiltrosDecoracion = limpiarTodosLosFiltrosDecoracion;
+
+    window.ordenarPorFecha = ordenarPorFechaDecoracion;
+    window.ordenarAscendente = ordenarAscendenteDecoracion;
+    window.ordenarDescendente = ordenarDescendenteDecoracion;
+
+    // iniciar
+    inicializarPaginaDecoracion();
+
+    // =================================================
+    // --- LÓGICA DE NOTIFICACIONES DE COMENTARIOS ---
+    // =================================================
+    function loadNotificacionesComentarios() {
+      google.script.run
+        .withSuccessHandler(function (comentarios) {
+          if (Array.isArray(comentarios)) {
+            renderizarTablasComentarios(comentarios);
+            actualizarIconoComentarios(comentarios.length);
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .getComentariosPorHoja("Inventario papeleria");
+    }
+
+    function renderizarTablasComentarios(comentarios) {
+      const pendientesBody = document.getElementById(
+        "tablaComentariosPendientesBody"
+      );
+      const leidasBody = document.getElementById("tablaComentariosLeidasBody");
+      pendientesBody.innerHTML = "";
+      leidasBody.innerHTML = "";
 
       // Aquí puedes agregar lógica para separar entre pendientes y leídos si tienes un campo 'Estado' en tus comentarios.
       // Por ahora, todos se mostrarán como pendientes.
       if (comentarios.length === 0) {
-          pendientesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay comentarios.</td></tr>`;
-          return;
+        pendientesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay comentarios.</td></tr>`;
+        return;
       }
 
-      comentarios.forEach(c => {
-          const row = `
+      comentarios.forEach((c) => {
+        const row = `
               <tr>
-                  <td>${c.ID || ''}</td>
-                  <td>${c.PRODUCTO || ''}</td>
+                  <td>${c.ID || ""}</td>
+                  <td>${c.PRODUCTO || ""}</td>
                   <td>${formatDate(c.FECHA)}</td>
-                  <td>${escapeHtml(c.COMENTARIO || '')}</td>
+                  <td>${escapeHtml(c.COMENTARIO || "")}</td>
               </tr>`;
-          pendientesBody.innerHTML += row;
+        pendientesBody.innerHTML += row;
       });
-  }
+    }
 
-  function actualizarIconoComentarios(count) {
-      const container = document.getElementById('notificacionContainerDecoracion');
-      const span = container ? container.querySelector('span') : null;
+    function actualizarIconoComentarios(count) {
+      const container = document.getElementById(
+        "notificacionContainerDecoracion"
+      );
+      const span = container ? container.querySelector("span") : null;
       if (span) {
-          span.textContent = count;
-          span.style.display = count > 0 ? 'inline-block' : 'none';
+        span.textContent = count;
+        span.style.display = count > 0 ? "inline-block" : "none";
       }
-  }
+    }
 
-  window.abrirModalComentariosDecoracion = function() {
-      abrirModal('modalNotificacion-Comentario');
+    window.abrirModalComentariosDecoracion = function () {
+      abrirModal("modalNotificacion-Comentario");
       loadNotificacionesComentarios();
-  };
-  window.cerrarModalNotificaciones = function() { cerrarModal('modalNotificacion-Comentario'); };
-})();
+    };
+    window.cerrarModalNotificaciones = function () {
+      cerrarModal("modalNotificacion-Comentario");
+    };
+  })();
 </script>

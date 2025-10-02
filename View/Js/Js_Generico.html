@@ -1,154 +1,178 @@
 <script>
-// =================================================
-// === FUNCIONES GENÉRICAS PARA TODAS LAS SECCIONES ===
-// =================================================
+  // =================================================
+  // === FUNCIONES GENÉRICAS PARA TODAS LAS SECCIONES ===
+  // =================================================
 
-// --- Manejo de Modales Genéricos ---
-function abrirModal(modalId) {
+  // --- Manejo de Modales Genéricos ---
+  function abrirModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.add("is-active");
-}
+  }
 
-function cerrarModal(modalId) {
+  function cerrarModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove("is-active");
-}
+  }
 
-// --- Feedback de UI ---
-function mostrarMensaje(mensaje, tipo = 'info') {
+  // --- Feedback de UI ---
+  function mostrarMensaje(mensaje, tipo = "info") {
     console.log(`[MSG - ${tipo}]`, mensaje);
     if (typeof showToastNotification === "function") {
-        showToastNotification(mensaje, tipo);
+      showToastNotification(mensaje, tipo);
     } else {
-        alert(mensaje);
+      alert(mensaje);
     }
-}
+  }
 
-function showLoading(show = true, overlayId = "loadingOverlay") {
+  function showLoading(show = true, overlayId = "loadingOverlay") {
     const overlay = document.getElementById(overlayId);
     if (overlay) overlay.style.display = show ? "flex" : "none";
-}
+  }
 
-function hideLoading(overlayId = "loadingOverlay") {
+  function hideLoading(overlayId = "loadingOverlay") {
     showLoading(false, overlayId);
-}
+  }
 
-function escapeHtml(unsafe) {
+  function escapeHtml(unsafe) {
     if (typeof unsafe !== "string") return "";
     return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
-// --- Manejo de Imágenes ---
+  // --- Manejo de Imágenes ---
 
-function abrirImagenNuevaVentana(imageUrl) {
-    if (imageUrl) window.open(imageUrl, '_blank');
-}
+  function abrirImagenNuevaVentana(imageUrl) {
+    if (imageUrl) window.open(imageUrl, "_blank");
+  }
 
-// --- Manejo de Respuestas del Servidor ---
-function handleServerResponse(responseString, onSuccess, reloadFn) {
+  // --- Manejo de Respuestas del Servidor ---
+  function handleServerResponse(responseString, onSuccess, reloadFn) {
     hideLoading();
     let response;
     try {
-        response = JSON.parse(responseString);
+      response = JSON.parse(responseString);
     } catch (e) {
-        const type = responseString.toLowerCase().includes("error") ? "error" : "success";
-        mostrarMensaje(responseString, type);
-        if (type === "success" && typeof reloadFn === "function") reloadFn();
-        return;
+      const type = responseString.toLowerCase().includes("error")
+        ? "error"
+        : "success";
+      mostrarMensaje(responseString, type);
+      if (type === "success" && typeof reloadFn === "function") reloadFn();
+      return;
     }
 
     if (response.success) {
-        mostrarMensaje(response.message || "Operación completada exitosamente.", "success");
-        if (typeof reloadFn === "function") reloadFn();
-        if (typeof onSuccess === "function") onSuccess();
+      mostrarMensaje(
+        response.message || "Operación completada exitosamente.",
+        "success"
+      );
+      if (typeof reloadFn === "function") reloadFn();
+      if (typeof onSuccess === "function") onSuccess();
     } else {
-        mostrarMensaje("Error: " + (response.message || "Ocurrió un error."), "error");
+      mostrarMensaje(
+        "Error: " + (response.message || "Ocurrió un error."),
+        "error"
+      );
     }
-}
+  }
 
-function handleServerError(error) {
+  function handleServerError(error) {
     hideLoading();
     console.error("Error en servidor:", error);
-    mostrarMensaje("Error de comunicación con el servidor: " + error.message, "error");
-}
+    mostrarMensaje(
+      "Error de comunicación con el servidor: " + error.message,
+      "error"
+    );
+  }
 
-function loadDataGenerico(config) {
+  function loadDataGenerico(config) {
     const {
-        endpoint,          // Nombre de la función en Apps Script
-        onSuccess,         // Función que procesa los datos
-        tbodyId,           // ID del <tbody> para mensajes de error
-        noDataId,          // ID del contenedor "noData"
-        containerId        // ID del contenedor principal de tabla
+      endpoint, // Nombre de la función en Apps Script
+      onSuccess, // Función que procesa los datos
+      tbodyId, // ID del <tbody> para mensajes de error
+      noDataId, // ID del contenedor "noData"
+      containerId, // ID del contenedor principal de tabla
     } = config;
 
-    console.log(`[INFO] loadDataGenerico: solicitando datos con endpoint ${endpoint}`);
+    console.log(
+      `[INFO] loadDataGenerico: solicitando datos con endpoint ${endpoint}`
+    );
     showLoading(true);
 
     const runner = google.script.run
-        .withSuccessHandler(function (responseString) {
-            hideLoading();
-            try {
-                const response = typeof responseString === "string"
-                    ? JSON.parse(responseString)
-                    : responseString;
-
-                if (response && Array.isArray(response.data)) {
-                    onSuccess(response.data); // ✅ Callback específico
-                } else {
-                    console.error(`[ERROR] Formato inesperado en respuesta de ${endpoint}`, response);
-                    if (tbodyId) {
-                        document.getElementById(tbodyId).innerHTML =
-                            "<tr><td colspan='15'>Error al cargar los datos.</td></tr>";
-                    }
-                    if (noDataId && containerId) {
-                        document.getElementById(noDataId).style.display = "block";
-                        document.getElementById(containerId).style.display = "none";
-                    }
-                }
-            } catch (e) {
-                hideLoading(); // Ocultar loading si el parseo falla
-                console.error(`[ERROR] Fallo al parsear respuesta de ${endpoint}:`, e, responseString);
-                if (tbodyId) {
-                    document.getElementById(tbodyId).innerHTML =
-                        "<tr><td colspan='15'>Error al procesar los datos.</td></tr>";
-                }
-            }
-        })
-        .withFailureHandler(function (error) {
-            hideLoading();
-            console.error(`[ERROR] ${endpoint} falló:`, error);
-            if (tbodyId) {
-                document.getElementById(tbodyId).innerHTML =
-                    "<tr><td colspan='15'>Fallo al cargar los datos.</td></tr>";
-            }
-            mostrarMensaje(`Error al cargar los datos: ${error.message}`, "error");
-        });
-
-    if (runner && typeof runner[endpoint] === 'function') {
-        runner[endpoint]();
-    } else {
+      .withSuccessHandler(function (responseString) {
         hideLoading();
-        console.error(`[ERROR] El endpoint '${endpoint}' no existe o no es una función.`);
-        if (tbodyId) {
-            document.getElementById(tbodyId).innerHTML = 
-                `<tr><td colspan='15'>Error: El endpoint '${endpoint}' no es válido.</td></tr>`;
-        }
-    }
-}
+        try {
+          const response =
+            typeof responseString === "string"
+              ? JSON.parse(responseString)
+              : responseString;
 
-// --- Manejo de Filtros y Ordenamiento ---
-function aplicarFiltrosYOrdenarGenerico(config) {
+          if (response && Array.isArray(response.data)) {
+            onSuccess(response.data); // ✅ Callback específico
+          } else {
+            console.error(
+              `[ERROR] Formato inesperado en respuesta de ${endpoint}`,
+              response
+            );
+            if (tbodyId) {
+              document.getElementById(tbodyId).innerHTML =
+                "<tr><td colspan='15'>Error al cargar los datos.</td></tr>";
+            }
+            if (noDataId && containerId) {
+              document.getElementById(noDataId).style.display = "block";
+              document.getElementById(containerId).style.display = "none";
+            }
+          }
+        } catch (e) {
+          hideLoading(); // Ocultar loading si el parseo falla
+          console.error(
+            `[ERROR] Fallo al parsear respuesta de ${endpoint}:`,
+            e,
+            responseString
+          );
+          if (tbodyId) {
+            document.getElementById(tbodyId).innerHTML =
+              "<tr><td colspan='15'>Error al procesar los datos.</td></tr>";
+          }
+        }
+      })
+      .withFailureHandler(function (error) {
+        hideLoading();
+        console.error(`[ERROR] ${endpoint} falló:`, error);
+        if (tbodyId) {
+          document.getElementById(tbodyId).innerHTML =
+            "<tr><td colspan='15'>Fallo al cargar los datos.</td></tr>";
+        }
+        mostrarMensaje(`Error al cargar los datos: ${error.message}`, "error");
+      });
+
+    if (runner && typeof runner[endpoint] === "function") {
+      runner[endpoint]();
+    } else {
+      hideLoading();
+      console.error(
+        `[ERROR] El endpoint '${endpoint}' no existe o no es una función.`
+      );
+      if (tbodyId) {
+        document.getElementById(
+          tbodyId
+        ).innerHTML = `<tr><td colspan='15'>Error: El endpoint '${endpoint}' no es válido.</td></tr>`;
+      }
+    }
+  }
+
+  // --- Manejo de Filtros y Ordenamiento ---
+  function aplicarFiltrosYOrdenarGenerico(config) {
     const {
-        dataSource,      // array global con todos los datos (ej: fullComidaData)
-        setResultados,   // función para guardar resultados (ej: val => datosMostradosComida = val)
-        filters,         // lista de definiciones de filtros
-        fechaOrdenAsc,   // variable global booleana (ascendente o descendente)
-        renderFn         // función para renderizar tabla (ej: renderPaginatedTable)
+      dataSource, // array global con todos los datos (ej: fullComidaData)
+      setResultados, // función para guardar resultados (ej: val => datosMostradosComida = val)
+      filters, // lista de definiciones de filtros
+      fechaOrdenAsc, // variable global booleana (ascendente o descendente)
+      renderFn, // función para renderizar tabla (ej: renderPaginatedTable)
     } = config;
 
     console.log("[INFO] aplicando filtros genéricos...");
@@ -156,433 +180,513 @@ function aplicarFiltrosYOrdenarGenerico(config) {
     let resultados = Array.isArray(dataSource) ? [...dataSource] : [];
 
     // --- Aplicar cada filtro definido ---
-    filters.forEach(f => {
-        const el = document.getElementById(f.id);
-        if (!el) return;
-        
-        let valor = el.value.toLowerCase().trim();
-        if (!valor) return;
+    filters.forEach((f) => {
+      const el = document.getElementById(f.id);
+      if (!el) return;
 
-        if (f.type === "number") {
-            const minVal = parseInt(valor, 10);
-            if (!isNaN(minVal) && minVal >= 0) {
-                resultados = resultados.filter(item =>
-                    item[f.field] != null &&
-                    parseInt(item[f.field], 10) >= minVal
-                );
-            }
-        } else if (f.type === "date") {
-            const fechaFiltro = new Date(el.value + "T00:00:00");
-            if (!isNaN(fechaFiltro.getTime())) {
-                resultados = resultados.filter(item => {
-                    if (!item[f.field]) return false;
-                    const fechaItem = new Date(item[f.field]);
-                    if (isNaN(fechaItem.getTime())) return false;
-                    return fechaItem.getFullYear() === fechaFiltro.getFullYear() &&
-                           fechaItem.getMonth() === fechaFiltro.getMonth() &&
-                           fechaItem.getDate() === fechaFiltro.getDate();
-                });
-            }
-        } else {
-            resultados = resultados.filter(item =>
-                item[f.field] && item[f.field].toLowerCase().includes(valor)
-            );
+      let valor = el.value.toLowerCase().trim();
+      if (!valor) return;
+
+      if (f.type === "number") {
+        const minVal = parseInt(valor, 10);
+        if (!isNaN(minVal) && minVal >= 0) {
+          resultados = resultados.filter(
+            (item) =>
+              item[f.field] != null && parseInt(item[f.field], 10) >= minVal
+          );
         }
+      } else if (f.type === "date") {
+        const fechaFiltro = new Date(el.value + "T00:00:00");
+        if (!isNaN(fechaFiltro.getTime())) {
+          resultados = resultados.filter((item) => {
+            if (!item[f.field]) return false;
+            const fechaItem = new Date(item[f.field]);
+            if (isNaN(fechaItem.getTime())) return false;
+            return (
+              fechaItem.getFullYear() === fechaFiltro.getFullYear() &&
+              fechaItem.getMonth() === fechaFiltro.getMonth() &&
+              fechaItem.getDate() === fechaFiltro.getDate()
+            );
+          });
+        }
+      } else {
+        resultados = resultados.filter(
+          (item) => item[f.field] && item[f.field].toLowerCase().includes(valor)
+        );
+      }
     });
 
     // --- Ordenar por fecha ---
     resultados.sort((a, b) => {
-        const fechaA = new Date(a["FECHA DE INGRESO"]);
-        const fechaB = new Date(b["FECHA DE INGRESO"]);
-        if (isNaN(fechaA) && isNaN(fechaB)) return 0;
-        if (isNaN(fechaA)) return 1;
-        if (isNaN(fechaB)) return -1;
-        return fechaOrdenAsc ? fechaA - fechaB : fechaB - fechaA;
+      const fechaA = new Date(a["FECHA DE INGRESO"]);
+      const fechaB = new Date(b["FECHA DE INGRESO"]);
+      if (isNaN(fechaA) && isNaN(fechaB)) return 0;
+      if (isNaN(fechaA)) return 1;
+      if (isNaN(fechaB)) return -1;
+      return fechaOrdenAsc ? fechaA - fechaB : fechaB - fechaA;
     });
 
     // --- Guardar y renderizar ---
     setResultados(resultados);
     renderFn();
-}
+  }
 
-function limpiarFiltrosGenerico(config) {
+  function limpiarFiltrosGenerico(config) {
     const { filtros, aplicarFn } = config;
 
-    filtros.forEach(f => {
-        const el = document.getElementById(f.id);
-        if (!el) return;
+    filtros.forEach((f) => {
+      const el = document.getElementById(f.id);
+      if (!el) return;
 
-        if (f.type === "select") {
-            el.value = f.defaultValue || ""; // si no se pasa default, deja vacío
-        } else {
-            el.value = "";
-        }
+      if (f.type === "select") {
+        el.value = f.defaultValue || ""; // si no se pasa default, deja vacío
+      } else {
+        el.value = "";
+      }
     });
 
     if (typeof aplicarFn === "function") aplicarFn();
-}
+  }
 
-// --- Funciones de Búsqueda y Ordenamiento ---
-function searchItemsGenerico(aplicarFn) {
+  // --- Funciones de Búsqueda y Ordenamiento ---
+  function searchItemsGenerico(aplicarFn) {
     if (typeof aplicarFn === "function") aplicarFn();
-}
+  }
 
-function clearSearchGenerico(inputId, aplicarFn) {
+  function clearSearchGenerico(inputId, aplicarFn) {
     const el = document.getElementById(inputId);
     if (el) el.value = "";
     if (typeof aplicarFn === "function") aplicarFn();
-}
+  }
 
-function ordenarPorFechaGenerico(event, sortOptionsId) {
+  function ordenarPorFechaGenerico(event, sortOptionsId) {
     event.preventDefault();
     const menu = document.getElementById(sortOptionsId);
     if (menu) {
-        menu.classList.toggle("show");
+      menu.classList.toggle("show");
     } else {
-        console.error(`[ERROR] No se encontró ${sortOptionsId}`);
+      console.error(`[ERROR] No se encontró ${sortOptionsId}`);
     }
     event.stopPropagation();
-}
+  }
 
-function ordenarAscendenteGenerico(aplicarFn, sortOptionsId, setOrdenAsc) {
+  function ordenarAscendenteGenerico(aplicarFn, sortOptionsId, setOrdenAsc) {
     setOrdenAsc(true);
     if (typeof aplicarFn === "function") aplicarFn();
     const sortOptionsEl = document.getElementById(sortOptionsId);
     if (sortOptionsEl) sortOptionsEl.classList.remove("show");
-}
+  }
 
-function ordenarDescendenteGenerico(aplicarFn, sortOptionsId, setOrdenAsc) {
+  function ordenarDescendenteGenerico(aplicarFn, sortOptionsId, setOrdenAsc) {
     setOrdenAsc(false);
     if (typeof aplicarFn === "function") aplicarFn();
     const sortOptionsEl = document.getElementById(sortOptionsId);
     if (sortOptionsEl) sortOptionsEl.classList.remove("show");
-}
+  }
 
-function ordenarPorIdRecienteGenerico(aplicarFn, sortOptionsId, setCriterioFn) {
+  function ordenarPorIdRecienteGenerico(
+    aplicarFn,
+    sortOptionsId,
+    setCriterioFn
+  ) {
     setCriterioFn("id"); // 👈 Cambia la variable global criterioDeOrden
     if (typeof aplicarFn === "function") aplicarFn();
 
     const sortOptionsEl = document.getElementById(sortOptionsId);
     if (sortOptionsEl) sortOptionsEl.classList.remove("show");
-}
+  }
 
-// --- Manejo de UI ---
-function toggleFiltrosAdicionalesGenerico(containerId) {
+  // --- Manejo de UI ---
+  function toggleFiltrosAdicionalesGenerico(containerId) {
     const container = document.getElementById(containerId);
     if (container) {
-        container.classList.toggle("filtros-adicionales-ocultos");
+      container.classList.toggle("filtros-adicionales-ocultos");
     }
-}
+  }
 
-function handleSubmitGenerico(config) {
+  function handleSubmitGenerico(config) {
     const { formId, buildDataFn, endpoint, onSuccess, validateFn } = config;
     const form = document.getElementById(formId);
 
     if (!form) {
-        console.error(`[ERROR] Formulario con ID "${formId}" no encontrado.`);
-        return;
+      console.error(`[ERROR] Formulario con ID "${formId}" no encontrado.`);
+      return;
     }
 
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
 
-        if (typeof validateFn === 'function' && !validateFn()) {
-            // La validación falló, los mensajes se muestran dentro de validateFn
-            return;
-        }
+      if (typeof validateFn === "function" && !validateFn()) {
+        // La validación falló, los mensajes se muestran dentro de validateFn
+        return;
+      }
 
-        showLoading(true);
-        const data = buildDataFn();
+      showLoading(true);
+      const data = buildDataFn();
 
-        google.script.run
-            .withSuccessHandler(function(responseString) {
-                handleServerResponse(responseString, onSuccess, config.reloadFn);
-            })
-            .withFailureHandler(handleServerError)
-            [endpoint](data);
+      google.script.run
+        .withSuccessHandler(function (responseString) {
+          handleServerResponse(responseString, onSuccess, config.reloadFn);
+        })
+        .withFailureHandler(handleServerError)
+        [endpoint](data);
     });
-}
+  }
 
-function registrarEscapeCierraModales(modales) {
+  function registrarEscapeCierraModales(modales) {
     document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") {
-            modales.forEach(fn => {
-                if (typeof fn === "function") fn();
-            });
-        }
+      if (e.key === "Escape") {
+        modales.forEach((fn) => {
+          if (typeof fn === "function") fn();
+        });
+      }
     });
-}
+  }
 
-// ===============================
-// --- FUNCIONES DE PRECIOS ---
-// ===============================
+  // ===============================
+  // --- FUNCIONES DE PRECIOS ---
+  // ===============================
 
-function convertirPrecioFormateadoAStringNumericoParaServidor(valorFormateado) {
-    if (typeof valorFormateado !== 'string' || !valorFormateado) return '0.00';
-    const valorLimpio = valorFormateado.replace(/\.(?=\d{3})/g, '').replace(',', '.');
-    const num = parseFloat(valorLimpio.replace(/[^\d.-]/g, ''));
-    return isNaN(num) ? '0.00' : num.toFixed(2);
-}
+  function convertirPrecioFormateadoAStringNumericoParaServidor(
+    valorFormateado
+  ) {
+    if (typeof valorFormateado !== "string" || !valorFormateado) return "0.00";
+    const valorLimpio = valorFormateado
+      .replace(/\.(?=\d{3})/g, "")
+      .replace(",", ".");
+    const num = parseFloat(valorLimpio.replace(/[^\d.-]/g, ""));
+    return isNaN(num) ? "0.00" : num.toFixed(2);
+  }
 
-function validarFormatoPrecio(inputElement) {
-    const errorSpanId = inputElement.id === 'precioAgregarComida' ? 'errorPrecioAgregarComida' : 'errorPrecioEditarComida';
+  function validarFormatoPrecio(inputElement) {
+    const errorSpanId =
+      inputElement.id === "precioAgregarComida"
+        ? "errorPrecioAgregarComida"
+        : "errorPrecioEditarComida";
     const errorSpan = document.getElementById(errorSpanId);
     let valor = inputElement.value.trim();
 
-    if (valor === '') {
-        if (errorSpan) {
-            errorSpan.textContent = 'El precio es obligatorio.';
-            errorSpan.style.display = 'inline';
-        }
-        return false;
+    if (valor === "") {
+      if (errorSpan) {
+        errorSpan.textContent = "El precio es obligatorio.";
+        errorSpan.style.display = "inline";
+      }
+      return false;
     }
-    
+
     const valorNumerico = parseInputPrecioCOP(valor);
     if (isNaN(valorNumerico) || valorNumerico < 0) {
-        if (errorSpan) {
-            errorSpan.textContent = 'Formato de precio inválido. Use números positivos (ej: 1234,50 o 20.000).';
-            errorSpan.style.display = 'inline';
-        }
-        return false;
+      if (errorSpan) {
+        errorSpan.textContent =
+          "Formato de precio inválido. Use números positivos (ej: 1234,50 o 20.000).";
+        errorSpan.style.display = "inline";
+      }
+      return false;
     }
-    
-    if (errorSpan) errorSpan.style.display = 'none';
+
+    if (errorSpan) errorSpan.style.display = "none";
     return true;
-}
+  }
 
-function parseInputPrecioCOP(valorActual) {
-    if (typeof valorActual !== 'string') return NaN;
-    let cleanedForParse = valorActual.replace(/[$\s]/g, '');
-    cleanedForParse = cleanedForParse.replace(/\./g, '');
-    cleanedForParse = cleanedForParse.replace(/,/g, '.');
+  function parseInputPrecioCOP(valorActual) {
+    if (typeof valorActual !== "string") return NaN;
+    let cleanedForParse = valorActual.replace(/[$\s]/g, "");
+    cleanedForParse = cleanedForParse.replace(/\./g, "");
+    cleanedForParse = cleanedForParse.replace(/,/g, ".");
     return parseFloat(cleanedForParse);
-}
+  }
 
-function formatearPrecio(inputElement, moneda = 'COP', locale = 'es-CO') {
+  function formatearPrecio(inputElement, moneda = "COP", locale = "es-CO") {
     if (!inputElement) return;
     let valorNumerico = parseInputPrecioCOP(inputElement.value);
     if (isNaN(valorNumerico)) {
-        if (inputElement.value.trim() !== '') return;
-        valorNumerico = 0;
+      if (inputElement.value.trim() !== "") return;
+      valorNumerico = 0;
     }
     inputElement.value = valorNumerico.toLocaleString(locale, {
-        style: 'currency',
-        currency: moneda,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+      style: "currency",
+      currency: moneda,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
-}
+  }
 
-// ===============================
-// --- FUNCIONES DE FECHAS ---
-// ===============================
+  // ===============================
+  // --- FUNCIONES DE FECHAS ---
+  // ===============================
 
-function formatDate(dateString) {
-    if (!dateString) return '';
+  function formatDate(dateString) {
+    if (!dateString) return "";
     let date;
-    if (typeof dateString === 'string' && dateString.includes('/')) {
-        const parts = dateString.split('/');
-        if (parts.length === 3) {
-            // Asumir formato DD/MM/YYYY
-            date = new Date(parts[2], parts[1] - 1, parts[0]);
-        } else {
-            date = new Date(dateString);
-        }
-    } else {
+    if (typeof dateString === "string" && dateString.includes("/")) {
+      const parts = dateString.split("/");
+      if (parts.length === 3) {
+        // Asumir formato DD/MM/YYYY
+        date = new Date(parts[2], parts[1] - 1, parts[0]);
+      } else {
         date = new Date(dateString);
+      }
+    } else {
+      date = new Date(dateString);
     }
 
-    if (isNaN(date.getTime())) return ''; // Devolver cadena vacía para fechas inválidas o vacías
-    return date.toLocaleDateString('es-CO', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit', 
-        timeZone: 'UTC' 
+    if (isNaN(date.getTime())) return ""; // Devolver cadena vacía para fechas inválidas o vacías
+    return date.toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "UTC",
     });
-}
+  }
 
-function formatDateForComparison(dateString) {
+  function formatDateForComparison(dateString) {
     if (!dateString) return null;
     if (dateString instanceof Date) return dateString;
-    
+
     let date;
-    if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        const parts = dateString.split('-');
-        date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    if (
+      typeof dateString === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(dateString)
+    ) {
+      const parts = dateString.split("-");
+      date = new Date(
+        parseInt(parts[0]),
+        parseInt(parts[1]) - 1,
+        parseInt(parts[2])
+      );
     } else {
-        date = new Date(dateString);
+      date = new Date(dateString);
     }
     return isNaN(date.getTime()) ? null : date;
-}
+  }
 
-// ===============================
-// --- UTILIDADES ADICIONALES ---
-// ===============================
+  // ===============================
+  // --- UTILIDADES ADICIONALES ---
+  // ===============================
 
-function normalizeKeys(item) {
+  function normalizeKeys(item) {
     const normalized = {};
     for (let key in item) {
-        normalized[key.trim().toLowerCase()] = item[key];
+      normalized[key.trim().toLowerCase()] = item[key];
     }
     return normalized;
-}
+  }
 
-// ===============================
-// --- FUNCIONES DE COMENTARIOS ---
-// ===============================
+  // ===============================
+  // --- FUNCIONES DE COMENTARIOS ---
+  // ===============================
 
-function registrarComentarioGenerico({ productoId, producto, programa, comentario, usuario, reloadFn }) {
+  function registrarComentarioGenerico({
+    productoId,
+    producto,
+    programa,
+    comentario,
+    usuario,
+    reloadFn,
+  }) {
     if (!productoId || !comentario) {
-        mostrarMensajeComentario("Debe ingresar un comentario válido.");
-        return;
+      mostrarMensajeComentario("Debe ingresar un comentario válido.");
+      return;
     }
 
     showLoading(); // ✅ usamos el genérico
 
     google.script.run
-        .withSuccessHandler(response => {
-            hideLoading(); // ✅ usamos el genérico
-            try {
-                const res = typeof response === "string" ? JSON.parse(response) : response;
-                if (res.success) {
-                    mostrarMensajeComentario("Comentario agregado correctamente.");
-                    // 🔄 Recargar tabla de comentarios si se proveyó la función
-                    if (typeof reloadFn === 'function') reloadFn();
-                } else {
-                    mostrarMensajeComentario("Error al guardar comentario: " + (res.message || ""));
-                }
-            } catch (e) {
-                console.error("Error parseando respuesta:", e);
-            }
-        })
-        .withFailureHandler(err => {
-            hideLoading(); // ✅ corregido
-            console.error("Error registrando comentario:", err);
-            mostrarMensajeComentario("Error al registrar comentario.");
-        })
-        .guardarComentarioEnSheet(productoId, producto, programa, comentario, usuario);
-}
-
-// ==============================
-// USUARIO ACTIVO (GLOBAL)
-// ==============================
-var currentUser = currentUser || null;
-
-// Cargar usuario al iniciar la app
-google.script.run
-    .withSuccessHandler(function(userJson) {
-        if (userJson) {
-            currentUser = JSON.parse(userJson);
-            console.log("✅ Usuario activo:", currentUser);
-        } else {
-            console.warn("⚠️ No hay usuario en sesión");
+      .withSuccessHandler((response) => {
+        hideLoading(); // ✅ usamos el genérico
+        try {
+          const res =
+            typeof response === "string" ? JSON.parse(response) : response;
+          if (res.success) {
+            mostrarMensajeComentario("Comentario agregado correctamente.");
+            // 🔄 Recargar tabla de comentarios si se proveyó la función
+            if (typeof reloadFn === "function") reloadFn();
+          } else {
+            mostrarMensajeComentario(
+              "Error al guardar comentario: " + (res.message || "")
+            );
+          }
+        } catch (e) {
+          console.error("Error parseando respuesta:", e);
         }
+      })
+      .withFailureHandler((err) => {
+        hideLoading(); // ✅ corregido
+        console.error("Error registrando comentario:", err);
+        mostrarMensajeComentario("Error al registrar comentario.");
+      })
+      .guardarComentarioEnSheet(
+        productoId,
+        producto,
+        programa,
+        comentario,
+        usuario
+      );
+  }
+
+  // ==============================
+  // USUARIO ACTIVO (GLOBAL)
+  // ==============================
+  var currentUser = currentUser || null;
+
+  // Cargar usuario al iniciar la app
+  google.script.run
+    .withSuccessHandler(function (userJson) {
+      if (userJson) {
+        currentUser = JSON.parse(userJson);
+        console.log("✅ Usuario activo:", currentUser);
+      } else {
+        console.warn("⚠️ No hay usuario en sesión");
+      }
     })
     .getCurrentUser();
 
-// ===============================
-// --- FUNCIONES DE MENSAJE COMENTARIO ---
-// ===============================
+  // ===============================
+  // --- FUNCIONES DE MENSAJE COMENTARIO ---
+  // ===============================
 
-function mostrarMensajeComentario(mensaje, tipo = 'info') {
+  function mostrarMensajeComentario(mensaje, tipo = "info") {
     console.log(`[COMENTARIO - ${tipo}]`, mensaje);
     if (typeof showToastNotification === "function") {
-        showToastNotification(mensaje, tipo);
+      showToastNotification(mensaje, tipo);
     } else {
-        alert(mensaje);
+      alert(mensaje);
     }
-}
+  }
 
-// Cierra modales al hacer click en botones de cierre (data-close-modal o .modal-close)
-document.addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-close-modal], .modal-close');
+  // Cierra modales al hacer click en botones de cierre (data-close-modal o .modal-close)
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest("[data-close-modal], .modal-close");
     if (!btn) return;
     // Si el botón tiene data-close-modal con id -> úsalo
-    const targetId = btn.dataset && btn.dataset.closeModal ? btn.dataset.closeModal : null;
+    const targetId =
+      btn.dataset && btn.dataset.closeModal ? btn.dataset.closeModal : null;
     if (targetId) {
-        cerrarModal(targetId);
-        return;
+      cerrarModal(targetId);
+      return;
     }
     // Si no, busca el modal padre
-    const modal = btn.closest('.modal');
+    const modal = btn.closest(".modal");
     if (modal && modal.id) {
-        cerrarModal(modal.id);
-    }
-});
-
-
-function closeAllModals() {
-  [
-    "modalAgregar",
-    "modalEditar",
-    "modalRetiro",
-    "modalComentario",
-    "modalNotificaciones",
-    "modalVerImagen"
-  ].forEach(id => {
-    const modal = document.getElementById(id);
-    if (modal && modal.classList.contains("is-active")) {
-      cerrarModal(id);
+      cerrarModal(modal.id);
     }
   });
-}
-// ===============================
-// --- funcion de paginacion 
-// ===============================
-function createPaginationControls({ totalItems, itemsPerPage, currentPage, containerId, onPageChange, maxButtons = 5 }) {
+
+  function closeAllModals() {
+    [
+      "modalAgregar",
+      "modalEditar",
+      "modalRetiro",
+      "modalComentario",
+      "modalNotificaciones",
+      "modalVerImagen",
+    ].forEach((id) => {
+      const modal = document.getElementById(id);
+      if (modal && modal.classList.contains("is-active")) {
+        cerrarModal(id);
+      }
+    });
+  }
+  // ===============================
+  // --- funcion de paginacion
+  // ===============================
+  function createPaginationControls({
+    totalItems,
+    itemsPerPage,
+    currentPage,
+    containerId,
+    onPageChange,
+    maxButtons = 5,
+  }) {
     const paginationDiv = document.getElementById(containerId);
-    if (!paginationDiv) { console.error("[PAGINATION] contenedor no encontrado:", containerId); return; }
+    if (!paginationDiv) {
+      console.error("[PAGINATION] contenedor no encontrado:", containerId);
+      return;
+    }
     paginationDiv.innerHTML = "";
     const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
     if (totalPages <= 1) return;
 
-    const makeBtn = (text, page, disabled=false, cls="") => {
-        const btn = document.createElement("button");
-        btn.className = "page-btn " + cls;
-        btn.textContent = text;
-        btn.disabled = !!disabled;
-        btn.addEventListener("click", () => onPageChange(page));
-        return btn;
+    const makeBtn = (text, page, disabled = false, cls = "") => {
+      const btn = document.createElement("button");
+      btn.className = "page-btn " + cls;
+      btn.textContent = text;
+      btn.disabled = !!disabled;
+      btn.addEventListener("click", () => onPageChange(page));
+      return btn;
     };
 
-    paginationDiv.appendChild(makeBtn("Anterior", Math.max(1, currentPage - 1), currentPage === 1));
-    let startPage = Math.max(1, currentPage - Math.floor(maxButtons/2));
+    paginationDiv.appendChild(
+      makeBtn("Anterior", Math.max(1, currentPage - 1), currentPage === 1)
+    );
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
     let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-    if (endPage - startPage + 1 < maxButtons) startPage = Math.max(1, endPage - maxButtons + 1);
+    if (endPage - startPage + 1 < maxButtons)
+      startPage = Math.max(1, endPage - maxButtons + 1);
 
     if (startPage > 1) {
-        paginationDiv.appendChild(makeBtn("1", 1));
-        if (startPage > 2) {
-            const dots = document.createElement("span"); dots.className = "pagination-dots"; dots.textContent = "...";
-            paginationDiv.appendChild(dots);
-        }
+      paginationDiv.appendChild(makeBtn("1", 1));
+      if (startPage > 2) {
+        const dots = document.createElement("span");
+        dots.className = "pagination-dots";
+        dots.textContent = "...";
+        paginationDiv.appendChild(dots);
+      }
     }
 
     for (let i = startPage; i <= endPage; i++) {
-        const cls = i === currentPage ? "active" : "";
-        paginationDiv.appendChild(makeBtn(String(i), i, false, cls));
+      const cls = i === currentPage ? "active" : "";
+      paginationDiv.appendChild(makeBtn(String(i), i, false, cls));
     }
 
     if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            const dots = document.createElement("span"); dots.className = "pagination-dots"; dots.textContent = "...";
-            paginationDiv.appendChild(dots);
-        }
-        paginationDiv.appendChild(makeBtn(String(totalPages), totalPages));
+      if (endPage < totalPages - 1) {
+        const dots = document.createElement("span");
+        dots.className = "pagination-dots";
+        dots.textContent = "...";
+        paginationDiv.appendChild(dots);
+      }
+      paginationDiv.appendChild(makeBtn(String(totalPages), totalPages));
     }
 
-    paginationDiv.appendChild(makeBtn("Siguiente", Math.min(totalPages, currentPage + 1), currentPage === totalPages));
-}
-function renderPaginatedTableGeneric({ data = [], currentPage = 1, itemsPerPage = 10, tbodyId, renderRow, paginationContainerId, onPageChange, noDataMessage = "No hay datos.", columnsFallback = 6, onRowCreated }) {
+    paginationDiv.appendChild(
+      makeBtn(
+        "Siguiente",
+        Math.min(totalPages, currentPage + 1),
+        currentPage === totalPages
+      )
+    );
+  }
+  function renderPaginatedTableGeneric({
+    data = [],
+    currentPage = 1,
+    itemsPerPage = 10,
+    tbodyId,
+    renderRow,
+    paginationContainerId,
+    onPageChange,
+    noDataMessage = "No hay datos.",
+    columnsFallback = 6,
+    onRowCreated,
+  }) {
     const tbody = document.getElementById(tbodyId);
-    if (!tbody) { console.error("[GENERIC TABLE] tbody no encontrado:", tbodyId); return; }
+    if (!tbody) {
+      console.error("[GENERIC TABLE] tbody no encontrado:", tbodyId);
+      return;
+    }
     tbody.innerHTML = "";
 
     if (!Array.isArray(data) || data.length === 0) {
-        const cols = (tbody.closest && tbody.closest("table") && tbody.closest("table").rows[0]) ? tbody.closest("table").rows[0].cells.length : columnsFallback;
-        tbody.innerHTML = `<tr><td colspan='${cols}' style='text-align:center;'>${noDataMessage}</td></tr>`;
-        if (paginationContainerId) document.getElementById(paginationContainerId).innerHTML = "";
-        return;
+      const cols =
+        tbody.closest &&
+        tbody.closest("table") &&
+        tbody.closest("table").rows[0]
+          ? tbody.closest("table").rows[0].cells.length
+          : columnsFallback;
+      tbody.innerHTML = `<tr><td colspan='${cols}' style='text-align:center;'>${noDataMessage}</td></tr>`;
+      if (paginationContainerId)
+        document.getElementById(paginationContainerId).innerHTML = "";
+      return;
     }
 
     const totalPages = Math.max(1, Math.ceil(data.length / itemsPerPage));
@@ -591,30 +695,46 @@ function renderPaginatedTableGeneric({ data = [], currentPage = 1, itemsPerPage 
     const start = (currentPage - 1) * itemsPerPage;
     const pageItems = data.slice(start, start + itemsPerPage);
 
-    pageItems.forEach(item => {
-        const row = tbody.insertRow();
-        if (typeof onRowCreated === 'function') {
-            onRowCreated(row, item);
-        }
-        row.innerHTML = typeof renderRow === "function" ? renderRow(item) : "<td>renderRow no definido</td>";
+    pageItems.forEach((item) => {
+      const row = tbody.insertRow();
+      if (typeof onRowCreated === "function") {
+        onRowCreated(row, item);
+      }
+      row.innerHTML =
+        typeof renderRow === "function"
+          ? renderRow(item)
+          : "<td>renderRow no definido</td>";
     });
 
     if (paginationContainerId && typeof onPageChange === "function") {
-        createPaginationControls({
-            totalItems: data.length,
-            itemsPerPage,
-            currentPage,
-            containerId: paginationContainerId,
-            onPageChange
-        });
+      createPaginationControls({
+        totalItems: data.length,
+        itemsPerPage,
+        currentPage,
+        containerId: paginationContainerId,
+        onPageChange,
+      });
     }
-}
+  }
 
-// --- Helper: render notificaciones con paginación y checkboxes ---
-// params: { items, page, perPage, tbodyId, paginationContainerId, onPageChange, checkboxClass, noDataMessage, infoElementId }
-function renderNotificationsGeneric({ items = [], page = 1, perPage = 10, tbodyId, paginationContainerId, onPageChange, checkboxClass = "notif-checkbox", noDataMessage = "No hay notificaciones.", infoElementId }) {
+  // --- Helper: render notificaciones con paginación y checkboxes ---
+  // params: { items, page, perPage, tbodyId, paginationContainerId, onPageChange, checkboxClass, noDataMessage, infoElementId }
+  function renderNotificationsGeneric({
+    items = [],
+    page = 1,
+    perPage = 10,
+    tbodyId,
+    paginationContainerId,
+    onPageChange,
+    checkboxClass = "notif-checkbox",
+    noDataMessage = "No hay notificaciones.",
+    infoElementId,
+  }) {
     const tbody = document.getElementById(tbodyId);
-    if (!tbody) { console.error("[NOTIF] tbody no encontrado:", tbodyId); return; }
+    if (!tbody) {
+      console.error("[NOTIF] tbody no encontrado:", tbodyId);
+      return;
+    }
     tbody.innerHTML = "";
 
     const totalItems = items.length;
@@ -625,31 +745,69 @@ function renderNotificationsGeneric({ items = [], page = 1, perPage = 10, tbodyI
     const pageItems = items.slice(start, start + perPage);
 
     if (pageItems.length === 0) {
-        tbody.innerHTML = `<tr><td colspan='6' class='no-data'>${noDataMessage}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan='6' class='no-data'>${noDataMessage}</td></tr>`;
     } else {
-        pageItems.forEach(item => {
-            const row = document.createElement("tr");
-            // Espera que el caller construya el innerHTML de la fila según su estructura
-            // Para compatibilidad simple asumimos un formato mínimo:
-            row.innerHTML = item._rowHtml || `<td>${escapeHtml(item.id||"N/A")}</td><td>${escapeHtml(item.producto||"N/A")}</td><td>${escapeHtml(item.info||"")}</td><td><input type='checkbox' class='${checkboxClass}' data-id='${escapeHtml(item.id||"")}'/></td>`;
-            tbody.appendChild(row);
-        });
+      pageItems.forEach((item) => {
+        const row = document.createElement("tr");
+        // Espera que el caller construya el innerHTML de la fila según su estructura
+        // Para compatibilidad simple asumimos un formato mínimo:
+        row.innerHTML =
+          item._rowHtml ||
+          `<td>${escapeHtml(item.id || "N/A")}</td><td>${escapeHtml(
+            item.producto || "N/A"
+          )}</td><td>${escapeHtml(
+            item.info || ""
+          )}</td><td><input type='checkbox' class='${checkboxClass}' data-id='${escapeHtml(
+            item.id || ""
+          )}'/></td>`;
+        tbody.appendChild(row);
+      });
     }
 
     if (infoElementId) {
-        const el = document.getElementById(infoElementId);
-        if (el) el.textContent = `Página ${page} de ${totalPages || 1}`;
+      const el = document.getElementById(infoElementId);
+      if (el) el.textContent = `Página ${page} de ${totalPages || 1}`;
     }
 
     if (paginationContainerId && typeof onPageChange === "function") {
-        createPaginationControls({
-            totalItems,
-            itemsPerPage: perPage,
-            currentPage: page,
-            containerId: paginationContainerId,
-            onPageChange
-        });
+      createPaginationControls({
+        totalItems,
+        itemsPerPage: perPage,
+        currentPage: page,
+        containerId: paginationContainerId,
+        onPageChange,
+      });
     }
-}
+  }
 
+  /**
+   * Muestra la pestaña seleccionada dentro de un grupo de tabs
+   * @param {string} tabId - ID del contenido de la pestaña (ej: 'proximos', 'vencidos', 'pendientes', 'leidas')
+   * @param {HTMLElement} btn - El botón que se presionó
+   */
+  function mostrarTab(tabId, btn) {
+    // Buscar el contenedor de tabs (sube hasta encontrar .tab-buttons-container)
+    const container = btn.closest(".tab-buttons-container");
+    if (!container) return;
+
+    // Desactivar todos los botones dentro de ese contenedor
+    container.querySelectorAll(".tab-button").forEach((button) => {
+      button.classList.remove("active");
+    });
+
+    // Activar el botón actual
+    btn.classList.add("active");
+
+    // Ocultar todas las tab-content dentro del modal correspondiente
+    const modalBody = container.closest(".modal-body");
+    modalBody.querySelectorAll(".tab-content").forEach((tab) => {
+      tab.classList.remove("active");
+    });
+
+    // Mostrar solo la tab seleccionada
+    const selectedTab = modalBody.querySelector(`#${tabId}`);
+    if (selectedTab) {
+      selectedTab.classList.add("active");
+    }
+  }
 </script>
