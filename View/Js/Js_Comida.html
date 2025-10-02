@@ -70,7 +70,7 @@
                             dias = 'Error';
                         }
                         return {
-                            id: p["ID"] || p.id || "N/A",
+                            id: p["Id"] || p.id || "N/A",
                             producto: p["PRODUCTO"] || p.producto || "N/A",
                             estado: p["ESTADO DEL PRODUCTO"] || p.estadoProducto || p.estado || "N/A",
                             diasRestantes: dias,
@@ -201,124 +201,174 @@
     // =================================================
     // --- 3. RENDERIZADO DE NOTIFICACIONES Y TABS ---
     // =================================================
-  function mostrarNotificaciones() {
-        console.log("[INFO] Mostrando notificaciones de comida...");
-        const proximos = pageStateComida.productosProximosAVencer.filter(p => typeof p.diasRestantes === "number" && p.diasRestantes >= 0);
-        const vencidos = pageStateComida.productosProximosAVencer.filter(p => typeof p.diasRestantes === "number" && p.diasRestantes < 0);
+ function mostrarNotificaciones() {
+    console.log("[INFO] Mostrando notificaciones de comida...");
+    const proximos = pageStateComida.productosProximosAVencer.filter(
+        p => typeof p.diasRestantes === "number" && p.diasRestantes >= 0
+    );
+    const vencidos = pageStateComida.productosProximosAVencer.filter(
+        p => typeof p.diasRestantes === "number" && p.diasRestantes < 0
+    );
 
-        const tabSinVencimientoButton = document.querySelector('button[data-tab="sin-vencimiento"]');
-        if (tabSinVencimientoButton) tabSinVencimientoButton.style.display = 'none';
-        const tabSinVencimientoContent = document.getElementById('sin-vencimiento');
-        if (tabSinVencimientoContent) tabSinVencimientoContent.style.display = 'none';
+    // Ocultar pestaña "sin vencimiento" si existe
+    const tabSinVencimientoButton = document.querySelector('button[data-tab="sin-vencimiento"]');
+    if (tabSinVencimientoButton) tabSinVencimientoButton.style.display = 'none';
+    const tabSinVencimientoContent = document.getElementById('sin-vencimiento');
+    if (tabSinVencimientoContent) tabSinVencimientoContent.style.display = 'none';
 
-        const cantidadEl = document.getElementById("notificacionCantidad");
-        const itemsNotificables = pageStateComida.productosProximosAVencer.length;
-
-        if (cantidadEl) {
-            if (itemsNotificables > 0) {
-                cantidadEl.style.display = "inline-block";
-                cantidadEl.textContent = itemsNotificables.toString();
-            } else {
-                cantidadEl.style.display = "none";
-            }
-        }
-
-        mostrarTablaVencimiento(proximos, "tablaProximosVencimientoBody");
-        mostrarTablaVencimiento(vencidos, "tablaVencidosBody");
-
-        const tabProximosBtn = document.querySelector('[data-tab="proximos"]');
-        const tabVencidosBtn = document.querySelector('[data-tab="vencidos"]');
-        if (vencidos.length > 0 && proximos.length === 0) {
-            mostrarTab('vencidos', tabVencidosBtn);
+    // Mostrar cantidad de notificaciones
+    const cantidadEl = document.getElementById("notificacionCantidad");
+    const itemsNotificables = pageStateComida.productosProximosAVencer.length;
+    if (cantidadEl) {
+        if (itemsNotificables > 0) {
+            cantidadEl.style.display = "inline-block";
+            cantidadEl.textContent = itemsNotificables.toString();
         } else {
-            mostrarTab('proximos', tabProximosBtn);
-        }
-    }
-
-    function mostrarTablaVencimiento(items, tablaBodyId) {
-        const tbody = document.getElementById(tablaBodyId);
-        if (!tbody) {
-            console.error(`[ERROR] Elemento ${tablaBodyId} no encontrado`);
-            return;
-        }
-        tbody.innerHTML = '';
-
-        if (items.length === 0) {
-            const message = tablaBodyId === "tablaProximosVencimientoBody" ? "No hay productos próximos a vencer." : "No hay productos vencidos.";
-            tbody.innerHTML = `<tr><td colspan='6' style='text-align:center;'>${message}</td></tr>`;
-            return;
-        }
-
-        items.forEach(item => {
-            const row = document.createElement("tr");
-            let diasTexto;
-            if (tablaBodyId === "tablaProximosVencimientoBody") {
-                diasTexto = item.diasRestantes === 0 ? "Vence hoy" : `${item.diasRestantes} días`;
-            } else {
-                diasTexto = `Hace ${Math.abs(item.diasRestantes)} días`;
-            }
-            row.innerHTML = `
-                <td>${escapeHtml(item.id || "N/A")}</td>
-                <td>${escapeHtml(item.producto || "N/A")}</td>
-                <td>${diasTexto}</td>
-                <td>${escapeHtml(item.estado || "N/A")}</td>
-                <td>${escapeHtml(item.ubicacion || "N/A")}</td>
-                <td>${escapeHtml(item.unidadesDisponibles != null ? item.unidadesDisponibles : "N/A")}</td>
-            `;
-            tbody.appendChild(row);
-        });
-    }
-
-    function mostrarTab(tabId, boton) {
-        document.querySelectorAll(".tab-content").forEach(tab => {
-            tab.classList.remove("active");
-            tab.style.display = "none";
-        });
-        document.querySelectorAll(".tab-button").forEach(btn => {
-            btn.classList.remove("active");
-        });
-        const tabActiva = document.getElementById(tabId);
-        if (tabActiva) {
-            tabActiva.classList.add("active");
-            tabActiva.style.display = "block";
-        }
-        if (boton) boton.classList.add("active");
-    }
-
-    function limpiarNotificaciones() {
-        pageStateComida.productosProximosAVencer = [];
-        const cantidadEl = document.getElementById("notificacionCantidad");
-        if (cantidadEl) {
             cantidadEl.style.display = "none";
-            cantidadEl.textContent = "";
         }
-        mostrarTablaVencimiento([], "tablaProximosVencimientoBody");
-        mostrarTablaVencimiento([], "tablaVencidosBody");
-        mostrarMensaje("Notificaciones de vencimiento limpiadas.", "success");
     }
 
-    function deactivateSelectedNotifications() {
-        const seleccionados = [...document.querySelectorAll('.notificacion-checkbox:checked')].map(cb => cb.value);
-        if (seleccionados.length === 0) return;
+    // Render de tablas
+    mostrarTablaVencimiento(proximos, "tablaProximosVencimientoBody");
+    mostrarTablaVencimiento(vencidos, "tablaVencidosBody");
+
+    // Cambiar tab activo por lógica
+    const tabProximosBtn = document.querySelector('[data-tab="proximos"]');
+    const tabVencidosBtn = document.querySelector('[data-tab="vencidos"]');
+    if (vencidos.length > 0 && proximos.length === 0) {
+        mostrarTab('vencidos', tabVencidosBtn);
+    } else {
+        mostrarTab('proximos', tabProximosBtn);
+    }
+}
+
+function mostrarTablaVencimiento(items, tablaBodyId) {
+    const tbody = document.getElementById(tablaBodyId);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (items.length === 0) {
+        const message = tablaBodyId === "tablaProximosVencimientoBody" ? 
+            "No hay productos próximos a vencer." : 
+            "No hay productos vencidos.";
+        tbody.innerHTML = `<tr><td colspan='7' style='text-align:center;'>${message}</td></tr>`;
+        return;
+    }
+
+    items.forEach(item => {
+        const row = document.createElement("tr");
+
+        let diasTexto = tablaBodyId === "tablaProximosVencimientoBody"
+            ? (item.diasRestantes === 0 ? "Vence hoy" : `${item.diasRestantes} días`)
+            : `Hace ${Math.abs(item.diasRestantes)} días`;
+
+        const id = item.Id || item.ID || item.id || "";
+        const unidades = parseInt(item.unidadesDisponibles) || 0;
+        const agotadoClass = unidades === 0 ? "agotado" : "";
+
+        row.dataset.id =  String(id || "");
+        row.dataset.unidades = unidades;
+
+        row.innerHTML = `
+            <td>${(id)}</td>
+            <td>${escapeHtml(item.producto || "N/A")}</td>
+            <td>${diasTexto}</td>
+            <td>${escapeHtml(item.estado || "N/A")}</td>
+            <td>${escapeHtml(item.ubicacion || "N/A")}</td>
+            <td class="${agotadoClass}">${unidades}</td>
+            ${tablaBodyId === "tablaVencidosBody" 
+              ? `<td><input type="checkbox" class="notificacion-checkbox" value="${(id)}" onchange="handleIndividualCheckboxChange(this)"></td>` 
+              : ""}
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function mostrarTab(tabId, boton) {
+    document.querySelectorAll(".tab-content").forEach(tab => {
+        tab.classList.remove("active");
+        tab.style.display = "none";
+    });
+    document.querySelectorAll(".tab-button").forEach(btn => {
+        btn.classList.remove("active");
+    });
+    const tabActiva = document.getElementById(tabId);
+    if (tabActiva) {
+        tabActiva.classList.add("active");
+        tabActiva.style.display = "block";
+    }
+    if (boton) boton.classList.add("active");
+}
+
+function limpiarNotificaciones() {
+    pageStateComida.productosProximosAVencer = [];
+    const cantidadEl = document.getElementById("notificacionCantidad");
+    if (cantidadEl) {
+        cantidadEl.style.display = "none";
+        cantidadEl.textContent = "";
+    }
+    mostrarTablaVencimiento([], "tablaProximosVencimientoBody");
+    mostrarTablaVencimiento([], "tablaVencidosBody");
+    mostrarMensaje("Notificaciones de vencimiento limpiadas.", "success");
+}
+
+// Js_Comida.html - Modificación de la función existente
+
+function deactivateSelectedNotifications() {
+    // Recoge los IDs de los checkboxes marcados
+    const seleccionados = [...document.querySelectorAll('.notificacion-checkbox:checked')].map(cb => cb.value);
+    
+    if (seleccionados.length === 0) {
+        mostrarMensaje("Selecciona al menos un producto para desactivar.", "info");
+        return;
+    }
+    
+    // El mensaje de confirmación indica el cambio de estado
+    if (confirm(`¿Seguro que deseas desactivar ${seleccionados.length} producto(s) seleccionado(s)? (Cambiarán a 'Desactivado')`)) {
+        showLoading(true);
         
-        if (confirm("Esta función no está implementada. ¿Desea limpiar las notificaciones de la vista?")) {
-            google.script.run
-                .withSuccessHandler(() => {
-                    loadNotificacionesComida();
-                    mostrarMensaje("Notificaciones desactivadas correctamente", "success");
-                })
-                .withFailureHandler(err => {
-                    mostrarMensaje("Error al desactivar notificaciones: " + (err && err.message ? err.message : String(err)), "error");
-                })
-                .desactivarNotificacionesComida(seleccionados);
-        } // La función desactivarNotificacionesComida debe existir en el backend.
+        const sheetName = ("Inventario comida");
+        google.script.run
+            .withSuccessHandler(handleDeactivateSuccess)
+            .withFailureHandler(handleDeactivateFailure)
+            .deactivateProducts(seleccionados,sheetName); 
     }
+}
 
-    function handleIndividualCheckboxChange(checkbox) {
-        const anyChecked = document.querySelectorAll('.notificacion-checkbox:checked').length > 0;
-        const btn = document.getElementById("deactivateNotificationsComida");
-        if (btn) btn.disabled = !anyChecked;
+// Js_Comida.html - Modificación de la función existente
+
+function handleIndividualCheckboxChange() {
+    const anyChecked = document.querySelectorAll('.notificacion-checkbox:checked').length > 0;
+    // Se usa el ID del botón que se añadió en Comida.html
+    const btn = document.getElementById("btnBorrarSeleccionadosVencimiento"); 
+    if (btn) btn.disabled = !anyChecked;
+}
+// Js_Comida.html - Nuevas funciones de manejo
+
+function handleDeactivateSuccess(response) {
+    showLoading(false);
+    try {
+        const result = JSON.parse(response);
+        if (result.success) {
+            mostrarMensaje(result.message, "success");
+            loadComida(); // Recarga la tabla principal
+            loadNotificacionesComida(); // Recarga el modal de notificaciones
+        } else {
+            mostrarMensaje("Error al desactivar productos: " + result.message, "error");
+        }
+    } catch (e) {
+        mostrarMensaje("Error de formato de respuesta o en la operación.", "error");
+        loadComida();
+        loadNotificacionesComida();
     }
+}
+
+function handleDeactivateFailure(error) {
+    showLoading(false);
+    console.error("Error en la desactivación masiva:", error);
+    mostrarMensaje("Error al conectar con el servidor para desactivar: " + String(error), "error");
+}
+
 
     function loadComentarios() {
         showLoading(true);
@@ -589,7 +639,7 @@
     showLoading(true);
     google.script.run
       .withSuccessHandler(resp => handleServerResponse(resp, null, loadComida))
-      .withFailureHandler(handleComidaServerError)
+      .withFailureHandler(handleServerError)
       .eliminarComida(id);
   }
 

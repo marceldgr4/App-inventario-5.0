@@ -652,4 +652,36 @@ function renderNotificationsGeneric({ items = [], page = 1, perPage = 10, tbodyI
     }
 }
 
+/**
+ * Muestra la pestaña seleccionada dentro de un grupo de tabs
+ * @param {string} tabId - ID del contenido de la pestaña (ej: 'proximos', 'vencidos', 'pendientes', 'leidas')
+ * @param {HTMLElement} btn - El botón que se presionó
+ */
+function mostrarTab(tabId, btn) {
+    // Buscar el contenedor de tabs (sube hasta encontrar .tab-buttons-container)
+    const container = btn.closest('.tab-buttons-container');
+    if (!container) return;
+
+    // Desactivar todos los botones dentro de ese contenedor
+    container.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Activar el botón actual
+    btn.classList.add('active');
+
+    // Ocultar todas las tab-content dentro del modal correspondiente
+    const modalBody = container.closest('.modal-body');
+    modalBody.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Mostrar solo la tab seleccionada
+    const selectedTab = modalBody.querySelector(`#${tabId}`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+}
+
+
 </script>
