@@ -261,6 +261,11 @@ function getProductosProximosAVencerCompleto(sheetName) {
       diasRestantes = Math.ceil(
         (utcVencimiento - utcHoy) / (1000 * 60 * 60 * 24)
       );
+
+      // 🚨 CORRECCIÓN CLAVE: Aplicar el filtro de 30 días aquí también
+      if (diasRestantes > 30) {
+        continue;
+      }
     } // 3. FILTRO DE VENCIMIENTO: Solo incluir productos que tengan una fecha válida (diasRestantes es un número)
 
     if (typeof diasRestantes === "number") {
