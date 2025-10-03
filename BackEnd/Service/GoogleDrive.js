@@ -23,10 +23,15 @@ function agregarProductoConImagenDesdeArchivo(productData, fileData) {
 
     return result;
   } catch (e) {
-    Logger.log('Error en agregarProductoConImagenDesdeArchivo: ' + e.message + ' Stack: ' + e.stack);
+    Logger.log(
+      "Error en agregarProductoConImagenDesdeArchivo: " +
+        e.message +
+        " Stack: " +
+        e.stack
+    );
     return JSON.stringify({
       success: false,
-      message: 'Error al subir la imagen y agregar el producto: ' + e.message,
+      message: "Error al subir la imagen y agregar el producto: " + e.message,
     });
   }
 }

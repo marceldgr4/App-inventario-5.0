@@ -9,7 +9,19 @@ function getHistorialSheet() {
   var sheet = ss.getSheetByName(getHojasConfig().HISTORIAL);
   if (!sheet) {
     sheet = ss.insertSheet(getHojasConfig().HISTORIAL);
-    sheet.appendRow(['Id', 'ProductoId', 'Fecha y Hora', 'Producto', 'Programa', 'Unidades Anteriores', 'Unidades Nuevas', 'Estado', 'Usuario', 'Fecha de Retiro', 'Cantidad']);
+    sheet.appendRow([
+      "Id",
+      "ProductoId",
+      "Fecha y Hora",
+      "Producto",
+      "Programa",
+      "Unidades Anteriores",
+      "Unidades Nuevas",
+      "Estado",
+      "Usuario",
+      "Fecha de Retiro",
+      "Cantidad",
+    ]);
   }
   return sheet;
 }

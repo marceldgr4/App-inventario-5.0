@@ -1,8 +1,8 @@
 <style>
-/* =================================================================
+  /* =================================================================
     --- ESTILOS DE MODALES ---
 ================================================================= */
-.modal-overlay {
+  .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -17,16 +17,16 @@
     opacity: 0; /* Oculto por defecto*/
     visibility: hidden;
     transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-}
+  }
 
-.modal-overlay.is-active {
+  .modal-overlay.is-active {
     opacity: 1; /* Muestra el modal*/
     visibility: visible;
-}
+  }
 
-/* Contenido del modal (el cuadro blanco) */
-.modal-content-ac,
-.modal-content-A {
+  /* Contenido del modal (el cuadro blanco) */
+  .modal-content-ac,
+  .modal-content-A {
     background-color: var(--card-bg-color);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--box-shadow);
@@ -35,29 +35,29 @@
     transform: translateY(-20px);
     transition: transform 0.3s ease-in-out;
     padding: 30px;
-}
+  }
 
-.modal-overlay.is-active .modal-content-ac,
-.modal-overlay.is-active .modal-content-A {
+  .modal-overlay.is-active .modal-content-ac,
+  .modal-overlay.is-active .modal-content-A {
     transform: translateY(0);
-}
+  }
 
-/* Encabezado del modal */
-.modal-header {
+  /* Encabezado del modal */
+  .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 20px 25px;
     border-bottom: 1px solid var(--border-color);
-}
+  }
 
-.modal-title {
+  .modal-title {
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--khaki-green);
-}
+  }
 
-.close-btn {
+  .close-btn {
     background: none;
     border: none;
     font-size: 2rem;
@@ -65,25 +65,25 @@
     color: #aaa;
     cursor: pointer;
     transition: color 0.2s, transform 0.2s;
-}
+  }
 
-.close-btn:hover {
+  .close-btn:hover {
     color: var(--maple-red);
     transform: rotate(90deg);
-}
+  }
 
-/* Cuerpo del modal */
-.modal-body {
+  /* Cuerpo del modal */
+  .modal-body {
     padding: 25px;
     line-height: 1.6;
-}
+  }
 
-/* Pie de página del modal */
-.modal-footer {
+  /* Pie de página del modal */
+  .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
     padding: 20px 25px;
     border-top: 1px solid var(--border-color);
-}
+  }
 </style>

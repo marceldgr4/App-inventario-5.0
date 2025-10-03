@@ -1,83 +1,90 @@
 <script>
- //v12   
-(function() {
+  //v12
+  (function () {
     // =================================================
     // --- VARIABLES DE ESTADO DE LA PÁGINA
     // =================================================
     const pageState = {
-        fullData: [],
-        datosMostrados: [],
-        currentPage: 1,
-        itemsPerPage: 10,
-        productoAEditarId: null,
-        productoRetiroSeleccionado: null,
-        fechaOrdenAscendente: false,
-        productoComentarioSeleccionado: null,
-        productosViejosGlobal: [],
-        paginaActualNotificaciones: 1,
-        elementosPorPaginaNotificaciones: 10,
+      fullData: [],
+      datosMostrados: [],
+      currentPage: 1,
+      itemsPerPage: 10,
+      productoAEditarId: null,
+      productoRetiroSeleccionado: null,
+      fechaOrdenAscendente: false,
+      productoComentarioSeleccionado: null,
+      productosViejosGlobal: [],
+      paginaActualNotificaciones: 1,
+      elementosPorPaginaNotificaciones: 10,
     };
 
     // =======================================
     // --- 1. CARGA DE DATOS Y MANEJO DE RESPUESTAS ---
     // =======================================
     function loadInventario() {
-        loadDataGenerico({
-            endpoint: "getInventarioData",
-            tbodyId: "tablaBody",
-            noDataId: "noData",
-            containerId: "tableContainer",
-            onSuccess: function(data) {
-                pageState.fullData = data;
-                pageState.currentPage = 1;
-                aplicarFiltrosYOrdenar();
-                if (pageState.fullData.length === 0) {
-                    document.getElementById("noData").style.display = "block";
-                  
-                } else {
-                    document.getElementById("noData").style.display = "none";
-                    document.getElementById("tableContainer").style.display = "block";
-                }
-                // Cargar notificaciones después de que la tabla principal esté lista
-                loadNotificacioensArticulos();
-            }
-        });
+      loadDataGenerico({
+        endpoint: "getInventarioData",
+        tbodyId: "tablaBody",
+        noDataId: "noData",
+        containerId: "tableContainer",
+        onSuccess: function (data) {
+          pageState.fullData = data;
+          pageState.currentPage = 1;
+          aplicarFiltrosYOrdenar();
+          if (pageState.fullData.length === 0) {
+            document.getElementById("noData").style.display = "block";
+          } else {
+            document.getElementById("noData").style.display = "none";
+            document.getElementById("tableContainer").style.display = "block";
+          }
+          // Cargar notificaciones después de que la tabla principal esté lista
+          loadNotificacioensArticulos();
+        },
+      });
     }
 
     function loadNotificacioensArticulos() {
-        showLoading(true);
-        google.script.run
-            .withSuccessHandler(function (responseString) {
-                hideLoading();
-                try {
-                    const productosServer = JSON.parse(responseString);
-                    if (Array.isArray(productosServer)) {
-                        pageState.productosViejosGlobal = productosServer;
-                        pageState.paginaActualNotificaciones = 1;
-                        renderizarTablaNotificaciones();
-                        updateNotificationIcon();
-                    } else {
-                        console.error('Formato de respuesta inesperado de getArticulosViejos:', productosServer);
-                    }
-                } catch (e) {
-                    console.error('Error parseando la respuesta de getArticulosViejos:', e, responseString);
-                }
-            })
-            .withFailureHandler(function (error) {
-                hideLoading();
-                console.error('Error al obtener productos viejos:', error);
-                mostrarMensaje('Error de comunicación al cargar notificaciones: ' + error.message, 'error');
-            })
-            .getArticulosViejos();
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function (responseString) {
+          hideLoading();
+          try {
+            const productosServer = JSON.parse(responseString);
+            if (Array.isArray(productosServer)) {
+              pageState.productosViejosGlobal = productosServer;
+              pageState.paginaActualNotificaciones = 1;
+              renderizarTablaNotificaciones();
+              updateNotificationIcon();
+            } else {
+              console.error(
+                "Formato de respuesta inesperado de getArticulosViejos:",
+                productosServer
+              );
+            }
+          } catch (e) {
+            console.error(
+              "Error parseando la respuesta de getArticulosViejos:",
+              e,
+              responseString
+            );
+          }
+        })
+        .withFailureHandler(function (error) {
+          hideLoading();
+          console.error("Error al obtener productos viejos:", error);
+          mostrarMensaje(
+            "Error de comunicación al cargar notificaciones: " + error.message,
+            "error"
+          );
+        })
+        .getArticulosViejos();
     }
-
-
 
     // ============================================
     // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN ---
     // ============================================
-function renderPaginatedTable() {
-    renderPaginatedTableGeneric({
+    function renderPaginatedTable() {
+      renderPaginatedTableGeneric({
         data: pageState.datosMostrados,
         currentPage: pageState.currentPage,
         itemsPerPage: pageState.itemsPerPage,
@@ -85,42 +92,50 @@ function renderPaginatedTable() {
         paginationContainerId: "pagination",
         noDataMessage: "No hay productos que coincidan con los filtros.",
         onRowCreated: (row, item) => {
-            const ingresos = parseInt(item["Ingresos"]) || 0;
-            const salidas = parseInt(item["Salidas"]) || 0;
-            const unidades = item["Unidades disponibles"] != null && item["Unidades disponibles"] !== ""
-                ? parseInt(item["Unidades disponibles"]) || 0
-                : ingresos - salidas;
+          const ingresos = parseInt(item["Ingresos"]) || 0;
+          const salidas = parseInt(item["Salidas"]) || 0;
+          const unidades =
+            item["Unidades disponibles"] != null &&
+            item["Unidades disponibles"] !== ""
+              ? parseInt(item["Unidades disponibles"]) || 0
+              : ingresos - salidas;
 
-            row.dataset.id = item["Id"] || "";
-            row.dataset.producto = item["PRODUCTO"] || "";
-            row.dataset.programa = item["PROGRAMA"] || "";
-            row.dataset.unidades = unidades;
+          row.dataset.id = item["Id"] || "";
+          row.dataset.producto = item["PRODUCTO"] || "";
+          row.dataset.programa = item["PROGRAMA"] || "";
+          row.dataset.unidades = unidades;
         },
         renderRow: (item) => {
-            const ingresos = parseInt(item["Ingresos"]) || 0;
-            const salidas = parseInt(item["Salidas"]) || 0;
-            const unidades = item["Unidades disponibles"] != null && item["Unidades disponibles"] !== ""
-                ? parseInt(item["Unidades disponibles"]) || 0
-                : ingresos - salidas;
-            const agotadoClass = unidades === 0 ? "agotado" : "";
-            const imageUrl = item["Imagen"] || "";
+          const ingresos = parseInt(item["Ingresos"]) || 0;
+          const salidas = parseInt(item["Salidas"]) || 0;
+          const unidades =
+            item["Unidades disponibles"] != null &&
+            item["Unidades disponibles"] !== ""
+              ? parseInt(item["Unidades disponibles"]) || 0
+              : ingresos - salidas;
+          const agotadoClass = unidades === 0 ? "agotado" : "";
+          const imageUrl = item["Imagen"] || "";
 
-            // 🟢 Cada fila mantiene la misma estructura que ya usabas
-            return `
-                <td>${item["Id"] || ''}</td>
-                <td>${item["PRODUCTO"] || ''}</td>
-                <td>${item["PROGRAMA"] || ''}</td>
+          // 🟢 Cada fila mantiene la misma estructura que ya usabas
+          return `
+                <td>${item["Id"] || ""}</td>
+                <td>${item["PRODUCTO"] || ""}</td>
+                <td>${item["PROGRAMA"] || ""}</td>
                 <td>${formatDate(item["FECHA DE INGRESO"])}</td>
                 <td>${ingresos}</td>
                 <td>${salidas}</td>
                 <td class="${agotadoClass}">${unidades}</td>
                 <td>
-                    ${imageUrl 
-                        ? `<ion-icon name="open-outline" class="btn-icon" title="Abrir imagen" onclick="abrirImagenNuevaVentana('${imageUrl}')"></ion-icon>` 
-                        : 'N/A'}
+                    ${
+                      imageUrl
+                        ? `<ion-icon name="open-outline" class="btn-icon" title="Abrir imagen" onclick="abrirImagenNuevaVentana('${imageUrl}')"></ion-icon>`
+                        : "N/A"
+                    }
                 </td>
-                <td>${formatDate(item["Entregas fecha"] || item["Entregas"] || '')}</td>
-                <td>${item["Entregas cantidad"] || ''}</td>
+                <td>${formatDate(
+                  item["Entregas fecha"] || item["Entregas"] || ""
+                )}</td>
+                <td>${item["Entregas cantidad"] || ""}</td>
                 <td>
                     <button class="btn-modificar"><ion-icon name="create-outline"></ion-icon></button>
                     <button class="btn-retirar"><ion-icon name="bag-handle-outline"></ion-icon></button>
@@ -130,499 +145,641 @@ function renderPaginatedTable() {
             `;
         },
         onPageChange: (page) => {
-            pageState.currentPage = page;
-            renderPaginatedTable();
-        }
-    });
-}
-// Delegación de eventos para los botones de acciones
-    document.getElementById("tablaBody")?.addEventListener("click", e => {
-        const row = e.target.closest("tr");
-        if (!row) return;
-        const id = row.dataset.id;
-        const producto = row.dataset.producto;
-        const programa = row.dataset.programa;
-        const unidades = parseInt(row.dataset.unidades) || 0;
+          pageState.currentPage = page;
+          renderPaginatedTable();
+        },
+      });
+    }
+    // Delegación de eventos para los botones de acciones
+    document.getElementById("tablaBody")?.addEventListener("click", (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
+      const id = row.dataset.id;
+      const producto = row.dataset.producto;
+      const programa = row.dataset.programa;
+      const unidades = parseInt(row.dataset.unidades) || 0;
 
-        if (e.target.closest(".btn-modificar")) abrirModalEditar(id);
-        if (e.target.closest(".btn-retirar")) abrirModalRetiro(id, producto, programa, unidades);
-        if (e.target.closest(".btn-comentario")) abrirModalComentario(id, producto, programa);
-        if (e.target.closest(".btn-eliminar")) confirmarEliminar(id, producto);
+      if (e.target.closest(".btn-modificar")) abrirModalEditar(id);
+      if (e.target.closest(".btn-retirar"))
+        abrirModalRetiro(id, producto, programa, unidades);
+      if (e.target.closest(".btn-comentario"))
+        abrirModalComentario(id, producto, programa);
+      if (e.target.closest(".btn-eliminar")) confirmarEliminar(id, producto);
     });
-    document.getElementById("selectAllNotifications")?.addEventListener("change", handleIndividualCheckboxChange);
-    document.getElementById("deactivateNotifications")?.addEventListener("click", deactivateSelectedNotifications);
-    document.getElementById("clearNotifications")?.addEventListener("click", clearNotifications);
+    document
+      .getElementById("selectAllNotifications")
+      ?.addEventListener("change", handleIndividualCheckboxChange);
+    document
+      .getElementById("deactivateNotifications")
+      ?.addEventListener("click", deactivateSelectedNotifications);
+    document
+      .getElementById("clearNotifications")
+      ?.addEventListener("click", clearNotifications);
 
-// --- Notificaciones ---
+    // --- Notificaciones ---
     function renderizarTablaNotificaciones() {
-        const items = pageState.productosViejosGlobal.map(item => {
-            const tiempoEnStorageMeses = convertDaysToMonths(parseInt(item.tiempoenstorage) || 0);
-            const esVencido = tiempoEnStorageMeses >= 8;
-            const rowHtml = `
+      const items = pageState.productosViejosGlobal.map((item) => {
+        const tiempoEnStorageMeses = convertDaysToMonths(
+          parseInt(item.tiempoenstorage) || 0
+        );
+        const esVencido = tiempoEnStorageMeses >= 8;
+        const rowHtml = `
                 <td>${escapeHtml(item.id || "N/A")}</td>
                 <td>${escapeHtml(item.producto || "N/A")}</td>
                 <td>${escapeHtml(item.programa || "N/A")}</td>
                 <td>${formatDate(item.fechadeingreso)}</td>
-                <td>${esVencido ? `<span>⚠ ${tiempoEnStorageMeses} meses</span>` : `${tiempoEnStorageMeses} meses`}</td>
-                <td><input type="checkbox" data-id="${escapeHtml(item.id)}" class="select-notification-checkbox"></td>
+                <td>${
+                  esVencido
+                    ? `<span>⚠ ${tiempoEnStorageMeses} meses</span>`
+                    : `${tiempoEnStorageMeses} meses`
+                }</td>
+                <td><input type="checkbox" data-id="${escapeHtml(
+                  item.id
+                )}" class="select-notification-checkbox"></td>
             `;
-            return { ...item, _rowHtml: rowHtml };
-        });
+        return { ...item, _rowHtml: rowHtml };
+      });
 
-        renderNotificationsGeneric({
-            items,
-            page: pageState.paginaActualNotificaciones,
-            perPage: pageState.elementosPorPaginaNotificaciones,
-            tbodyId: "tablaBodyNotificaciones",
-            paginationContainerId: "paginationNotificaciones",
-            onPageChange: (p) => { pageState.paginaActualNotificaciones = p; renderizarTablaNotificaciones(); },
-            checkboxClass: "select-notification-checkbox",
-            infoElementId: "infoPaginaNotificaciones",
-            noDataMessage: "No hay notificaciones."
-        });
+      renderNotificationsGeneric({
+        items,
+        page: pageState.paginaActualNotificaciones,
+        perPage: pageState.elementosPorPaginaNotificaciones,
+        tbodyId: "tablaBodyNotificaciones",
+        paginationContainerId: "paginationNotificaciones",
+        onPageChange: (p) => {
+          pageState.paginaActualNotificaciones = p;
+          renderizarTablaNotificaciones();
+        },
+        checkboxClass: "select-notification-checkbox",
+        infoElementId: "infoPaginaNotificaciones",
+        noDataMessage: "No hay notificaciones.",
+      });
     }
 
     function updateNotificationIcon() {
-        const icon = document.getElementById("notificacionCampanaIcon");
-        const count = document.getElementById("notificacionCampanaCount");
-        if (icon && count) {
-            if (pageState.productosViejosGlobal.length > 0) {
-                count.textContent = pageState.productosViejosGlobal.length;
-                count.style.display = "inline-block";
-                icon.style.cursor = "pointer";
-                icon.onclick = abrirModalNotificacionesInterno;
-            } else {
-                count.style.display = "none";
-                icon.style.cursor = "default";
-                icon.onclick = null;
-            }
+      const icon = document.getElementById("notificacionCampanaIcon");
+      const count = document.getElementById("notificacionCampanaCount");
+      if (icon && count) {
+        if (pageState.productosViejosGlobal.length > 0) {
+          count.textContent = pageState.productosViejosGlobal.length;
+          count.style.display = "inline-block";
+          icon.style.cursor = "pointer";
+          icon.onclick = abrirModalNotificacionesInterno;
+        } else {
+          count.style.display = "none";
+          icon.style.cursor = "default";
+          icon.onclick = null;
         }
+      }
     }
 
     function handleIndividualCheckboxChange() {
-        const all = document.querySelectorAll('#tablaBodyNotificaciones .select-notification-checkbox');
-        const checked = document.querySelectorAll('#tablaBodyNotificaciones .select-notification-checkbox:checked');
-        const selectAll = document.getElementById('selectAllNotifications');
-        if (selectAll) selectAll.checked = all.length > 0 && all.length === checked.length;
+      const all = document.querySelectorAll(
+        "#tablaBodyNotificaciones .select-notification-checkbox"
+      );
+      const checked = document.querySelectorAll(
+        "#tablaBodyNotificaciones .select-notification-checkbox:checked"
+      );
+      const selectAll = document.getElementById("selectAllNotifications");
+      if (selectAll)
+        selectAll.checked = all.length > 0 && all.length === checked.length;
     }
 
     function deactivateSelectedNotifications() {
-        const ids = Array.from(document.querySelectorAll('#tablaBodyNotificaciones .select-notification-checkbox:checked'))
-            .map(cb => cb.dataset.id).filter(id => id);
-        if (ids.length === 0) {
-            mostrarMensaje("Selecciona al menos un producto.", "error");
-            return;
-        }
-        if (confirm(`¿Seguro que desea dar de baja ${ids.length} producto(s)?`)) {
-            showLoading(true);
-            google.script.run
-                .withSuccessHandler(handleServerResponse)
-                .withFailureHandler(handleServerError)
-                .deactivateProducts(ids);
-        }
+      const ids = Array.from(
+        document.querySelectorAll(
+          "#tablaBodyNotificaciones .select-notification-checkbox:checked"
+        )
+      )
+        .map((cb) => cb.dataset.id)
+        .filter((id) => id);
+      if (ids.length === 0) {
+        mostrarMensaje("Selecciona al menos un producto.", "error");
+        return;
+      }
+      if (confirm(`¿Seguro que desea dar de baja ${ids.length} producto(s)?`)) {
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler(handleServerResponse)
+          .withFailureHandler(handleServerError)
+          .deactivateProducts(ids);
+      }
     }
 
     function clearNotifications() {
-        pageState.productosViejosGlobal = [];
-        renderizarTablaNotificaciones();
-        updateNotificationIcon();
-        mostrarMensaje('Notificaciones limpiadas.', 'success');
+      pageState.productosViejosGlobal = [];
+      renderizarTablaNotificaciones();
+      updateNotificationIcon();
+      mostrarMensaje("Notificaciones limpiadas.", "success");
     }
 
     //============================================
-    //Notificicaion de comentarios  
+    //Notificicaion de comentarios
     //============================================
-    function loadComentario(){
-        showLoading(true);
-        google.script.run
-         .withSuccessHandler(function(responseString) {
-                showLoading(false);
-                try {
-                    const response = JSON.parse(responseString);
-                    if (response.data) {
-                        renderComentarios(response.data);
-                    } else {
-                        console.error("No data in response:", response);
-                        mostrarMensaje("No se encontraron comentarios.", "info");
-                    }
-                } catch (e) {
-                    console.error("Error parsing comments response:", e);
-                    mostrarMensaje("Error al procesar la respuesta de comentarios.", "error");
-                }
-            })
-            .withFailureHandler(function(error) {
-                showLoading(false);
-                console.error("Error loading comments:", error);
-                mostrarMensaje("Error al cargar los comentarios.", "error");
-            })
-            .getComentarioData();
+    function loadComentario() {
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(function (responseString) {
+          showLoading(false);
+          try {
+            const response = JSON.parse(responseString);
+            if (response.data) {
+              renderComentarios(response.data);
+            } else {
+              console.error("No data in response:", response);
+              mostrarMensaje("No se encontraron comentarios.", "info");
+            }
+          } catch (e) {
+            console.error("Error parsing comments response:", e);
+            mostrarMensaje(
+              "Error al procesar la respuesta de comentarios.",
+              "error"
+            );
+          }
+        })
+        .withFailureHandler(function (error) {
+          showLoading(false);
+          console.error("Error loading comments:", error);
+          mostrarMensaje("Error al cargar los comentarios.", "error");
+        })
+        .getComentarioData();
     }
 
     function renderComentarios(comentarios) {
+      const pendientesBody = document.getElementById(
+        "tablaComentariosPendientesBody"
+      );
+      const leidasBody = document.getElementById("tablaComentariosLeidasBody");
 
-     const pendientesBody = document.getElementById("tablaComentariosPendientesBody");
-        const leidasBody = document.getElementById("tablaComentariosLeidasBody");
+      if (!pendientesBody || !leidasBody) {
+        console.error("[ERROR] Elementos de comentarios no encontrados");
+        return;
+      }
 
-        if (!pendientesBody || !leidasBody) {
-            console.error("[ERROR] Elementos de comentarios no encontrados");
-            return;
-        }
+      pendientesBody.innerHTML = "";
+      leidasBody.innerHTML = "";
 
-        pendientesBody.innerHTML = "";
-        leidasBody.innerHTML = "";
+      // Assuming comments have a "Leido" property
+      const pendientes = comentarios.filter((c) => !c.Leido);
+      const leidas = comentarios.filter((c) => c.Leido);
 
-        // Assuming comments have a "Leido" property
-        const pendientes = comentarios.filter(c => !c.Leido);
-        const leidas = comentarios.filter(c => c.Leido);
-
-        if (pendientes.length === 0) {
-            pendientesBody.innerHTML = "<tr><td colspan='4'>No hay comentarios pendientes.</td></tr>";
-        } else {
-            pendientes.forEach(c => {
-                const row = pendientesBody.insertRow();
-                row.innerHTML = `
+      if (pendientes.length === 0) {
+        pendientesBody.innerHTML =
+          "<tr><td colspan='4'>No hay comentarios pendientes.</td></tr>";
+      } else {
+        pendientes.forEach((c) => {
+          const row = pendientesBody.insertRow();
+          row.innerHTML = `
                     <td>${escapeHtml(c.Id)}</td>
                     <td>${escapeHtml(c.Producto)}</td>
                     <td>${formatDate(c.Fecha)}</td>
                     <td>${escapeHtml(c.Comentario)}</td>
                 `;
-            });
-        }
+        });
+      }
 
-        if (leidas.length === 0) {
-            leidasBody.innerHTML = "<tr><td colspan='4'>No hay comentarios leídos.</td></tr>";
-        } else {
-            leidas.forEach(c => {
-                const row = leidasBody.insertRow();
-                row.innerHTML = `
+      if (leidas.length === 0) {
+        leidasBody.innerHTML =
+          "<tr><td colspan='4'>No hay comentarios leídos.</td></tr>";
+      } else {
+        leidas.forEach((c) => {
+          const row = leidasBody.insertRow();
+          row.innerHTML = `
                     <td>${escapeHtml(c.Id)}</td>
                     <td>${escapeHtml(c.Producto)}</td>
                     <td>${formatDate(c.Fecha)}</td>
                     <td>${escapeHtml(c.Comentario)}</td>
                 `;
-            });
-        }
+        });
+      }
     }
 
     // =================================================
     // --- 4. FILTROS Y ORDENAMIENTO ---
     // =================================================
     function aplicarFiltrosYOrdenarArticulos() {
-        aplicarFiltrosYOrdenarGenerico({
-            dataSource: pageState.fullData,
-            setResultados: val => { 
-                pageState.datosMostrados = val; 
-                pageState.currentPage = 1; 
-            },
-            fechaOrdenAsc: pageState.fechaOrdenAscendente,
-            renderFn: renderPaginatedTable,
-            filters: [
-                { id: "buscarProducto", field: "PRODUCTO", type: "text" },
-                { id: "filtroPrograma", field: "PROGRAMA", type: "text" },
-                { id: "filtroFechaIngreso", field: "FECHA DE INGRESO", type: "date" },
-                { id: "filtroUnidades", field: "Unidades disponibles", type: "number" },
-                { id: "filtroTiempoStorage", field: "Tiempo en Storage", type: "number" },
-                { id: "filtroEstado", field: "Estado", type: "text" }
-            ]
-        });
+      aplicarFiltrosYOrdenarGenerico({
+        dataSource: pageState.fullData,
+        setResultados: (val) => {
+          pageState.datosMostrados = val;
+          pageState.currentPage = 1;
+        },
+        fechaOrdenAsc: pageState.fechaOrdenAscendente,
+        renderFn: renderPaginatedTable,
+        filters: [
+          { id: "buscarProducto", field: "PRODUCTO", type: "text" },
+          { id: "filtroPrograma", field: "PROGRAMA", type: "text" },
+          { id: "filtroFechaIngreso", field: "FECHA DE INGRESO", type: "date" },
+          {
+            id: "filtroUnidades",
+            field: "Unidades disponibles",
+            type: "number",
+          },
+          {
+            id: "filtroTiempoStorage",
+            field: "Tiempo en Storage",
+            type: "number",
+          },
+          { id: "filtroEstado", field: "Estado", type: "text" },
+        ],
+      });
     }
     const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarArticulos;
 
     function limpiarTodosLosFiltrosArticulos() {
-        limpiarFiltrosGenerico({
-            filtros: [
-                { id: "buscarProducto", type: "text" },
-                { id: "filtroPrograma", type: "text" },
-                { id: "filtroFechaIngreso", type: "date" },
-                { id: "filtroUnidades", type: "number" },
-                { id: "filtroTiempoStorage", type: "number" },
-                { id: "filtroEstado", type: "select", defaultValue: "activo" }
-            ],
-            aplicarFn: aplicarFiltrosYOrdenarArticulos
-        });
+      limpiarFiltrosGenerico({
+        filtros: [
+          { id: "buscarProducto", type: "text" },
+          { id: "filtroPrograma", type: "text" },
+          { id: "filtroFechaIngreso", type: "date" },
+          { id: "filtroUnidades", type: "number" },
+          { id: "filtroTiempoStorage", type: "number" },
+          { id: "filtroEstado", type: "select", defaultValue: "activo" },
+        ],
+        aplicarFn: aplicarFiltrosYOrdenarArticulos,
+      });
     }
 
     // ===================================
     // --- 5. MANEJO DE MODALES ---
     // ===================================
-    function abrirModalAgregar() { abrirModal("modalAgregar"); 
-    document.getElementById("agregarForm").reset(); }
-    function cerrarModalAgregar() { cerrarModal("modalAgregar"); }
-    
+    function abrirModalAgregar() {
+      abrirModal("modalAgregar");
+      document.getElementById("agregarForm").reset();
+    }
+    function cerrarModalAgregar() {
+      cerrarModal("modalAgregar");
+    }
+
     function abrirModalRetiro(id, producto, programa, unidadesDisponibles) {
-        pageState.productoRetiroSeleccionado = { id, producto, programa, unidadesDisponibles };
-        abrirModal("modalRetiro");
-        document.getElementById("productoIdRetiro").textContent = id;
-        document.getElementById("productoNombreRetiro").textContent = producto;
-        document.getElementById("programaRetiro").textContent = programa;
-        document.getElementById("unidadesDisponiblesRetiro").textContent = unidadesDisponibles;
-        document.getElementById("unidadesRetirar").max = unidadesDisponibles;
+      pageState.productoRetiroSeleccionado = {
+        id,
+        producto,
+        programa,
+        unidadesDisponibles,
+      };
+      abrirModal("modalRetiro");
+      document.getElementById("productoIdRetiro").textContent = id;
+      document.getElementById("productoNombreRetiro").textContent = producto;
+      document.getElementById("programaRetiro").textContent = programa;
+      document.getElementById("unidadesDisponiblesRetiro").textContent =
+        unidadesDisponibles;
+      document.getElementById("unidadesRetirar").max = unidadesDisponibles;
     }
-    function cerrarModalRetiro() { cerrarModal("modalRetiro"); 
-    pageState.productoRetiroSeleccionado = null; }
-    
+    function cerrarModalRetiro() {
+      cerrarModal("modalRetiro");
+      pageState.productoRetiroSeleccionado = null;
+    }
+
     function abrirModalEditar(id) {
-        pageState.productoAEditarId = id;
-        const producto = pageState.fullData.find(item => String(item.Id) === String(id));
-        if (producto) {
-            abrirModal("modalEditar");
-            document.getElementById("productoIdEditar").textContent = id;
-            document.getElementById("productoEditar").value = producto["PRODUCTO"];
-            document.getElementById("programaEditar").value = producto["PROGRAMA"];
-            document.getElementById("unidadesAgregarEditar").value = "0";
-            document.getElementById("imagenEditar").value = producto["Imagen"] || "";
-        } else {
-            mostrarMensaje("Error: No se pudo encontrar el producto para editar.", "error");
-        }
+      pageState.productoAEditarId = id;
+      const producto = pageState.fullData.find(
+        (item) => String(item.Id) === String(id)
+      );
+      if (producto) {
+        abrirModal("modalEditar");
+        document.getElementById("productoIdEditar").textContent = id;
+        document.getElementById("productoEditar").value = producto["PRODUCTO"];
+        document.getElementById("programaEditar").value = producto["PROGRAMA"];
+        document.getElementById("unidadesAgregarEditar").value = "0";
+        document.getElementById("imagenEditar").value =
+          producto["Imagen"] || "";
+      } else {
+        mostrarMensaje(
+          "Error: No se pudo encontrar el producto para editar.",
+          "error"
+        );
+      }
     }
-    function cerrarModalEditar() { cerrarModal("modalEditar"); pageState.productoAEditarId = null; }
+    function cerrarModalEditar() {
+      cerrarModal("modalEditar");
+      pageState.productoAEditarId = null;
+    }
     function abrirModalComentario(id, producto, programa) {
-        pageState.productoComentarioSeleccionado = { id, producto, programa };
-        abrirModal("modalComentario");
-        document.getElementById("comentarioProductoId").textContent = id;
-        document.getElementById("comentarioProductoNombre").textContent = producto;
-        document.getElementById("comentarioProductoPrograma").textContent = programa;
-        document.getElementById("comentarioTexto").value = "";
+      pageState.productoComentarioSeleccionado = { id, producto, programa };
+      abrirModal("modalComentario");
+      document.getElementById("comentarioProductoId").textContent = id;
+      document.getElementById("comentarioProductoNombre").textContent =
+        producto;
+      document.getElementById("comentarioProductoPrograma").textContent =
+        programa;
+      document.getElementById("comentarioTexto").value = "";
     }
-    function cerrarModalComentario() { cerrarModal("modalComentario"); pageState.productoComentarioSeleccionado = null; }
-    function abrirModalNotificacionesInterno() { abrirModal("modalNotificaciones"); }
-    function cerrarModalNotificaciones() { cerrarModal("modalNotificaciones"); }
+    function cerrarModalComentario() {
+      cerrarModal("modalComentario");
+      pageState.productoComentarioSeleccionado = null;
+    }
+    function abrirModalNotificacionesInterno() {
+      abrirModal("modalNotificaciones");
+    }
+    function cerrarModalNotificaciones() {
+      cerrarModal("modalNotificaciones");
+    }
     function abrirModalVerImagen(imageUrl) {
-        const img = document.getElementById("imagenEnModal");
-        if (img && imageUrl) {
-            img.src = imageUrl;
-            abrirModal("modalVerImagen");
-        }
+      const img = document.getElementById("imagenEnModal");
+      if (img && imageUrl) {
+        img.src = imageUrl;
+        abrirModal("modalVerImagen");
+      }
     }
-    function cerrarModalVerImagen() { cerrarModal("modalVerImagen"); }
+    function cerrarModalVerImagen() {
+      cerrarModal("modalVerImagen");
+    }
 
     // =========================================
     // --- 6. MANEJADORES DE ENVÍO DE FORMULARIOS ---
     // =========================================
-    (function() {
+    (function () {
+      // ===========================
+      // FORMULARIO: AGREGAR
+      // ===========================
+      document
+        .getElementById("agregarForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const producto = document
+            .getElementById("productoAgregar")
+            .value.trim();
+          const programa = document
+            .getElementById("programaAgregar")
+            .value.trim();
+          const ingresos = document.getElementById("ingresosAgregar").value;
+          const imagenInput = document.getElementById("imagenArchivoAgregar");
 
-  // ===========================
-  // FORMULARIO: AGREGAR
-  // ===========================
-  document.getElementById("agregarForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const producto = document.getElementById("productoAgregar").value.trim();
-    const programa = document.getElementById("programaAgregar").value.trim();
-    const ingresos = document.getElementById("ingresosAgregar").value;
-    const imagenInput = document.getElementById("imagenArchivoAgregar");
+          if (
+            !producto ||
+            !programa ||
+            ingresos === "" ||
+            parseFloat(ingresos) < 0
+          ) {
+            mostrarMensaje("Complete todos los campos obligatorios.", "error");
+            return;
+          }
 
-    if (!producto || !programa || ingresos === '' || parseFloat(ingresos) < 0) {
-      mostrarMensaje('Complete todos los campos obligatorios.', 'error');
-      return;
-    }
+          showLoading(true);
+          const productData = {
+            productoAgregar: producto,
+            programaAgregar: programa,
+            ingresosAgregar: parseFloat(ingresos),
+          };
 
-    showLoading(true);
-    const productData = { 
-      productoAgregar: producto, 
-      programaAgregar: programa, 
-      ingresosAgregar: parseFloat(ingresos) 
-    };
+          const onSuccess = () => {
+            closeAllModals();
+            loadInventario();
+          };
 
-    const onSuccess = () => {
-      closeAllModals();
-      loadInventario();
-    };
+          if (imagenInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+              const fileData = {
+                base64Data: event.target.result.split(",")[1],
+                mimeType: imagenInput.files[0].type,
+                fileName: imagenInput.files[0].name,
+              };
+              google.script.run
+                .withSuccessHandler((res) =>
+                  handleServerResponse(res, closeAllModals, loadInventario)
+                )
+                .withFailureHandler(handleServerError)
+                .agregarProductoConImagenDesdeArchivo(productData, fileData);
+            };
+            reader.readAsDataURL(imagenInput.files[0]);
+          } else {
+            google.script.run
+              .withSuccessHandler((res) =>
+                handleServerResponse(res, closeAllModals, loadInventario)
+              )
+              .withFailureHandler(handleServerError)
+              .agregarProductoInventario({ ...productData, imagenAgregar: "" });
+          }
+        });
 
-    if (imagenInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const fileData = { 
-          base64Data: event.target.result.split(',')[1], 
-          mimeType: imagenInput.files[0].type, 
-          fileName: imagenInput.files[0].name 
-        };
-        google.script.run
-          .withSuccessHandler(res => handleServerResponse(res, closeAllModals, loadInventario))
-          .withFailureHandler(handleServerError)
-          .agregarProductoConImagenDesdeArchivo(productData, fileData);
-      };
-      reader.readAsDataURL(imagenInput.files[0]);
-    } else {
-      google.script.run
-        .withSuccessHandler(res => handleServerResponse(res, closeAllModals, loadInventario))
-        .withFailureHandler(handleServerError)
-        .agregarProductoInventario({ ...productData, imagenAgregar: "" });
-    }
-  });
+      // ===========================
+      // FORMULARIO: EDITAR
+      // ===========================
+      document
+        .getElementById("editarForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const id = pageState.productoAEditarId;
+          const producto = document
+            .getElementById("productoEditar")
+            .value.trim();
+          const programa = document
+            .getElementById("programaEditar")
+            .value.trim();
+          const ingresos = document.getElementById(
+            "unidadesAgregarEditar"
+          ).value;
+          const imagen = document.getElementById("imagenEditar").value.trim();
 
-  // ===========================
-  // FORMULARIO: EDITAR
-  // ===========================
-  document.getElementById("editarForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const id = pageState.productoAEditarId;
-    const producto = document.getElementById("productoEditar").value.trim();
-    const programa = document.getElementById("programaEditar").value.trim();
-    const ingresos = document.getElementById("unidadesAgregarEditar").value;
-    const imagen = document.getElementById("imagenEditar").value.trim();
+          if (
+            !producto ||
+            !programa ||
+            ingresos === "" ||
+            parseFloat(ingresos) < 0
+          ) {
+            mostrarMensaje("Complete todos los campos obligatorios.", "error");
+            return;
+          }
 
-    if (!producto || !programa || ingresos === '' || parseFloat(ingresos) < 0) {
-      mostrarMensaje('Complete todos los campos obligatorios.', 'error');
-      return;
-    }
+          const productData = {
+            idEditar: id,
+            productoEditar: producto,
+            programaEditar: programa,
+            ingresosEditar: parseFloat(ingresos),
+            imagenEditar: imagen,
+          };
 
-    const productData = { 
-      idEditar: id, 
-      productoEditar: producto, 
-      programaEditar: programa, 
-      ingresosEditar: parseFloat(ingresos),
-      imagenEditar: imagen
-    };
+          showLoading(true);
+          const onSuccess = () => {
+            closeAllModals();
+            loadInventario();
+          };
 
-    showLoading(true);
-    const onSuccess = () => {
-      closeAllModals();
-      loadInventario();
-    };
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, closeAllModals, loadInventario)
+            )
+            .withFailureHandler(handleServerError)
+            .actualizarProductoInventario(productData);
+        });
 
-    google.script.run
-      .withSuccessHandler(res => handleServerResponse(res, closeAllModals, loadInventario))
-      .withFailureHandler(handleServerError)
-      .actualizarProductoInventario(productData);
-  });
+      // ===========================
+      // FORMULARIO: RETIRO
+      // ===========================
+      document
+        .getElementById("retiroForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          // Asegurarnos de que productoRetiroSeleccionado es el objeto que guardamos al abrir el modal
+          const selec = pageState.productoRetiroSeleccionado || {};
+          const id = selec.id || selec; // si por alguna razón quedó el id directo, lo acepta también
+          const unidades = parseInt(
+            document.getElementById("unidadesRetirar").value,
+            10
+          );
 
-  // ===========================
-  // FORMULARIO: RETIRO
-  // ===========================
-  document.getElementById("retiroForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-  // Asegurarnos de que productoRetiroSeleccionado es el objeto que guardamos al abrir el modal
-  const selec = pageState.productoRetiroSeleccionado || {};
-  const id = selec.id || selec; // si por alguna razón quedó el id directo, lo acepta también
-  const unidades = parseInt(document.getElementById("unidadesRetirar").value, 10);
+          if (!id || isNaN(unidades) || unidades <= 0) {
+            mostrarMensaje("Ingrese un número válido de unidades.", "error");
+            return;
+          }
 
-  if (!id || isNaN(unidades) || unidades <= 0) {
-    mostrarMensaje('Ingrese un número válido de unidades.', 'error');
-    return;
-  }
+          showLoading(true);
+          const onSuccess = () => {
+            closeAllModals();
+            loadInventario();
+          };
 
-  showLoading(true);
-  const onSuccess = () => {
-    closeAllModals();
-    loadInventario();
-  };
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, closeAllModals, loadInventario)
+            )
+            .withFailureHandler(handleServerError)
+            .retirarProductoInventario(id, unidades);
+        });
 
-  google.script.run
-    .withSuccessHandler(res => handleServerResponse(res, closeAllModals, loadInventario))
-    .withFailureHandler(handleServerError)
-    .retirarProductoInventario(id, unidades);
-});
+      // ===========================
+      // FORMULARIO: COMENTARIO
+      // ===========================
+      document
+        .getElementById("comentarioForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const { id } = pageState.productoComentarioSeleccionado || {};
+          const comentario = document
+            .getElementById("comentarioTexto")
+            .value.trim();
 
+          if (!comentario) {
+            mostrarMensaje("Escriba un comentario antes de enviar.", "error");
+            return;
+          }
 
-  // ===========================
-  // FORMULARIO: COMENTARIO
-  // ===========================
-  document.getElementById("comentarioForm").addEventListener("submit", function (e) {
-    e.preventDefault();
-    const { id } = pageState.productoComentarioSeleccionado || {};
-    const comentario = document.getElementById("comentarioTexto").value.trim();
+          showLoading(true);
+          const onSuccess = () => {
+            closeAllModals();
+            loadInventario();
+          };
 
-    if (!comentario) {
-      mostrarMensaje('Escriba un comentario antes de enviar.', 'error');
-      return;
-    }
+          const comentarioData = {
+            idComentario: id,
+            comentarioTexto: comentario,
+          };
 
-    showLoading(true);
-    const onSuccess = () => {
-      closeAllModals();
-      loadInventario();
-    };
-
-    const comentarioData = {
-        idComentario: id,
-        comentarioTexto: comentario,
-    };
-
-    google.script.run
-  .withSuccessHandler(res => handleServerResponse(res, closeAllModals, loadInventario))
-  .withFailureHandler(handleServerError)
-  .agregarComentarioInventario(id, comentario);
-
-  });
-
-})();
-
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, closeAllModals, loadInventario)
+            )
+            .withFailureHandler(handleServerError)
+            .agregarComentarioInventario(id, comentario);
+        });
+    })();
 
     // =================================================
     // --- 7. FUNCIONES DE UTILIDAD (HELPERS) ---
     // =================================================
     function confirmarEliminar(id, nombreProducto) {
-        if (confirm(`¿Seguro que deseas desactivar "${nombreProducto}"?`)) {
-            showLoading(true);
-            google.script.run
-                .withSuccessHandler(res => handleServerResponse(res, null, loadInventario))
-                .withFailureHandler(handleServerError)
-                .eliminarProductoInventario(id);
-        }
+      if (confirm(`¿Seguro que deseas desactivar "${nombreProducto}"?`)) {
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler((res) =>
+            handleServerResponse(res, null, loadInventario)
+          )
+          .withFailureHandler(handleServerError)
+          .eliminarProductoInventario(id);
+      }
     }
 
     function abrirImagenNuevaVentana(imageUrl) {
-        if (imageUrl) window.open(imageUrl, '_blank');
+      if (imageUrl) window.open(imageUrl, "_blank");
     }
 
     function convertDaysToMonths(days) {
-        return (typeof days === 'number' && days >= 0) ? Math.floor(days / 30.44) : 0;
+      return typeof days === "number" && days >= 0
+        ? Math.floor(days / 30.44)
+        : 0;
     }
-
-  
-   
 
     // ===============================================
     // --- 8. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
     // ===============================================
-   function inicializarPaginaArticulos() {
-        const setupListener = (id, event, handler) => document.getElementById(id)?.addEventListener(event, handler);
-        setupListener("buscarProducto", "input", aplicarFiltrosYOrdenar);
-        setupListener("filtroPrograma", "input", aplicarFiltrosYOrdenar);
-        setupListener("filtroFechaIngreso", "change", aplicarFiltrosYOrdenar);
-        setupListener("filtroUnidades", "input", aplicarFiltrosYOrdenar);
-        setupListener("filtroTiempoStorage", "input", aplicarFiltrosYOrdenar);
-        setupListener("filtroEstado", "change", aplicarFiltrosYOrdenar);
+    function inicializarPaginaArticulos() {
+      const setupListener = (id, event, handler) =>
+        document.getElementById(id)?.addEventListener(event, handler);
+      setupListener("buscarProducto", "input", aplicarFiltrosYOrdenar);
+      setupListener("filtroPrograma", "input", aplicarFiltrosYOrdenar);
+      setupListener("filtroFechaIngreso", "change", aplicarFiltrosYOrdenar);
+      setupListener("filtroUnidades", "input", aplicarFiltrosYOrdenar);
+      setupListener("filtroTiempoStorage", "input", aplicarFiltrosYOrdenar);
+      setupListener("filtroEstado", "change", aplicarFiltrosYOrdenar);
 
-        const toggleBtn = document.getElementById("toggleFiltrosIconContainer");
-        if (toggleBtn) {
-            document.getElementById("filtrosAdicionalesContainer").classList.add("filtros-adicionales-ocultos");
-            toggleBtn.addEventListener("click", () => toggleFiltrosAdicionalesGenerico("filtrosAdicionalesContainer"));
-        }
+      const toggleBtn = document.getElementById("toggleFiltrosIconContainer");
+      if (toggleBtn) {
+        document
+          .getElementById("filtrosAdicionalesContainer")
+          .classList.add("filtros-adicionales-ocultos");
+        toggleBtn.addEventListener("click", () =>
+          toggleFiltrosAdicionalesGenerico("filtrosAdicionalesContainer")
+        );
+      }
 
-        document.getElementById("filtroEstado").value = "activo";
-        loadInventario();
+      document.getElementById("filtroEstado").value = "activo";
+      loadInventario();
     }
 
     registrarEscapeCierraModales([
-        cerrarModalAgregar, cerrarModalEditar, cerrarModalRetiro, 
-        cerrarModalComentario, cerrarModalNotificaciones
+      cerrarModalAgregar,
+      cerrarModalEditar,
+      cerrarModalRetiro,
+      cerrarModalComentario,
+      cerrarModalNotificaciones,
     ]);
 
     // Exponer funciones al scope global
     Object.assign(window, {
-        abrirModalAgregar, cerrarModalAgregar, abrirModalRetiro, cerrarModalRetiro,
-        abrirModalEditar, cerrarModalEditar, abrirModalComentario, cerrarModalComentario,
-        abrirModalNotificacionesInterno, cerrarModalNotificaciones,
-        abrirImagenNuevaVentana, confirmarEliminar,
-        handleIndividualCheckboxChange, deactivateSelectedNotifications, clearNotifications,
-        limpiarTodosLosFiltros: () => limpiarFiltrosGenerico({
-            filtros: [
-                { id: "buscarProducto", type: "text" },
-                { id: "filtroPrograma", type: "text" },
-                { id: "filtroFechaIngreso", type: "date" },
-                { id: "filtroUnidades", type: "number" },
-                { id: "filtroTiempoStorage", type: "number" },
-                { id: "filtroEstado", type: "select", defaultValue: "activo" }
-            ],
-            aplicarFn: aplicarFiltrosYOrdenarArticulos
+      abrirModalAgregar,
+      cerrarModalAgregar,
+      abrirModalRetiro,
+      cerrarModalRetiro,
+      abrirModalEditar,
+      cerrarModalEditar,
+      abrirModalComentario,
+      cerrarModalComentario,
+      abrirModalNotificacionesInterno,
+      cerrarModalNotificaciones,
+      abrirImagenNuevaVentana,
+      confirmarEliminar,
+      handleIndividualCheckboxChange,
+      deactivateSelectedNotifications,
+      clearNotifications,
+      limpiarTodosLosFiltros: () =>
+        limpiarFiltrosGenerico({
+          filtros: [
+            { id: "buscarProducto", type: "text" },
+            { id: "filtroPrograma", type: "text" },
+            { id: "filtroFechaIngreso", type: "date" },
+            { id: "filtroUnidades", type: "number" },
+            { id: "filtroTiempoStorage", type: "number" },
+            { id: "filtroEstado", type: "select", defaultValue: "activo" },
+          ],
+          aplicarFn: aplicarFiltrosYOrdenarArticulos,
         }),
-        ordenarPorFecha: e => ordenarPorFechaGenerico(e, "sortOptions"),
-        ordenarAscendente: () => ordenarAscendenteGenerico(aplicarFiltrosYOrdenar, "sortOptions", val => pageState.fechaOrdenAscendente = val),
-        ordenarDescendente: () => ordenarDescendenteGenerico(aplicarFiltrosYOrdenar, "sortOptions", val => pageState.fechaOrdenAscendente = val)
+      ordenarPorFecha: (e) => ordenarPorFechaGenerico(e, "sortOptions"),
+      ordenarAscendente: () =>
+        ordenarAscendenteGenerico(
+          aplicarFiltrosYOrdenar,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+      ordenarDescendente: () =>
+        ordenarDescendenteGenerico(
+          aplicarFiltrosYOrdenar,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
     });
 
     inicializarPaginaArticulos();
-
-})();
+  })();
 </script>

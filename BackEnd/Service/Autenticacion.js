@@ -3,14 +3,14 @@
 // =================================================================
 
 /**
- * @summary Obtiene las páginas permitidas para un rol, usando la caché para acelerar.
- * @param {string} userRole El rol del usuario ('Admin', 'Usuario').
- * @returns {Array<string>} Un array de las páginas permitidas.
- */
+ * @summary Obtiene las páginas permitidas para un rol, usando la caché para acelerar.
+ * @param {string} userRole El rol del usuario ('Admin', 'Usuario').
+ * @returns {Array<string>} Un array de las páginas permitidas.
+ */
 function getAllowedPagesFromCache(userRole) {
   const cache = CacheService.getScriptCache();
   const cacheKey = `PAGINAS_ROL_${userRole}`;
-  
+
   const cachedPages = cache.get(cacheKey);
   if (cachedPages) {
     // Si está en caché, la devolvemos directamente. ¡Esto es súper rápido!
@@ -18,7 +18,9 @@ function getAllowedPagesFromCache(userRole) {
     return JSON.parse(cachedPages);
   } else {
     // Si no está en caché, la obtenemos de la constante y la guardamos para la próxima vez.
-    Logger.log(`Obteniendo permisos para rol '${userRole}' desde la CONSTANTE y guardando en caché.`);
+    Logger.log(
+      `Obteniendo permisos para rol '${userRole}' desde la CONSTANTE y guardando en caché.`
+    );
     const pages = PAGINAS_POR_ROL[userRole] || [];
     // Guardar en caché por 6 horas (21600 segundos)
     cache.put(cacheKey, JSON.stringify(pages), 21600);
@@ -29,7 +31,7 @@ function getAllowedPagesFromCache(userRole) {
 function isPageAllowedForUser(pageName, userRole) {
   // Primero, se asegura de que se haya proporcionado un rol.
   if (!userRole) {
-    Logger.log('isPageAllowedForUser: No se proporcionó rol de usuario.');
+    Logger.log("isPageAllowedForUser: No se proporcionó rol de usuario.");
     return false;
   }
   // Obtiene la lista de páginas permitidas para el rol del usuario desde el objeto PAGINAS_POR_ROL.
@@ -66,7 +68,9 @@ function getActiveUser() {
   try {
     return JSON.parse(userJson);
   } catch (e) {
-    Logger.log(`Error al parsear JSON de usuario activo: ${e}. Datos: ${userJson}`);
+    Logger.log(
+      `Error al parsear JSON de usuario activo: ${e}. Datos: ${userJson}`
+    );
     // Si el JSON está corrupto, lo eliminamos para evitar errores futuros.
     userProperties.deleteProperty(CLAVE_PROPIEDAD_USUARIO);
     return null;
@@ -78,7 +82,7 @@ function getActiveUser() {
  */
 function clearAllUserProperties() {
   PropertiesService.getUserProperties().deleteAllProperties();
-  Logger.log('Todas las propiedades de usuario han sido borradas.');
+  Logger.log("Todas las propiedades de usuario han sido borradas.");
 }
 
 function logAuthAction(userName, action) {
@@ -103,20 +107,19 @@ function logAuthAction(userName, action) {
   }
 }
 
-
 function logout() {
   const activeUser = getActiveUser();
   if (activeUser && activeUser.name) {
     // Registra la acción de cierre de sesión en la hoja de cálculo.
-    logAction(activeUser.name, 'Cierre de sesión');
+    logAction(activeUser.name, "Cierre de sesión");
   } else {
     logAction(
-      'Desconocido',
-      'Cierre de sesión (sin usuario activo en properties)'
+      "Desconocido",
+      "Cierre de sesión (sin usuario activo en properties)"
     );
   }
   // Borra todas las propiedades guardadas para este usuario.
   clearAllUserProperties();
   // Devuelve la URL de la página de Login para que el cliente pueda redirigir.
-  return getScriptUrl() + '?page=Login';
+  return getScriptUrl() + "?page=Login";
 }

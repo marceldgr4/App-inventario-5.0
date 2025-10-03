@@ -8,10 +8,14 @@ function getPapeleriaData() {
   Logger.log("getPapeleriaData: Solicitando datos de papelería.");
   try {
     const data = _getInventoryDataForSheet(getHojasConfig().PAPELERIA.nombre);
-    Logger.log(`getPapeleriaData: Se obtuvieron ${data.length} registros de papelería.`);
+    Logger.log(
+      `getPapeleriaData: Se obtuvieron ${data.length} registros de papelería.`
+    );
     return JSON.stringify({ success: true, data: data });
   } catch (e) {
-    Logger.log(`ERROR: getPapeleriaData - Fallo al obtener datos de papelería: ${e.message}`);
+    Logger.log(
+      `ERROR: getPapeleriaData - Fallo al obtener datos de papelería: ${e.message}`
+    );
     return JSON.stringify({ success: false, data: [], error: e.message });
   }
 }
@@ -79,7 +83,9 @@ function agregarComentarioPapeleria(id, comentario) {
     const comentariosIndex = headers.indexOf("COMENTARIOS") + 1;
 
     if (idIndex === 0 || productoIndex === 0 || comentariosIndex === 0) {
-      throw new Error("No se encontró columna Id, PRODUCTO o COMENTARIOS en la hoja.");
+      throw new Error(
+        "No se encontró columna Id, PRODUCTO o COMENTARIOS en la hoja."
+      );
     }
 
     // Busca la fila que coincide con el Id
@@ -87,7 +93,11 @@ function agregarComentarioPapeleria(id, comentario) {
       if (String(data[i][idIndex - 1]) === String(id)) {
         const producto = data[i][productoIndex - 1] || "Desconocido";
         const usuario = Session.getActiveUser().getEmail() || "Usuario anónimo";
-        const fecha = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
+        const fecha = Utilities.formatDate(
+          new Date(),
+          Session.getScriptTimeZone(),
+          "yyyy-MM-dd HH:mm"
+        );
 
         const cell = sheet.getRange(i + 1, comentariosIndex);
         const oldValue = cell.getValue();
@@ -96,7 +106,9 @@ function agregarComentarioPapeleria(id, comentario) {
         const nuevoComentario = `[${fecha}] ${usuario} sobre ${producto}: ${comentario}`;
 
         // Concatenar si ya había comentarios
-        const valorFinal = oldValue ? oldValue + "\n" + nuevoComentario : nuevoComentario;
+        const valorFinal = oldValue
+          ? oldValue + "\n" + nuevoComentario
+          : nuevoComentario;
 
         cell.setValue(valorFinal);
 
@@ -107,16 +119,14 @@ function agregarComentarioPapeleria(id, comentario) {
           producto: producto,
           usuario: usuario,
           fecha: fecha,
-          comentario: comentario
+          comentario: comentario,
         });
       }
     }
 
     throw new Error("Producto no encontrado con ID: " + id);
-
   } catch (e) {
     Logger.log("Error en agregarComentarioPapeleria: " + e.message);
     return JSON.stringify({ success: false, error: e.message });
   }
 }
-

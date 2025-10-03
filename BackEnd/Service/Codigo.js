@@ -8,14 +8,16 @@ function doGet(e) {
 
   const activeUser = getActiveUser();
   if (!activeUser) {
-    Logger.log('Usuario no autenticado. Sirviendo página de Login.');
+    Logger.log("Usuario no autenticado. Sirviendo página de Login.");
     return processSignin();
   }
-  
-  Logger.log(`Usuario activo: ${activeUser.name} (Rol: ${activeUser.rol}). Sirviendo la aplicación principal.`);
+
+  Logger.log(
+    `Usuario activo: ${activeUser.name} (Rol: ${activeUser.rol}). Sirviendo la aplicación principal.`
+  );
   // Si el usuario está autenticado, siempre servimos la página maestra 'Index'.
   // El cliente se encargará de cargar el contenido correcto (ej. Home, Articulos, etc.).
-  return loadPage('Index', activeUser);
+  return loadPage("Index", activeUser);
 }
 
 /**

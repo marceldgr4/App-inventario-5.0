@@ -1,8 +1,8 @@
 <style>
-/* =================================================================
+  /* =================================================================
     --- VARIABLES CSS (SISTEMA DE DISEÑO) ---
 ================================================================= */
-:root {
+  :root {
     /* Paleta de Colores de Intouch */
     --digital-lavender: #766dfa;
     --royal-purple: #160644;
@@ -47,56 +47,61 @@
     --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     --border-radius-lg: 12px;
     --border-radius-sm: 8px;
-}
+  }
 
-/* Modo Oscuro (se activa con la clase 'dark-mode' en el body) */
-body.dark-mode {
+  /* Modo Oscuro (se activa con la clase 'dark-mode' en el body) */
+  body.dark-mode {
     --background-color: var(--bg-color-dark);
     --card-bg-color: var(--card-bg-dark);
     --text-color: var(--text-color-dark);
     --border-color: var(--border-color-dark);
     --primary-color: var(--emerald-green);
     --khaki-green: var(--emerald-green);
-}
+  }
 
-/* =================================================================
+  /* =================================================================
     --- ESTILOS BASE Y GENERALES ---
 ================================================================= */
-* {
+  * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-}
+  }
 
-body {
+  body {
     font-family: var(--main-font);
     background-color: var(--background-color);
     color: var(--text-color);
     transition: background-color 0.3s, color 0.3s;
     line-height: 1.6;
-}
+  }
 
-/* --- Contenedores y Tarjetas --- */
-.container {
+  /* --- Contenedores y Tarjetas --- */
+  .container {
     padding: 25px;
     background-color: var(--card-bg-color);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--box-shadow);
     transition: background-color 0.3s, box-shadow 0.3s;
-}
+  }
 
-/* --- Títulos y Encabezados --- */
-h1, h2, h3, h4, h5, h6 {
+  /* --- Títulos y Encabezados --- */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     color: var(--primary-color);
-}
+  }
 
-/* --- Botones --- */
-.btn-group {
+  /* --- Botones --- */
+  .btn-group {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-}
-.btn {
+  }
+  .btn {
     padding: 10px 20px;
     border: none;
     border-radius: var(--border-radius-sm);
@@ -109,40 +114,40 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-}
-.btn-primary {
+  }
+  .btn-primary {
     background-color: var(--primary-color);
     color: var(--white);
-}
-.btn-primary:hover {
+  }
+  .btn-primary:hover {
     background-color: color-mix(in srgb, var(--primary-color) 80%, black);
     box-shadow: 0 4px 8px color-mix(in srgb, var(--primary-color) 40%, black);
-}
-.btn-secondary {
+  }
+  .btn-secondary {
     background-color: var(--secondary-color);
     color: var(--white);
-}
-.btn-secondary:hover {
+  }
+  .btn-secondary:hover {
     background-color: color-mix(in srgb, var(--secondary-color) 80%, black);
-}
-.btn-danger {
+  }
+  .btn-danger {
     background-color: var(--danger-color);
     color: var(--white);
-}
-.btn-danger:hover {
+  }
+  .btn-danger:hover {
     background-color: color-mix(in srgb, var(--danger-color) 80%, black);
-}
-.btn-outline {
+  }
+  .btn-outline {
     background-color: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-color);
-}
-.btn-outline:hover {
+  }
+  .btn-outline:hover {
     background-color: var(--soft-grey);
-}
+  }
 
-/* --- Formularios e Inputs --- */
-.form-control {
+  /* --- Formularios e Inputs --- */
+  .form-control {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
@@ -150,23 +155,23 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--card-bg-color);
     color: var(--text-color);
     transition: border-color 0.3s, box-shadow 0.3s;
-}
-.form-control:focus {
+  }
+  .form-control:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
-}
-.search-input {
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--primary-color) 20%, transparent);
+  }
+  .search-input {
     max-width: 300px;
-     padding: 15px 50px;
+    padding: 15px 50px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
-}
-/*--- Barras --*/
-.action-bar {
+  }
+  /*--- Barras --*/
+  .action-bar {
     padding: 15px 25px;
     display: flex;
     justify-content: space-between;
-}
-
+  }
 </style>

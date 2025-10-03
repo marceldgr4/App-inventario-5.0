@@ -1,9 +1,10 @@
 <script>
-function showToastNotification(mensaje, tipo = 'info') {
-    const notification = document.createElement('div');
+  function showToastNotification(mensaje, tipo = "info") {
+    const notification = document.createElement("div");
     notification.className = `notification ${tipo}`;
 
-    const iconClass = tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    const iconClass =
+      tipo === "success" ? "fa-check-circle" : "fa-exclamation-circle";
     notification.innerHTML = `
         <div class="icon"><i class="fas ${iconClass}"></i></div>
         <div class="message">${mensaje}</div>
@@ -14,24 +15,23 @@ function showToastNotification(mensaje, tipo = 'info') {
 
     // Trigger the animation
     setTimeout(() => {
-        notification.classList.add('show');
+      notification.classList.add("show");
     }, 10);
 
     // Automatically hide after 5 seconds
     setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
+      notification.classList.remove("show");
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
     }, 5000);
 
     // Close button event listener
-    notification.querySelector('.close-btn').addEventListener('click', () => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
+    notification.querySelector(".close-btn").addEventListener("click", () => {
+      notification.classList.remove("show");
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
     });
-}
-
+  }
 </script>

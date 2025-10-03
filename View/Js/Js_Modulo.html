@@ -3,23 +3,24 @@
   // REGISTRO GENÉRICO DE MÓDULOS
   // ===============================
 
-function registrarModulo(nombreModulo, funciones) {
-  if (!nombreModulo || typeof funciones !== 'object') return;
-  // namespace principal: window[nombreModulo]
-  window[nombreModulo] = window[nombreModulo] || {};
+  function registrarModulo(nombreModulo, funciones) {
+    if (!nombreModulo || typeof funciones !== "object") return;
+    // namespace principal: window[nombreModulo]
+    window[nombreModulo] = window[nombreModulo] || {};
 
-  Object.entries(funciones).forEach(([clave, fn]) => {
-    if (typeof fn === 'function') {
-      // 1) registro namespaced: window.Comida.abrirModalAgregar()
-      window[nombreModulo][clave] = fn;
-      // 2) registro legacy: window.abrirModalAgregarComida (compatibilidad)
-      window[`${clave}${nombreModulo}`] = fn;
-    } else {
-      console.warn(`registrarModulo: la clave ${clave} para ${nombreModulo} no es función`);
-    }
-  });
-}
-
+    Object.entries(funciones).forEach(([clave, fn]) => {
+      if (typeof fn === "function") {
+        // 1) registro namespaced: window.Comida.abrirModalAgregar()
+        window[nombreModulo][clave] = fn;
+        // 2) registro legacy: window.abrirModalAgregarComida (compatibilidad)
+        window[`${clave}${nombreModulo}`] = fn;
+      } else {
+        console.warn(
+          `registrarModulo: la clave ${clave} para ${nombreModulo} no es función`
+        );
+      }
+    });
+  }
 
   // ===============================
   // MODULO: COMIDA
@@ -47,7 +48,7 @@ function registrarModulo(nombreModulo, funciones) {
     ordenarPorFecha: ordenarPorFechaComida,
     ordenarAscendente: ordenarAscendenteComida,
     ordenarDescendente: ordenarDescendenteComida,
-    toggleFiltrosAdicionales: toggleFiltrosAdicionalesComida
+    toggleFiltrosAdicionales: toggleFiltrosAdicionalesComida,
   });
 
   // ===============================
@@ -65,11 +66,11 @@ function registrarModulo(nombreModulo, funciones) {
     abrirImagenNuevaVentana: abrirImagenNuevaVentanaPapeleria,
     confirmarEliminar: confirmarEliminarPapeleria,
     limpiarTodosLosFiltros: limpiarTodosLosFiltrosPapeleria,
-    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarPapeleria
+    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarPapeleria,
   });
-// ===============================
-// MODULO: DECORACION
-// ===============================
+  // ===============================
+  // MODULO: DECORACION
+  // ===============================
 
   registrarModulo("Decoracion", {
     abrirModalAgregar: abrirModalAgregarDecoracion,
@@ -83,6 +84,6 @@ function registrarModulo(nombreModulo, funciones) {
     abrirImagenNuevaVentana: abrirImagenNuevaVentanaDecoracion,
     confirmarEliminar: confirmarEliminarDecoracion,
     limpiarTodosLosFiltros: limpiarTodosLosFiltrosDecoracion,
-    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarDecoracion
+    aplicarFiltrosYOrdenar: aplicarFiltrosYOrdenarDecoracion,
   });
 </script>

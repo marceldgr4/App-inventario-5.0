@@ -1,13 +1,15 @@
 /**
  * @fileoverview Contiene funciones de utilidad para las operaciones CRUD,
  * como la búsqueda de filas, el cálculo de fechas y la obtención de hojas.
-  * Estas funciones son utilizadas por otros módulos para interactuar con Google Sheets.
+ * Estas funciones son utilizadas por otros módulos para interactuar con Google Sheets.
  * @summary Se conecta a la hoja de cálculo de Google y obtiene una hoja específica por su nombre.
  * @param {string} name El nombre exacto de la hoja que se desea obtener (ej. "Articulos").
  * @returns {GoogleAppsScript.Spreadsheet.Sheet | null} El objeto de la hoja si se encuentra, o null si no existe.
  */
 function getSheetByName(name) {
-  Logger.log(`DEBUG: getSheetByName - Intentando abrir Spreadsheet con ID: ${ID_INVENTARIO}`);
+  Logger.log(
+    `DEBUG: getSheetByName - Intentando abrir Spreadsheet con ID: ${ID_INVENTARIO}`
+  );
   const ss = SpreadsheetApp.openById(ID_INVENTARIO);
   Logger.log(`DEBUG: getSheetByName - Buscando hoja con nombre: '${name}'`);
   const sheet = ss.getSheetByName(name);
@@ -25,21 +27,17 @@ function getSheetByName(name) {
  * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
  * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
  */
-/**
- * @summary Busca en una hoja específica el número de fila que corresponde a un Id único usando TextFinder (Optimizado).
- * @param {string|number} id El identificador único del registro que se está buscando.
- * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
- * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
- */
 function findRowById(id, sheetName) {
   const sheet = getSheetByName(sheetName);
   if (!sheet) return -1;
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const idIndex = headers.findIndex(header => header.toUpperCase() === "ID");
+  const idIndex = headers.findIndex((header) => header.toUpperCase() === "ID");
 
   if (idIndex === -1) {
-    Logger.log(`findRowById: No se encontró la columna de ID en la hoja "${sheetName}".`);
+    Logger.log(
+      `findRowById: No se encontró la columna de ID en la hoja "${sheetName}".`
+    );
     return -1;
   }
 
@@ -90,65 +88,123 @@ function columnToLetter(column) {
 }
 
 function _getInventoryDataForSheet(sheetName) {
-  Logger.log(`_getInventoryDataForSheet: Obteniendo datos de la hoja '${sheetName}'`);
+  Logger.log(
+    `_getInventoryDataForSheet: Obteniendo datos de la hoja '${sheetName}'`
+  );
   const sheet = getSheetByName(sheetName);
   if (!sheet) {
-    Logger.log(`_getInventoryDataForSheet: La hoja '${sheetName}' no fue encontrada.`);
+    Logger.log(
+      `_getInventoryDataForSheet: La hoja '${sheetName}' no fue encontrada.`
+    );
     return [];
   }
 
   const dataRange = sheet.getDataRange();
   const values = dataRange.getValues();
   if (values.length < 2) {
-    Logger.log(`_getInventoryDataForSheet: No hay datos en la hoja '${sheetName}' (solo cabeceras o vacía).`);
+    Logger.log(
+      `_getInventoryDataForSheet: No hay datos en la hoja '${sheetName}' (solo cabeceras o vacía).`
+    );
     return [];
   }
 
-  const headers = values[0].map(header => header.trim());
+  const headers = values[0].map((header) => header.trim());
   const idIndex = headers.indexOf("Id");
   const fechaIngresoIndex = headers.indexOf("FECHA DE INGRESO");
 
   if (idIndex === -1) {
-    Logger.log(`_getInventoryDataForSheet: No se encontró la columna 'Id' en la hoja '${sheetName}'.`);
+    Logger.log(
+      `_getInventoryDataForSheet: No se encontró la columna 'Id' en la hoja '${sheetName}'.`
+    );
     return [];
   }
 
-  const data = values.slice(1).map((row, index) => {
-    const obj = {};
-    let hasData = false;
-    headers.forEach((header, i) => {
-      let value = row[i];
-      if (value !== "" && value !== null && value !== undefined) {
-        hasData = true;
-      }
-      if (header.toLowerCase().includes("fecha") && value) {
-        let date = value instanceof Date ? value : new Date(value);
-        if (!isNaN(date.getTime())) {
-            obj[header] = date.toISOString();
-        } else {
-            obj[header] = value; // Mantener el valor original si no es una fecha válida
+  const data = values
+    .slice(1)
+    .map((row, index) => {
+      const obj = {};
+      let hasData = false;
+      headers.forEach((header, i) => {
+        let value = row[i];
+        if (value !== "" && value !== null && value !== undefined) {
+          hasData = true;
         }
-    } else {
-        obj[header] = value;
-    }
-    });
+        if (header.toLowerCase().includes("fecha") && value) {
+          let date = value instanceof Date ? value : new Date(value);
+          if (!isNaN(date.getTime())) {
+            obj[header] = date.toISOString();
+          } else {
+            obj[header] = value; // Mantener el valor original si no es una fecha válida
+          }
+        } else {
+          obj[header] = value;
+        }
+      });
 
-    if (!obj["Id"]) {
-      obj["Id"] = `temp_${index + 2}`;
-    }
-
-    if (fechaIngresoIndex !== -1) {
-      const fechaIngreso = obj["FECHA DE INGRESO"];
-      if (fechaIngreso && fechaIngreso instanceof Date) {
-        obj["Tiempo en Storage"] = calcularTiempoEnStorage(fechaIngreso);
-      } else {
-        obj["Tiempo en Storage"] = 0;
+      if (!obj["Id"]) {
+        obj["Id"] = `temp_${index + 2}`;
       }
+
+      if (fechaIngresoIndex !== -1) {
+        const fechaIngreso = obj["FECHA DE INGRESO"];
+        if (fechaIngreso && fechaIngreso instanceof Date) {
+          obj["Tiempo en Storage"] = calcularTiempoEnStorage(fechaIngreso);
+        } else {
+          obj["Tiempo en Storage"] = 0;
+        }
+      }
+
+      return hasData ? obj : null;
+    })
+    .filter((obj) => obj !== null);
+
+  let finalData = data;
+
+  // Si es la hoja de comentarios, filtrar los borrados
+  if (sheetName === getHojasConfig().COMENTARIOS.nombre) {
+    finalData = data.filter(item => {
+      const borradoUsuario = item['Borrardo por Usuario'] === true || String(item['Borrardo por Usuario']).toLowerCase() === 'true';
+      const borradoAdmin = item['Borrado por Admin'] === true || String(item['Borrado por Admin']).toLowerCase() === 'true';
+      return !borradoUsuario && !borradoAdmin;
+    });
+  }
+
+  Logger.log(
+    `_getInventoryDataForSheet: Se procesaron ${finalData.length} registros de la hoja '${sheetName}'.`
+  );
+  return finalData;
+}
+
+/**
+ * @summary Calcula el siguiente ID disponible para una hoja de cálculo.
+ * @description Busca el valor máximo en la columna 'Id' y le suma 1.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - El objeto de la hoja para la cual se calculará el ID.
+ * @returns {number} El siguiente ID disponible.
+ */
+function getNextId(sheet) {
+  try {
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const idColIdx = headers.map(h => String(h).toLowerCase()).indexOf('id');
+
+    if (idColIdx === -1) {
+      Logger.log(`No se encontró la columna 'Id' en la hoja ${sheet.getName()}. Se usará un timestamp como ID.`);
+      return Math.round(new Date().getTime() / 1000);
     }
 
-    return hasData ? obj : null;
-  }).filter(obj => obj !== null);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) { // No hay datos, solo encabezado
+      return 1;
+    }
 
-  Logger.log(`_getInventoryDataForSheet: Se procesaron ${data.length} registros de la hoja '${sheetName}'.`);
-  return data;
+    const ids = sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat().map(Number).filter(id => !isNaN(id) && id !== null && id !== '');
+    
+    if (ids.length === 0) {
+      return 1;
+    }
+
+    return Math.max(...ids) + 1;
+  } catch (e) {
+    Logger.log(`Error en getNextId para la hoja ${sheet.getName()}: ${e.stack}`);
+    return Math.round(new Date().getTime() / 1000); // Fallback
+  }
 }
