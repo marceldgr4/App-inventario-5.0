@@ -1,4 +1,59 @@
 /**
+ * @summary Obtiene los comentarios pendientes de confirmación para el usuario actual y un origen específico.
+ * @param {string} origen - El origen para filtrar (ej. "Inventario comida").
+ * @returns {string} JSON con los datos de las notificaciones pendientes.
+ */
+function getNotificacionesPendientesUsuario(origen) {
+  try {
+    const currentUserEmail = Session.getActiveUser()?.getEmail();
+    if (!currentUserEmail) {
+      return JSON.stringify({ data: [] });
+    }
+    let allComments = _getInventoryDataForSheet(getHojasConfig().COMENTARIOS.nombre);
+    let pendientes = allComments.filter(item =>
+      item.Usuario === currentUserEmail &&
+      item.Respuesta && String(item.Respuesta).trim() !== '' &&
+      (item['Borrardo por Usuario'] === false || !item['Borrardo por Usuario']) &&
+      (item['RespuestaConfirmada'] === false || !item['RespuestaConfirmada'])
+    );
+    if (origen) {
+      pendientes = pendientes.filter(item => item.Origen === origen);
+    }
+    return JSON.stringify({ data: pendientes });
+  } catch (e) {
+    Logger.log(`ERROR en getNotificacionesPendientesUsuario: ${e.stack}`);
+    return JSON.stringify({ data: [], error: e.message });
+  }
+}
+
+/**
+ * @summary Obtiene los comentarios leídos (confirmados) para el usuario actual y un origen específico.
+ * @param {string} origen - El origen para filtrar (ej. "Inventario comida").
+ * @returns {string} JSON con los datos de las notificaciones leídas.
+ */
+function getNotificacionesLeidasUsuario(origen) {
+  try {
+    const currentUserEmail = Session.getActiveUser()?.getEmail();
+    if (!currentUserEmail) {
+      return JSON.stringify({ data: [] });
+    }
+    let allComments = _getInventoryDataForSheet(getHojasConfig().COMENTARIOS.nombre);
+    let leidas = allComments.filter(item =>
+      item.Usuario === currentUserEmail &&
+      item.Respuesta && String(item.Respuesta).trim() !== '' &&
+      (item['Borrardo por Usuario'] === false || !item['Borrardo por Usuario']) &&
+      (item['RespuestaConfirmada'] === true)
+    );
+    if (origen) {
+      leidas = leidas.filter(item => item.Origen === origen);
+    }
+    return JSON.stringify({ data: leidas });
+  } catch (e) {
+    Logger.log(`ERROR en getNotificacionesLeidasUsuario: ${e.stack}`);
+    return JSON.stringify({ data: [], error: e.message });
+  }
+}
+/**
  * @file BackEnd/Model/Comentario.js
  * @summary Centraliza toda la lógica de negocio para la gestión de comentarios.
  */
