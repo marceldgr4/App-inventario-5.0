@@ -169,3 +169,37 @@ function _getInventoryDataForSheet(sheetName) {
   );
   return data;
 }
+
+/**
+ * @summary Calcula el siguiente ID disponible para una hoja de cálculo.
+ * @description Busca el valor máximo en la columna 'Id' y le suma 1.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - El objeto de la hoja para la cual se calculará el ID.
+ * @returns {number} El siguiente ID disponible.
+ */
+function getNextId(sheet) {
+  try {
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const idColIdx = headers.map(h => String(h).toLowerCase()).indexOf('id');
+
+    if (idColIdx === -1) {
+      Logger.log(`No se encontró la columna 'Id' en la hoja ${sheet.getName()}. Se usará un timestamp como ID.`);
+      return Math.round(new Date().getTime() / 1000);
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) { // No hay datos, solo encabezado
+      return 1;
+    }
+
+    const ids = sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat().map(Number).filter(id => !isNaN(id) && id !== null && id !== '');
+    
+    if (ids.length === 0) {
+      return 1;
+    }
+
+    return Math.max(...ids) + 1;
+  } catch (e) {
+    Logger.log(`Error en getNextId para la hoja ${sheet.getName()}: ${e.stack}`);
+    return Math.round(new Date().getTime() / 1000); // Fallback
+  }
+}

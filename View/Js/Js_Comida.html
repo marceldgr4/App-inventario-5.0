@@ -719,9 +719,9 @@
         const usuario = currentUser ? currentUser.name : "Desconocido";
 
         registrarComentarioGenerico({
+          sheetName: "Inventario comida", // Nombre de la hoja de cálculo
           productoId: Id,
           producto: producto,
-          programa: "Comida", // El módulo actual
           comentario: comentario,
           usuario: usuario,
           reloadFn: loadComentarios, // Pasamos la función de recarga
