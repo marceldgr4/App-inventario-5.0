@@ -13,7 +13,7 @@ function getNotificacionesPendientesUsuario(origen) {
     let pendientes = allComments.filter(item =>
       item.Usuario === currentUserEmail &&
       item.Respuesta && String(item.Respuesta).trim() !== '' &&
-      (item['Borrardo por Usuario'] === false || !item['Borrardo por Usuario']) &&
+      (item['Borrado por Usuario'] === false || !item['Borrado por Usuario']) &&
       (item['RespuestaConfirmada'] === false || !item['RespuestaConfirmada'])
     );
     if (origen) {
@@ -41,7 +41,7 @@ function getNotificacionesLeidasUsuario(origen) {
     let leidas = allComments.filter(item =>
       item.Usuario === currentUserEmail &&
       item.Respuesta && String(item.Respuesta).trim() !== '' &&
-      (item['Borrardo por Usuario'] === false || !item['Borrardo por Usuario']) &&
+      (item['Borrado por Usuario'] === false || !item['Borrado por Usuario']) &&
       (item['RespuestaConfirmada'] === true)
     );
     if (origen) {
@@ -70,7 +70,7 @@ function getComentarioSheet() {
   const expectedHeaders = [
     "Id", "ProductoId", "Producto", "Programa", "Fecha del Comentario", 
     "Comentario", "Usuario", "Origen", "Leido", "Respuesta", "Fecha De Respuesta",
-    "Borrardo por Usuario", "Borrado por Admin", "RespuestaConfirmada"
+    "Borrado por Usuario", "Borrado por Admin", "RespuestaConfirmada"
   ];
 
   if (!sheet) {
@@ -126,7 +126,7 @@ function getMisNotificacionesDeComentarios(origen) {
     let userNotifications = allComments.filter(item => 
         item.Usuario === currentUserEmail && // Comentario hecho por el usuario actual
         item.Respuesta && String(item.Respuesta).trim() !== '' && // Que tenga una respuesta
-        (item['Borrardo por Usuario'] === false || !item['Borrardo por Usuario']) // Y que no esté borrado por el usuario
+        (item['Borrado por Usuario'] === false || !item['Borrado por Usuario']) // Y que no esté borrado por el usuario
     );
 
     // Filtrar por origen si se proporciona
@@ -220,7 +220,7 @@ function registrarNuevoComentario(data) {
       false,          // Leido
       "",             // Respuesta
       "",             // Fecha De Respuesta
-      false,          // Borrardo por Usuario
+      false,          // Borrado por Usuario
       false,          // Borrado por Admin
       false           // RespuestaConfirmada
     ]);
@@ -347,10 +347,10 @@ function marcarComentarioBorradoUsuario(comentarioId) {
   try {
     const sheet = getComentarioSheet();
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
-    const borradoUsuarioColIdx = headers.indexOf("Borrardo por Usuario");
+    const borradoUsuarioColIdx = headers.indexOf("Borrado por Usuario");
 
     if (borradoUsuarioColIdx === -1) {
-      return JSON.stringify({ success: false, message: "No se encontró la columna 'Borrardo por Usuario'." });
+      return JSON.stringify({ success: false, message: "No se encontró la columna 'Borrado por Usuario'." });
     }
 
     const rowIndex = findRowById(comentarioId, sheet.getName());
