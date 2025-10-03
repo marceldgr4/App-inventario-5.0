@@ -14,7 +14,8 @@ function getComentarioSheet() {
 
   const expectedHeaders = [
     "Id", "ProductoId", "Producto", "Programa", "Fecha del Comentario", 
-    "Comentario", "Usuario", "Origen", "Leido", "Respuesta", "Fecha De Respuesta"
+    "Comentario", "Usuario", "Origen", "Leido", "Respuesta", "Fecha De Respuesta",
+    "Borrardo por Usuario", "Borrado por Admin", "RespuestaConfirmada"
   ];
 
   if (!sheet) {
@@ -39,7 +40,7 @@ function getComentarioSheet() {
 }
 
 /**
- * @summary Obtiene todos los datos de la hoja de 'Comentarios' en formato JSON.
+ * @summary Obtiene todos los datos de la hoja de 'Comentarios' para la vista de administrador.
  * @returns {string} JSON con los datos.
  */
 function getComentarioData() {
@@ -51,6 +52,40 @@ function getComentarioData() {
     return JSON.stringify({ data: [], error: e.message });
   }
 }
+
+/**
+ * @summary Obtiene las notificaciones de comentarios para el usuario actual, opcionalmente filtradas por origen.
+ * @description Devuelve los comentarios hechos por el usuario actual que han recibido una respuesta.
+ * @param {string} origen - El origen para filtrar (ej. "Inventario comida").
+ * @returns {string} JSON con los datos de las notificaciones.
+ */
+function getMisNotificacionesDeComentarios(origen) {
+  try {
+    const currentUserEmail = Session.getActiveUser()?.getEmail();
+    if (!currentUserEmail) {
+      return JSON.stringify({ data: [] }); // No hay usuario, no hay notificaciones
+    }
+
+    let allComments = _getInventoryDataForSheet(getHojasConfig().COMENTARIOS.nombre);
+
+    let userNotifications = allComments.filter(item => 
+        item.Usuario === currentUserEmail && // Comentario hecho por el usuario actual
+        item.Respuesta && String(item.Respuesta).trim() !== '' && // Que tenga una respuesta
+        (item['Borrardo por Usuario'] === false || !item['Borrardo por Usuario']) // Y que no esté borrado por el usuario
+    );
+
+    // Filtrar por origen si se proporciona
+    if (origen) {
+      userNotifications = userNotifications.filter(item => item.Origen === origen);
+    }
+
+    return JSON.stringify({ data: userNotifications });
+  } catch (e) {
+    Logger.log(`ERROR en getMisNotificacionesDeComentarios: ${e.stack}`);
+    return JSON.stringify({ data: [], error: e.message });
+  }
+}
+
 
 /**
  * @summary Obtiene la información de un comentario específico por su ID.
@@ -129,7 +164,10 @@ function registrarNuevoComentario(data) {
       sheetName,      // Origen
       false,          // Leido
       "",             // Respuesta
-      ""              // Fecha De Respuesta
+      "",             // Fecha De Respuesta
+      false,          // Borrardo por Usuario
+      false,          // Borrado por Admin
+      false           // RespuestaConfirmada
     ]);
 
     return JSON.stringify({ success: true, message: "Comentario guardado exitosamente." });
@@ -156,21 +194,119 @@ function responderComentario(comentarioId, respuesta) {
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim().toUpperCase());
     const respuestaColIdx = headers.indexOf("RESPUESTA");
     const fechaRespuestaColIdx = headers.indexOf("FECHA DE RESPUESTA");
+    const confirmadaColIdx = headers.indexOf("RESPUESTACONFIRMADA");
 
-    if (respuestaColIdx === -1 || fechaRespuestaColIdx === -1) {
-      return JSON.stringify({ success: false, message: "No se encontraron las columnas 'Respuesta' o 'Fecha De Respuesta'." });
+    if (respuestaColIdx === -1 || fechaRespuestaColIdx === -1 || confirmadaColIdx === -1) {
+      return JSON.stringify({ success: false, message: "No se encontraron las columnas necesarias (Respuesta, Fecha De Respuesta, RespuestaConfirmada)." });
     }
 
     const rowIndex = findRowById(comentarioId, sheet.getName());
     if (rowIndex > 0) {
       sheet.getRange(rowIndex, respuestaColIdx + 1).setValue(respuesta);
       sheet.getRange(rowIndex, fechaRespuestaColIdx + 1).setValue(new Date());
+      sheet.getRange(rowIndex, confirmadaColIdx + 1).setValue(false); // Marcar como no confirmada
       return JSON.stringify({ success: true, message: "Respuesta guardada exitosamente." });
     } else {
       return JSON.stringify({ success: false, message: "No se encontró el comentario para guardar la respuesta." });
     }
   } catch (e) {
     Logger.log(`Error en responderComentario: ${e.stack}`);
+    return JSON.stringify({ success: false, message: `Error del servidor: ${e.message}` });
+  }
+}
+
+/**
+ * @summary Confirma que el usuario ha leído la respuesta a un comentario.
+ * @param {string|number} comentarioId - El ID del comentario a confirmar.
+ * @returns {string} JSON indicando éxito o fracaso.
+ */
+function confirmarRespuesta(comentarioId) {
+  if (!comentarioId) {
+    return JSON.stringify({ success: false, message: "Falta el ID del comentario." });
+  }
+
+  try {
+    const sheet = getComentarioSheet();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim().toUpperCase());
+    const confirmadaColIdx = headers.indexOf("RESPUESTACONFIRMADA");
+
+    if (confirmadaColIdx === -1) {
+      return JSON.stringify({ success: false, message: "No se encontró la columna 'RespuestaConfirmada'." });
+    }
+
+    const rowIndex = findRowById(comentarioId, sheet.getName());
+    if (rowIndex > 0) {
+      sheet.getRange(rowIndex, confirmadaColIdx + 1).setValue(true);
+      return JSON.stringify({ success: true, message: "Respuesta confirmada." });
+    } else {
+      return JSON.stringify({ success: false, message: "No se encontró el comentario." });
+    }
+  } catch (e) {
+    Logger.log(`Error en confirmarRespuesta: ${e.stack}`);
+    return JSON.stringify({ success: false, message: `Error del servidor: ${e.message}` });
+  }
+}
+
+/**
+ * @summary Marca un comentario como borrado por un administrador.
+ * @param {string|number} comentarioId - El ID del comentario a marcar.
+ * @returns {string} JSON indicando éxito o fracaso.
+ */
+function marcarComentarioBorradoAdmin(comentarioId) {
+  if (!comentarioId) {
+    return JSON.stringify({ success: false, message: "Falta el ID del comentario." });
+  }
+
+  try {
+    const sheet = getComentarioSheet();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const borradoAdminColIdx = headers.indexOf("Borrado por Admin");
+
+    if (borradoAdminColIdx === -1) {
+      return JSON.stringify({ success: false, message: "No se encontró la columna 'Borrado por Admin'." });
+    }
+
+    const rowIndex = findRowById(comentarioId, sheet.getName());
+    if (rowIndex > 0) {
+      sheet.getRange(rowIndex, borradoAdminColIdx + 1).setValue(true);
+      return JSON.stringify({ success: true, message: "Comentario marcado como borrado." });
+    } else {
+      return JSON.stringify({ success: false, message: "No se encontró el comentario." });
+    }
+  } catch (e) {
+    Logger.log(`Error en marcarComentarioBorradoAdmin: ${e.stack}`);
+    return JSON.stringify({ success: false, message: `Error del servidor: ${e.message}` });
+  }
+}
+
+/**
+ * @summary Marca un comentario como borrado por un usuario.
+ * @param {string|number} comentarioId - El ID del comentario a marcar.
+ * @returns {string} JSON indicando éxito o fracaso.
+ */
+function marcarComentarioBorradoUsuario(comentarioId) {
+  if (!comentarioId) {
+    return JSON.stringify({ success: false, message: "Falta el ID del comentario." });
+  }
+
+  try {
+    const sheet = getComentarioSheet();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+    const borradoUsuarioColIdx = headers.indexOf("Borrardo por Usuario");
+
+    if (borradoUsuarioColIdx === -1) {
+      return JSON.stringify({ success: false, message: "No se encontró la columna 'Borrardo por Usuario'." });
+    }
+
+    const rowIndex = findRowById(comentarioId, sheet.getName());
+    if (rowIndex > 0) {
+      sheet.getRange(rowIndex, borradoUsuarioColIdx + 1).setValue(true);
+      return JSON.stringify({ success: true, message: "Comentario marcado como borrado." });
+    } else {
+      return JSON.stringify({ success: false, message: "No se encontró el comentario." });
+    }
+  } catch (e) {
+    Logger.log(`Error en marcarComentarioBorradoUsuario: ${e.stack}`);
     return JSON.stringify({ success: false, message: `Error del servidor: ${e.message}` });
   }
 }

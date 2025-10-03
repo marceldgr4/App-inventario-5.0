@@ -74,6 +74,9 @@
               <button class="btn-modificar btn-sm" onclick='abrirModalRespuestaComentario(${JSON.stringify(item)})'>
                 <ion-icon name="chatbox-ellipses-outline"></ion-icon> Ver / Responder
               </button>
+              <button class="btn-eliminar btn-sm" onclick='eliminarComentarioAdmin(${item.Id})'>
+                <ion-icon name="trash-outline"></ion-icon> Borrar
+              </button>
             </td>
           `;
         },
@@ -197,6 +200,19 @@
         .responderComentario(comentarioId, respuesta);
     }
 
+    function eliminarComentarioAdmin(comentarioId) {
+        if (!confirm("¿Estás seguro de que deseas eliminar este comentario? Esta acción no se puede deshacer.")) {
+            return;
+        }
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(response => {
+                handleServerResponse(response, null, loadComentarios);
+            })
+            .withFailureHandler(handleServerError)
+            .marcarComentarioBorradoAdmin(comentarioId);
+    }
+
     // =================================================
     // --- 5. INICIALIZACIÓN ---
     // =================================================
@@ -227,6 +243,7 @@
         limpiarTodosLosFiltrosComentarios,
         abrirModalRespuestaComentario,
         cerrarModalRespuestaComentario,
+        eliminarComentarioAdmin,
         ordenarAscendente: () => ordenarAscendenteGenerico(aplicarFiltrosYOrdenarComentarios, "sortOptionsComentarios", (val) => pageState.fechaOrdenAscendente = val),
         ordenarDescendente: () => ordenarDescendenteGenerico(aplicarFiltrosYOrdenarComentarios, "sortOptionsComentarios", (val) => pageState.fechaOrdenAscendente = val),
         ordenarPorFecha: (e) => ordenarPorFechaGenerico(e, "sortOptionsComentarios"),

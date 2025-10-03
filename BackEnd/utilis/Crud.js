@@ -27,12 +27,6 @@ function getSheetByName(name) {
  * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
  * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
  */
-/**
- * @summary Busca en una hoja específica el número de fila que corresponde a un Id único usando TextFinder (Optimizado).
- * @param {string|number} id El identificador único del registro que se está buscando.
- * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
- * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
- */
 function findRowById(id, sheetName) {
   const sheet = getSheetByName(sheetName);
   if (!sheet) return -1;
@@ -164,10 +158,21 @@ function _getInventoryDataForSheet(sheetName) {
     })
     .filter((obj) => obj !== null);
 
+  let finalData = data;
+
+  // Si es la hoja de comentarios, filtrar los borrados
+  if (sheetName === getHojasConfig().COMENTARIOS.nombre) {
+    finalData = data.filter(item => {
+      const borradoUsuario = item['Borrardo por Usuario'] === true || String(item['Borrardo por Usuario']).toLowerCase() === 'true';
+      const borradoAdmin = item['Borrado por Admin'] === true || String(item['Borrado por Admin']).toLowerCase() === 'true';
+      return !borradoUsuario && !borradoAdmin;
+    });
+  }
+
   Logger.log(
-    `_getInventoryDataForSheet: Se procesaron ${data.length} registros de la hoja '${sheetName}'.`
+    `_getInventoryDataForSheet: Se procesaron ${finalData.length} registros de la hoja '${sheetName}'.`
   );
-  return data;
+  return finalData;
 }
 
 /**
