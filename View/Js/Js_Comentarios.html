@@ -42,6 +42,11 @@
               notifBell.classList.remove('has-notifications');
             }
           }
+          
+          // Si la función de cargar notificaciones de artículos existe, la llama
+          if (typeof cargarNotificacionesDeComentariosArticulos === 'function') {
+            cargarNotificacionesDeComentariosArticulos();
+          }
         },
       });
     }
