@@ -109,37 +109,14 @@ function agregarComentarioInventario(id, comentario) {
 // Archivo: Inventario.js
 function getArticulosViejos() {
   try {
-    const rawData = getProductosViejos(getHojasConfig().ARTICULO.nombre); // Esta función debería devolver los datos
-
-    // Normalizar los datos: convertir las claves a minúsculas
-    const normalizedData = rawData.map((item) => {
-      const newItem = {};
-      for (const key in item) {
-        // Convertir la clave a minúsculas y reemplazar espacios
-        const newKey = key.toLowerCase().replace(/ /g, "");
-        newItem[newKey] = item[key];
-      }
-      return newItem;
-    });
-
-    Logger.log(
-      "getArticulosViejos: Data returned after normalization: " +
-        JSON.stringify(normalizedData)
-    );
-    return JSON.stringify(normalizedData);
-    // La función getProductosViejos ya devuelve un array de objetos con las claves correctas.
-    // No es necesario volver a procesarlo ni usar JSON.stringify.
-    const productosViejos = getProductosViejos(
-      getHojasConfig().ARTICULO.nombre
-    );
+    const productosViejos = getProductosViejos(getHojasConfig().ARTICULO.nombre);
     Logger.log(
       `getArticulosViejos: Devolviendo ${productosViejos.length} artículos viejos.`
     );
-    return productosViejos;
+    return JSON.stringify(productosViejos);
   } catch (e) {
     Logger.log("getArticulosViejos: Error al obtener datos. " + e.message);
     return JSON.stringify([]);
-    return [];
   }
 }
 
