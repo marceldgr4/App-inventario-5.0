@@ -408,69 +408,62 @@
   <!-- =======================
     MODAL DE NOTIFICACIONES DE COMENTARIOS
     ======================= -->
-  <!--Notificaciones de comnetario-->
   <div id="modalNotificacion-Comentario" class="modal-overlay">
     <div class="modal-content-NotificacionesComentarios">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <ino-icon name="chatbubble-ellipses-outline"></ino-icon> Comentarios
-        </h2>
-        <div class="modal-header-actions"></div>
-        <button class="btn-warning" onclick="loadNotificaciones()">
-          <ion-icon name="refresh-circle-outline"></ion-icon> Cargar Nuevas
-        </button>
-        <button class="close-btn" onclick="cerrarModalNotificacionComentario()">
-          &times;
-        </button>
-      </div>
-      <div class="modal-body">
-        <div id="comentariosTabs" class="tab-buttons-container">
-          <button
-            class="tab-button active"
-            data-tab="pendientes"
-            onclick="mostrarTab('pendientes', this)"
-          >
-            Pendientes
-          </button>
-          <button
-            class="tab-button"
-            data-tab="leidas"
-            onclick="mostrarTab('leidas', this)"
-          >
-            Leidas
-          </button>
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <ion-icon name="chatbubble-ellipses-outline"></ion-icon> Mis Notificaciones de Comentarios
+            </h2>
+            <button class="btn-warning" onclick="cargarNotificacionesDeComentariosArticulos()">
+                <ion-icon name="refresh-outline"></ion-icon> Recargar
+            </button>
+            <button class="close-btn" onclick="cerrarModalNotificacionComentario()">&times;</button>
         </div>
-        <div id="pendientes" class="tab-content active">
-          <h4>Comentarios Pendientes</h4>
-          <table id="tablaComentariosPendientes">
-            <thead>
-              <tr>
-                <th>Id</th>
-                <th>Producto</th>
-                <th>Fecha</th>
-                <th>Comentario</th>
-              </tr>
-            </thead>
-            <tbody id="tablaComentariosPendientesBody"></tbody>
-          </table>
+        <div class="modal-body">
+            <div class="tab-buttons-container">
+                <button class="tab-button active" data-tab="pendientes-comentarios">Pendientes</button>
+                <button class="tab-button" data-tab="leidas-comentarios">Leídas</button>
+            </div>
+
+            <!-- Pestaña de Pendientes -->
+            <div id="pendientes-comentarios" class="tab-content active">
+                <div class="table-container-notificaciones">
+                    <table class="notifications-table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Tu Comentario</th>
+                                <th>Respuesta del Admin</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificacionesPendientesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pestaña de Leídas -->
+            <div id="leidas-comentarios" class="tab-content">
+                <div class="table-container-notificaciones">
+                    <table class="notifications-table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Tu Comentario</th>
+                                <th>Respuesta</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificacionesLeidasBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div id="leidas" class="tab-content">
-          <h4>Comentarios Leidas</h4>
-          <table id="tablaComentariosLeidas">
-            <thead>
-              <tr>
-                <th>Id</th>
-                <th>Producto</th>
-                <th>Fecha</th>
-                <th>Comentario</th>
-                <th>Usuario</th>
-              </tr>
-            </thead>
-            <tbody id="tablaComentariosLeidasBody"></tbody>
-          </table>
+        <div class="modal-footer">
+            <p class="footer-info">Aquí puedes ver las respuestas a tus comentarios.</p>
         </div>
-      </div>
     </div>
+</div>
     <!-- 🔹 cierre de inventory-container -->
     <div
       id="mensajeConfirmacion"

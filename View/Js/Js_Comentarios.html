@@ -1,10 +1,263 @@
 <script>
-function abrirModalNotificacionComentario() {
-    abrirModal('modalNotificacion-Comentario');
-    loadComentarios();
-}
+  /**
+   * @file View/Js/Js_Comentarios.html
+   * @summary Lógica del cliente para la página de visualización y gestión de Comentarios.
+   */
+  (function () {
+    const pageState = {
+      fullData: [],
+      datosMostrados: [],
+      currentPage: 1,
+      itemsPerPage: 10,
+      fechaOrdenAscendente: false,
+    };
 
-function cerrarModalNotificacionComentario() {
-    cerrarModal('modalNotificacion-Comentario');
-}
+    // =================================================
+    // --- 1. CARGA DE DATOS ---
+    // =================================================
+    function loadComentarios() {
+      loadDataGenerico({
+        endpoint: "getComentarioData",
+        tbodyId: "tablaComentarioBody",
+        noDataId: "noDataComentarios",
+        containerId: "comentariosContent",
+        onSuccess: (data) => {
+          const normalizedData = (data || []).map(item => {
+            item.FechaComentario = item.FechaComentario || item.Fecha || item['Fecha del Comentario'];
+            return item;
+          });
+          pageState.fullData = normalizedData;
+          pageState.currentPage = 1;
+          aplicarFiltrosYOrdenarComentarios();
+
+          // Actualizar campana de notificación
+          const unreadCount = normalizedData.filter(item => item.Leido === false || String(item.Leido).toLowerCase() === 'false').length;
+          const notifBell = document.getElementById('notificationBell');
+          if (notifBell) {
+            const notifCount = notifBell.querySelector('.notification-count');
+            if (unreadCount > 0) {
+              notifCount.textContent = unreadCount;
+              notifBell.classList.add('has-notifications');
+            } else {
+              notifBell.classList.remove('has-notifications');
+            }
+          }
+          
+          // Si la función de cargar notificaciones de artículos existe, la llama
+          if (typeof cargarNotificacionesDeComentariosArticulos === 'function') {
+            cargarNotificacionesDeComentariosArticulos();
+          }
+        },
+      });
+    }
+
+    // =================================================
+    // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN ---
+    // =================================================
+    function renderPaginatedTable() {
+      renderPaginatedTableGeneric({
+        data: pageState.datosMostrados,
+        currentPage: pageState.currentPage,
+        itemsPerPage: pageState.itemsPerPage,
+        tbodyId: "tablaComentarioBody",
+        paginationContainerId: "comentarioPagination",
+        noDataMessage: "No hay comentarios para mostrar.",
+        renderRow: (item) => {
+          const leido = item.Leido === true || String(item.Leido).toLowerCase() === 'true';
+          const estadoHtml = leido
+            ? '<span class="status-leido">Leído</span>'
+            : '<span class="status-no-leido">No Leído</span>';
+
+          return `
+            <td>${item.Id || ""}</td>
+            <td>${item.ProductoId || ""}</td>
+            <td>${escapeHtml(item.Producto || "")}</td>
+            <td>${escapeHtml(item.Programa || "")}</td>
+            <td>${formatDate(item.FechaComentario)}</td>
+            <td id="estado-comentario-${item.Id}">${estadoHtml}</td>
+            <td>
+              <button class="btn-modificar btn-sm" onclick='abrirModalRespuestaComentario(${JSON.stringify(item)})'>
+                <ion-icon name="chatbox-ellipses-outline"></ion-icon> Ver / Responder
+              </button>
+              <button class="btn-eliminar btn-sm" onclick='eliminarComentarioAdmin(${item.Id})'>
+                <ion-icon name="trash-outline"></ion-icon> Borrar
+              </button>
+            </td>
+          `;
+        },
+        onPageChange: (page) => {
+          pageState.currentPage = page;
+          renderPaginatedTable();
+        },
+      });
+    }
+
+    // =================================================
+    // --- 3. FILTROS Y ORDENAMIENTO ---
+    // =================================================
+    function aplicarFiltrosYOrdenarComentarios() {
+      aplicarFiltrosYOrdenarGenerico({
+        dataSource: pageState.fullData,
+        setResultados: (resultados) => { pageState.datosMostrados = resultados; },
+        fechaOrdenAsc: pageState.fechaOrdenAscendente,
+        campoFecha: "FechaComentario",
+        renderFn: renderPaginatedTable,
+        filters: [
+          { id: "buscarComentario", fields: ["Producto", "Programa", "Comentario"], type: "text" },
+          { id: "filtroOrigen", field: "Origen", type: "text" },
+        ],
+      });
+    }
+
+    function limpiarTodosLosFiltrosComentarios() {
+      limpiarFiltrosGenerico({
+        filtros: [
+            { id: "buscarComentario", type: "text" },
+            { id: "filtroOrigen", type: "select" },
+        ],
+        aplicarFn: aplicarFiltrosYOrdenarComentarios,
+      });
+    }
+
+    // =================================================
+    // --- 4. LÓGICA DEL MODAL Y ACCIONES ---
+    // =================================================
+
+    function abrirModalRespuestaComentario(item) {
+      const modal = document.getElementById('modalRespuestaComentario');
+      const container = document.getElementById('comentarioOriginal');
+      
+      container.innerHTML = `
+        <div class="chat-bubble">
+          <p class="chat-user"><strong>De:</strong> ${escapeHtml(item.Usuario || 'Desconocido')}</p>
+          <p class="chat-text">${escapeHtml(item.Comentario || '')}</p>
+          <p class="chat-date"><strong>Fecha:</strong> ${formatDate(item.FechaComentario)}</p>
+        </div>
+      `;
+
+      document.getElementById('respuestaComentarioId').value = item.Id;
+      document.getElementById('respuestaProductoId').value = item.ProductoId;
+      document.getElementById('respuestaSheetName').value = item.Programa;
+      document.getElementById('respuestaTexto').value = item.Respuesta || ''; // Cargar respuesta existente si la hay
+
+      abrirModal('modalRespuestaComentario');
+
+      // Cambiar estado a leído automáticamente al abrir el modal
+      const leido = item.Leido === true || String(item.Leido).toLowerCase() === 'true';
+      if (!leido) {
+        marcarComoLeido(item.Id);
+      }
+    }
+
+    function cerrarModalRespuestaComentario() {
+      cerrarModal('modalRespuestaComentario');
+    }
+
+    function marcarComoLeido(comentarioId) {
+      // No mostrar "cargando" para que el cambio sea sutil
+      google.script.run
+        .withSuccessHandler(response => {
+          const result = JSON.parse(response);
+          if (result.success) {
+            const estadoTd = document.getElementById(`estado-comentario-${comentarioId}`);
+            if (estadoTd) {
+              estadoTd.innerHTML = '<span class="status-leido">Leído</span>';
+            }
+            const item = pageState.fullData.find(c => String(c.Id) === String(comentarioId));
+            if (item) item.Leido = true;
+            // Actualizar contador de la campana sin recargar todo
+            const unreadCount = pageState.fullData.filter(item => item.Leido === false || String(item.Leido).toLowerCase() === 'false').length;
+            const notifBell = document.getElementById('notificationBell');
+            if (notifBell) {
+                const notifCount = notifBell.querySelector('.notification-count');
+                if (unreadCount > 0) {
+                    notifCount.textContent = unreadCount;
+                    notifBell.classList.add('has-notifications');
+                } else {
+                    notifBell.classList.remove('has-notifications');
+                }
+            }
+          } else {
+            // Si falla, no molestar al usuario, solo registrar en consola.
+            console.error("Error al marcar como leído:", result.message);
+          }
+        })
+        .withFailureHandler(error => console.error("Fallo del servidor al marcar como leído:", error))
+        .marcarComentariosComoLeidos([comentarioId]);
+    }
+
+    function handleRespuestaSubmit(e) {
+      e.preventDefault();
+      const comentarioId = document.getElementById('respuestaComentarioId').value;
+      const respuesta = document.getElementById('respuestaTexto').value;
+
+      if (!respuesta.trim()) {
+        mostrarMensaje('La respuesta no puede estar vacía.', 'error');
+        return;
+      }
+
+      showLoading(true);
+      google.script.run
+        .withSuccessHandler(response => {
+            handleServerResponse(response, cerrarModalRespuestaComentario, loadComentarios);
+        })
+        .withFailureHandler(handleServerError)
+        .responderComentario(comentarioId, respuesta);
+    }
+
+    function eliminarComentarioAdmin(comentarioId) {
+        if (!confirm("¿Estás seguro de que deseas eliminar este comentario? Esta acción no se puede deshacer.")) {
+            return;
+        }
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(response => {
+                handleServerResponse(response, null, loadComentarios);
+            })
+            .withFailureHandler(handleServerError)
+            .marcarComentarioBorradoAdmin(comentarioId);
+    }
+
+    // =================================================
+    // --- 5. INICIALIZACIÓN ---
+    // =================================================
+
+    function inicializarPaginaComentarios() {
+      document.getElementById("buscarComentario")?.addEventListener("input", aplicarFiltrosYOrdenarComentarios);
+      document.getElementById("respuestaComentarioForm")?.addEventListener("submit", handleRespuestaSubmit);
+
+      const filtroOrigenEl = document.getElementById("filtroOrigen");
+      if (filtroOrigenEl) {
+        const setPlaceholderClass = () => {
+            if (filtroOrigenEl.value === "") {
+                filtroOrigenEl.classList.add('placeholder');
+            } else {
+                filtroOrigenEl.classList.remove('placeholder');
+            }
+        };
+        
+        filtroOrigenEl.addEventListener("change", () => {
+            setPlaceholderClass();
+            aplicarFiltrosYOrdenarComentarios();
+        });
+        
+        setPlaceholderClass(); // Set initial class
+      }
+
+      Object.assign(window, {
+        limpiarTodosLosFiltrosComentarios,
+        abrirModalRespuestaComentario,
+        cerrarModalRespuestaComentario,
+        eliminarComentarioAdmin,
+        ordenarAscendente: () => ordenarAscendenteGenerico(aplicarFiltrosYOrdenarComentarios, "sortOptionsComentarios", (val) => pageState.fechaOrdenAscendente = val),
+        ordenarDescendente: () => ordenarDescendenteGenerico(aplicarFiltrosYOrdenarComentarios, "sortOptionsComentarios", (val) => pageState.fechaOrdenAscendente = val),
+        ordenarPorFecha: (e) => ordenarPorFechaGenerico(e, "sortOptionsComentarios"),
+      });
+
+      loadComentarios();
+    }
+
+    inicializarPaginaComentarios();
+
+  })();
 </script>

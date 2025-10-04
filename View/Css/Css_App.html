@@ -272,4 +272,42 @@
     box-shadow: var(--card-shadow);
     min-height: 300px;
   }
+
+/* Notification Bell Styles */
+.notification-bell {
+  position: relative;
+  cursor: pointer;
+  margin-left: 1rem;
+}
+
+.notification-bell .fa-bell {
+  font-size: 1.5rem;
+  color: var(--icon-color-primary);
+}
+
+.notification-bell .notification-count {
+  position: absolute;
+  top: -5px;
+  right: -10px;
+  background-color: var(--logout-button-bg);
+  color: var(--text-color-light);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: none; /* Hidden by default */
+}
+
+.notification-bell.has-notifications .notification-count {
+  display: flex;
+}
+
+.header-title-container {
+    display: flex;
+    align-items: center;
+}
 </style>

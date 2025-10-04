@@ -1,0 +1,105 @@
+<!-- Incluir los archivos de CSS genéricos y específicos -->
+<?!= include("View/Css/Css_Generico.html"); ?>
+<?!= include("View/Css/Css_Tablas.html"); ?>
+<?!= include("View/Css/Css_Filtros.html"); ?>
+<?!= include("View/Css/Css_Modal.html"); ?>
+
+<div id="comentariosContent" class="inventory-container">
+    <!-- Encabezado y barra de acciones -->
+    <div class="header-section">
+        <div class="header-title-container">
+            <h1>Historial de Comentarios</h1>
+            <div id="notificationBell" class="notification-bell">
+                <i class="fas fa-bell"></i>
+                <span class="notification-count"></span>
+            </div>
+        </div>
+        <p>Aquí puedes ver, responder y gestionar todos los comentarios del sistema.</p>
+        <div class="action-bar">
+            <div class="search-group">
+                <input type="text" id="buscarComentario" class="search-input" placeholder="Buscar por producto, programa o comentario...">
+                
+                <select id="filtroOrigen" class="filter-select">
+                    <option value="">Todos los Orígenes</option>
+                    <option value="Inventario comida">Comida</option>
+                    <option value="Inventario articulos">Artículos</option>
+                    <option value="Inventario decoracion">Decoración</option>
+                    <option value="Inventario papeleria">Papelería</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controles de ordenamiento -->
+    <div id="sortContainer">
+        <span>Ordenar por Fecha:</span>
+        <i class="fas fa-sort sort-menu-icon" onclick="ordenarPorFecha(event)"></i>
+        <div id="sortOptionsComentarios" class="sort-options">
+             <a href="#" onclick="ordenarAscendente(); return false;">Ascendente</a>
+             <a href="#" onclick="ordenarDescendente(); return false;">Descendente</a>
+        </div>
+    </div>
+    
+    <!-- Mensaje de "No hay datos" -->
+    <div id="noDataComentarios" class="no-data-container" style="display:none;">
+        <i class="fas fa-comment-slash no-data-icon"></i>
+        <h3 class="no-data-title">No se encontraron comentarios</h3>
+        <p>Aún no se ha registrado ningún comentario.</p>
+    </div>
+
+    <!-- Tabla de comentarios -->
+    <div class="table-container">
+        <table id="comentariosTable" class="inventory-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>ID Producto</th>
+                    <th>Producto</th>
+                    <th>Programa</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaComentarioBody"></tbody>
+        </table>
+        <div id="comentarioPagination" class="pagination"></div>
+    </div>
+</div>
+
+<!-- Modal para ver y responder comentarios -->
+<div id="modalRespuestaComentario" class="modal-overlay">
+    <div class="modal-content-A">
+        <div class="modal-header">
+            <h2>Detalle del Comentario</h2>
+            <span class="close-btn" onclick="cerrarModalRespuestaComentario()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="comentarioOriginal" class="chat-bubble-container"></div>
+            <hr>
+            <h4>Responder al comentario</h4>
+            <form id="respuestaComentarioForm">
+                <input type="hidden" id="respuestaComentarioId">
+                <input type="hidden" id="respuestaProductoId">
+                <input type="hidden" id="respuestaSheetName">
+                <div class="form-group">
+                    <label for="respuestaTexto">Tu respuesta:</label>
+                    <textarea id="respuestaTexto" rows="4" class="form-control" required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Enviar Respuesta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mensaje de confirmación genérico -->
+<div id="mensajeConfirmacion" class="mensaje-confirmacion" style="display:none;">
+    <span></span>
+    <button onclick="cerrarMensaje()">Cerrar</button>
+</div>
+
+<!-- Incluir los archivos de JavaScript -->
+<?!= include("View/Js/Js_Generico.html"); ?>
+<?!= include("View/Js/Js_Comentarios.html"); ?>

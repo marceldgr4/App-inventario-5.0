@@ -27,12 +27,6 @@ function getSheetByName(name) {
  * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
  * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
  */
-/**
- * @summary Busca en una hoja específica el número de fila que corresponde a un Id único usando TextFinder (Optimizado).
- * @param {string|number} id El identificador único del registro que se está buscando.
- * @param {string} sheetName El nombre de la hoja donde se realizará la búsqueda.
- * @returns {number} El número de la fila (base 1) si se encuentra una coincidencia. Devuelve -1 si no se encuentra.
- */
 function findRowById(id, sheetName) {
   const sheet = getSheetByName(sheetName);
   if (!sheet) return -1;
@@ -164,8 +158,53 @@ function _getInventoryDataForSheet(sheetName) {
     })
     .filter((obj) => obj !== null);
 
+  let finalData = data;
+
+  // Si es la hoja de comentarios, filtrar los borrados
+  if (sheetName === getHojasConfig().COMENTARIOS.nombre) {
+    finalData = data.filter(item => {
+      const borradoUsuario = item['Borrardo por Usuario'] === true || String(item['Borrardo por Usuario']).toLowerCase() === 'true';
+      const borradoAdmin = item['Borrado por Admin'] === true || String(item['Borrado por Admin']).toLowerCase() === 'true';
+      return !borradoUsuario && !borradoAdmin;
+    });
+  }
+
   Logger.log(
-    `_getInventoryDataForSheet: Se procesaron ${data.length} registros de la hoja '${sheetName}'.`
+    `_getInventoryDataForSheet: Se procesaron ${finalData.length} registros de la hoja '${sheetName}'.`
   );
-  return data;
+  return finalData;
+}
+
+/**
+ * @summary Calcula el siguiente ID disponible para una hoja de cálculo.
+ * @description Busca el valor máximo en la columna 'Id' y le suma 1.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - El objeto de la hoja para la cual se calculará el ID.
+ * @returns {number} El siguiente ID disponible.
+ */
+function getNextId(sheet) {
+  try {
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const idColIdx = headers.map(h => String(h).toLowerCase()).indexOf('id');
+
+    if (idColIdx === -1) {
+      Logger.log(`No se encontró la columna 'Id' en la hoja ${sheet.getName()}. Se usará un timestamp como ID.`);
+      return Math.round(new Date().getTime() / 1000);
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) { // No hay datos, solo encabezado
+      return 1;
+    }
+
+    const ids = sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat().map(Number).filter(id => !isNaN(id) && id !== null && id !== '');
+    
+    if (ids.length === 0) {
+      return 1;
+    }
+
+    return Math.max(...ids) + 1;
+  } catch (e) {
+    Logger.log(`Error en getNextId para la hoja ${sheet.getName()}: ${e.stack}`);
+    return Math.round(new Date().getTime() / 1000); // Fallback
+  }
 }

@@ -66,8 +66,6 @@ const ROL_ADMIN = "Admin";
 const ROL_USUARIO = "Usuario";
 
 // Define las páginas permitidas para cada rol.
-// Asegúrate que los nombres de las páginas aquí coincidan exactamente con los nombres de tus archivos HTML (sin .html)
-// y con los valores en PAGES_PERMITIDAS.
 const PAGINAS_POR_ROL = {
   [ROL_ADMIN]: [
     "Home",
@@ -101,11 +99,6 @@ const CLAVE_PROPIEDAD_USUARIO = "USUARIO_ACTIVO";
 /** ====== Utilidades Genéricas ====== */
 //=======================================
 
-/**
- * @summary Obtiene una hoja específica por su nombre.
- * @param {string} sheetName El nombre de la hoja a obtener.
- * @returns {GoogleAppsScript.Spreadsheet.Sheet | null} El objeto de la hoja o null si no se encuentra.
- */
 function getSheet(sheetName) {
   try {
     const ss = SpreadsheetApp.openById(ID_INVENTARIO);
@@ -121,11 +114,7 @@ function getSheet(sheetName) {
     return null;
   }
 }
-/**
- * @summary Actúa como un enrutador para obtener los datos de la hoja correcta según el nombre proporcionado.
- * @param {string} sheetName El nombre de la hoja de la cual se quieren obtener los datos.
- * @returns {string} Una cadena JSON que contiene los datos de la hoja solicitada.
- */
+
 function getData(sheetName) {
   switch (sheetName) {
     case HOJA_HISTORIAL:
@@ -137,12 +126,6 @@ function getData(sheetName) {
   }
 }
 
-/**
- * @summary Wrapper genérico para obtener la información de un producto por su ID.
- * @param {string|number} id El ID del producto.
- * @param {string} sheetName El nombre de la hoja donde buscar.
- * @returns {object|null} Un objeto con la información del producto o null si no se encuentra.
- */
 // Wrappers genéricos
 function getInfo(id, sheetName) {
   return getProductInfoGenerico(id, sheetName);
@@ -160,15 +143,15 @@ function retirar(id, unidades, sheetName) {
   return retirarProductoGenerico(id, unidades, sheetName);
 }
 function agregarComentario(id, comentario, sheetName) {
-  return agregarComentarioGenerico(id, comentario, sheetName);
+  // Wrapper para compatibilidad con llamadas antiguas. Construye el objeto de datos esperado.
+  const data = {
+    productoId: id,
+    comentario: comentario,
+    sheetName: sheetName
+  };
+  return registrarNuevoComentario(data); // Llama a la nueva función unificada.
 }
 
-/**
- * @summary Obtiene todos los datos de una hoja y convierte las cabeceras a un formato estándar (mayúsculas, sin espacios extra).
- * @param {string} sheetName El nombre de la hoja de la cual obtener los datos.
- * @returns {Array<object>} Un arreglo de objetos donde las claves ya coinciden con lo esperado por el frontend.
- * @private
- */
 function _getInventoryDataForSheet(sheetName) {
   const sheet = getSheet(sheetName);
   if (!sheet) return [];

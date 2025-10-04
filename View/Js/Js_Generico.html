@@ -172,6 +172,7 @@
       setResultados, // función para guardar resultados (ej: val => datosMostradosComida = val)
       filters, // lista de definiciones de filtros
       fechaOrdenAsc, // variable global booleana (ascendente o descendente)
+      campoFecha, // Opcional: el nombre del campo de fecha para ordenar
       renderFn, // función para renderizar tabla (ej: renderPaginatedTable)
     } = config;
 
@@ -209,17 +210,24 @@
             );
           });
         }
-      } else {
-        resultados = resultados.filter(
-          (item) => item[f.field] && item[f.field].toLowerCase().includes(valor)
-        );
+      } else { // Búsqueda de texto
+        resultados = resultados.filter((item) => {
+          const fieldsToSearch = f.fields || (f.field ? [f.field] : []);
+          if (fieldsToSearch.length === 0) return false;
+
+          // some() devuelve true si al menos un campo coincide
+          return fieldsToSearch.some(field => 
+            item[field] && String(item[field]).toLowerCase().includes(valor)
+          );
+        });
       }
     });
 
     // --- Ordenar por fecha ---
+    const fechaField = campoFecha || "FECHA DE INGRESO"; // Usar campoFecha o un default
     resultados.sort((a, b) => {
-      const fechaA = new Date(a["FECHA DE INGRESO"]);
-      const fechaB = new Date(b["FECHA DE INGRESO"]);
+      const fechaA = new Date(a[fechaField]);
+      const fechaB = new Date(b[fechaField]);
       if (isNaN(fechaA) && isNaN(fechaB)) return 0;
       if (isNaN(fechaA)) return 1;
       if (isNaN(fechaB)) return -1;
@@ -476,31 +484,25 @@
   // --- FUNCIONES DE COMENTARIOS ---
   // ===============================
 
-  function registrarComentarioGenerico({
-    productoId,
-    producto,
-    programa,
-    comentario,
-    usuario,
-    reloadFn,
-  }) {
-    if (!productoId || !comentario) {
+  function registrarComentarioGenerico(data) {
+    const { reloadFn, ...backendData } = data; // Separar la función de los datos
+
+    if (!backendData.productoId || !backendData.comentario) {
       mostrarMensajeComentario("Debe ingresar un comentario válido.");
       return;
     }
 
-    showLoading(); // ✅ usamos el genérico
+    showLoading();
 
     google.script.run
       .withSuccessHandler((response) => {
-        hideLoading(); // ✅ usamos el genérico
+        hideLoading();
         try {
           const res =
             typeof response === "string" ? JSON.parse(response) : response;
           if (res.success) {
             mostrarMensajeComentario("Comentario agregado correctamente.");
-            // 🔄 Recargar tabla de comentarios si se proveyó la función
-            if (typeof reloadFn === "function") reloadFn();
+            if (typeof reloadFn === "function") reloadFn(); // Usar la función extraída
           } else {
             mostrarMensajeComentario(
               "Error al guardar comentario: " + (res.message || "")
@@ -511,18 +513,13 @@
         }
       })
       .withFailureHandler((err) => {
-        hideLoading(); // ✅ corregido
+        hideLoading();
         console.error("Error registrando comentario:", err);
         mostrarMensajeComentario("Error al registrar comentario.");
       })
-      .guardarComentarioEnSheet(
-        productoId,
-        producto,
-        programa,
-        comentario,
-        usuario
-      );
+      .registrarNuevoComentario(backendData); // Enviar solo los datos al backend
   }
+
 
   // ==============================
   // USUARIO ACTIVO (GLOBAL)
