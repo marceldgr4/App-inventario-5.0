@@ -79,8 +79,7 @@ function agregarProductoGenerico(data, sheetName) {
     newRowData[idx["PRODUCTO"]] = data.productoAgregar;
   if (idx["FECHA DE INGRESO"] !== -1)
     newRowData[idx["FECHA DE INGRESO"]] = new Date();
-  if (idx["Ingresos"] !== -1)
-    newRowData[idx["Ingresos"]] = parseFloat(data.ingresosAgregar) || 0;
+  if (idx["Ingresos"] !== -1)newRowData[idx["Ingresos"]] = parseFloat(data.ingresosAgregar) || 0;
   if (idx["Salidas"] !== -1) newRowData[idx["Salidas"]] = 0;
   if (idx["Estado"] !== -1) newRowData[idx["Estado"]] = "Activo";
 
@@ -121,8 +120,7 @@ function agregarProductoGenerico(data, sheetName) {
       break;
     case HOJA_DECORACION:
       if (idx["TIPO"] !== -1) newRowData[idx["TIPO"]] = data.tipoAgregar || "";
-      if (idx["PRECIO"] !== -1)
-        newRowData[idx["PRECIO"]] = data.precioAgregar || "";
+      if (idx["PRECIO"] !== -1)newRowData[idx["PRECIO"]]= parseFloat(data.precioAgregar) || 0;
       if (idx["Comentarios"] !== -1)
         newRowData[idx["Comentarios"]] = data.comentariosAgregar || "";
       if (idx["Imagen"] !== -1)

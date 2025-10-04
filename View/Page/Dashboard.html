@@ -1,0 +1,123 @@
+<
+  <?!= include("View/Css/Css_Generico.html"); ?>
+  <?!= include("View/Css/Css_HomeContent.html"); ?>
+  <style>
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .chart-card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .chart-card h3 {
+      margin-top: 0;
+      font-size: 1.2em;
+      color: #333;
+    }
+    .kpi-container {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .kpi {
+      text-align: center;
+    }
+    .kpi h4 {
+      margin: 0 0 5px 0;
+      font-size: 0.9em;
+      color: #666;
+    }
+    .kpi p {
+      margin: 0;
+      font-size: 1.5em;
+      font-weight: 600;
+      color: #005c29;
+    }
+    .chart-container {
+      height: 300px;
+      position: relative;
+    }
+    .filtro-container {
+        margin-bottom: 15px;
+        text-align: right;
+    }
+    .filtro-container label {
+        margin-right: 5px;
+    }
+  </style>
+
+  <title>Dashboard de Inventario</title>
+  <div id="dash-container">
+    <div class="dash-header">
+      <h2>Dashboard de Inventario</h2>
+      <p>Análisis detallado por categorías.</p>
+    </div>
+
+    <div class="grid-container">
+      <!-- Card Inventario General -->
+      <div class="chart-card">
+        <h3>Inventario General</h3>
+        <div class="kpi-container">
+          <div class="kpi"><p id="inv-total-productos">0</p><h4>Productos</h4></div>
+          <div class="kpi"><p id="inv-unidades-disponibles">0</p><h4>Disponibles</h4></div>
+          <div class="kpi"><p id="inv-unidades-agotadas">0</p><h4>Agotados</h4></div>
+          <div class="kpi"><p id="inv-total-programas">0</p><h4>Programas</h4></div>
+          <div class="kpi"><p id="inv-stock-mas-8meses">0</p><h4>Stock > 8m</h4></div>
+        </div>
+        <div class="chart-container" style="height: 250px;"><canvas id="inv-pie-chart"></canvas></div>
+        <div class="chart-container" style="height: 250px; margin-top: 20px;"><canvas id="inv-bar-chart"></canvas></div>
+      </div>
+
+      <!-- Card Comida -->
+      <div class="chart-card">
+        <h3>Comida</h3>
+        <div class="kpi-container">
+          <div class="kpi"><p id="com-total-productos">0</p><h4>Productos</h4></div>
+          <div class="kpi"><p id="com-unidades-disponibles">0</p><h4>Disponibles</h4></div>
+          <div class="kpi"><p id="com-unidades-agotadas">0</p><h4>Agotados</h4></div>
+        </div>
+        <div class="chart-container"><canvas id="com-bar-chart"></canvas></div>
+        <div class="filtro-container">
+            <label for="filtroAnoComida">Año:</label>
+            <select id="filtroAnoComida"></select>
+        </div>
+        <div class="chart-container"><canvas id="gastoComidaPorMes"></canvas></div>
+      </div>
+
+      <!-- Card Decoración -->
+      <div class="chart-card">
+        <h3>Decoración</h3>
+        <div class="kpi-container">
+          <div class="kpi"><p id="dec-total-productos">0</p><h4>Productos</h4></div>
+          <div class="kpi"><p id="dec-unidades-disponibles">0</p><h4>Disponibles</h4></div>
+          <div class="kpi"><p id="dec-unidades-agotadas">0</p><h4>Agotados</h4></div>
+        </div>
+        <div class="chart-container"><canvas id="dec-pie-chart"></canvas></div>
+        <div class="chart-container" style="margin-top: 20px;"><canvas id="dec-bar-chart"></canvas></div>
+        <div class="filtro-container">
+            <label for="filtroAnoDecoracion">Año:</label>
+            <select id="filtroAnoDecoracion"></select>
+        </div>
+        <div class="chart-container"><canvas id="gastoDecoracionPorMes"></canvas></div>
+      </div>
+
+      <!-- Card Papelería -->
+      <div class="chart-card">
+        <h3>Papelería</h3>
+        <div class="kpi-container">
+          <div class="kpi"><p id="pap-total-productos">0</p><h4>Productos</h4></div>
+          <div class="kpi"><p id="pap-unidades-disponibles">0</p><h4>Disponibles</h4></div>
+          <div class="kpi"><p id="pap-unidades-agotadas">0</p><h4>Agotados</h4></div>
+        </div>
+        <div class="chart-container"><canvas id="pap-bar-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <?!= include("View/Js/Js_Dashboard.html"); ?>
+

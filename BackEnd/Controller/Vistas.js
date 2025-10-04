@@ -98,7 +98,8 @@ function loadContent(pageName) {
     pageName === "Comida" ||
     pageName === "Decoracion" ||
     pageName === "Papeleria" ||
-    pageName === "Comentario"
+    pageName === "Comentario" ||
+    pageName === "Dashboard"
   ) {
     contentFile = `View/Page/${pageName}`;
   } else {

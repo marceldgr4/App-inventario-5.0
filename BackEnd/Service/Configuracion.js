@@ -90,6 +90,7 @@ const PAGINAS_POR_ROL = {
     "Home",
     "Acta",
     "Perfil",
+    "Dashboard",
   ],
 };
 

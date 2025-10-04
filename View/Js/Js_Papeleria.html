@@ -283,7 +283,7 @@
       document.getElementById("productoIdEditarPapeleria").textContent = id;
       document.getElementById("productoEditarPapeleria").value =
         producto["PRODUCTO"] || "";
-      document.getElementById("unidadesAgregarEditarPapeleria").value = "0";
+      document.getElementById("ingresosEdiatr").value = "0";
       document.getElementById("imagenEditarPapeleria").value =
         producto["Imagen"] || "";
     }
@@ -336,7 +336,7 @@
           productoAgregar: document.getElementById("productoAgregarPapeleria")
             .value,
           ingresosAgregar: parseFloat(
-            document.getElementById("ingresosAgregarPapeleria").value
+            document.getElementById("ingresosAgregar").value
           ),
           imagenAgregar: "", // pendiente si manejas imágenes
         };
@@ -361,7 +361,7 @@
           productoEditar: document.getElementById("productoEditarPapeleria")
             .value,
           ingresosEditar: parseFloat( // Changed from unidadesAgregarEditar
-            document.getElementById("unidadesAgregarEditarPapeleria").value
+            document.getElementById("ingresosEditar").value
           ),
           imagenEditar: document.getElementById("imagenEditarPapeleria").value,
           comentariosEditar: document.getElementById("comentariosEditarPapeleria").value // Added this line

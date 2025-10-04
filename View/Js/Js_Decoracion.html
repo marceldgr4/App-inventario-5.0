@@ -259,7 +259,7 @@
       document.getElementById("productoIdEditarDecoracion").textContent = id;
       document.getElementById("productoEditar").value =
         producto["PRODUCTO"] || "";
-      document.getElementById("unidadesAgregarEditar").value = "0";
+      document.getElementById("ingresosEditar").value = "0";
       // document.getElementById("imagenEditarDecoracion").value = producto["Imagen"] || "";
     }
     function cerrarModalEditar() {
@@ -312,8 +312,8 @@
         const data = {
           productoAgregar: document.getElementById("productoAgregar").value,
           tipoAgregar: document.getElementById("tipoAgregar").value,
-          cantidadAgregar: parseFloat(
-            document.getElementById("cantidadAgregar").value
+          ingresosAgregar: parseFloat(
+            document.getElementById("ingresosAgregar").value
           ),
           precioAgregar: document.getElementById("precioAgregar").value,
           imagenArchivo:
@@ -340,8 +340,8 @@
           idEditar: pageState.productoAEditarId,
           productoEditar: document.getElementById("productoEditar").value,
           tipoEditar: document.getElementById("tipoEditar").value,
-          unidadesAgregarEditar: parseFloat(
-            document.getElementById("unidadesAgregarEditar").value
+          ingresosEditar: parseFloat(
+            document.getElementById("ingresosEditar").value
           ),
           precioEditar: document.getElementById("precioEditarDecoracion").value,
         };

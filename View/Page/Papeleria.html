@@ -65,8 +65,7 @@
     </div>
   </div>
 
-  <!-- Mensaje de "sin datos" que espera el JS -->
-<div id="noData" class="no-data-container" style="display:none;">
+  <div id="noData" class="no-data-container" style="display:none;">
   <i class="fas fa-inbox no-data-icon"></i>
   <h3 class="no-data-title">No se encontraron artículos de inventario Papeleria</h3>
   <p>Haz clic en "Agregar producto" para añadir tu primer artículo</p>
@@ -92,7 +91,6 @@
     <div id="papeleriaPagination" class="pagination"></div>
   </div>
 
-  <!-- Modals -->
   <div id="modalAgregarPapeleria" class="modal-overlay">
     <div class="modal-content-ac">
       <div class="modal-header">
@@ -105,8 +103,8 @@
           <input type="text" id="productoAgregarPapeleria"name= "productoAgregar" class="form-control" required>
         </div>
         <div class="form-group">
-          <label for="ingresosAgregarPapeleria">Unidades a Ingresar *:</label>
-          <input type="number" id="ingresosAgregarPapeleria" class="form-control" min="0" required>
+          <label for="ingresosAgregar">Unidades a Ingresar *:</label>
+          <input type="number" id="ingresosAgregar" class="form-control" min="0" required>
         </div>
         <div class="form-group">
           <label for="imagenArchivoAgregarPapeleria">Imagen (desde equipo):</label>
@@ -122,8 +120,7 @@
       </form>
     </div>
   </div>
-<!--EDITAR--> 
-  <div id="modalEditarPapeleria" class="modal-overlay">
+<div id="modalEditarPapeleria" class="modal-overlay">
     <div class="modal-content-ac">
       <div class="modal-header">
         <h2>Modificar Papelería</h2>
@@ -136,8 +133,8 @@
           <input type="text" id="productoEditarPapeleria" class="form-control" required>
         </div>
         <div class="form-group">
-          <label for="unidadesAgregarEditarPapeleria">Unidades a agregar *:</label>
-          <input type="number" id="unidadesAgregarEditarPapeleria" class="form-control" min="0" value="0" required>
+          <label for="ingresosEditar">Unidades a agregar *:</label>
+          <input type="number" id="ingresosEditar" class="form-control" min="0" value="0" required>
         </div>
         <div class="form-group">
           <label for="imagenEditarPapeleria">URL de Imagen:</label>
@@ -155,8 +152,7 @@
       </form>
     </div>
   </div>
-<!--Retirar-->
-  <div id="modalRetiroPapeleria" class="modal-overlay">
+<div id="modalRetiroPapeleria" class="modal-overlay">
     <div class="modal-content-ac">
       <div class="modal-header">
         <h2>Retirar Elemnto de la Papelería</h2>
@@ -178,8 +174,7 @@
       </form>
     </div>
   </div>
-<!--Comentarios-->
-  <div id="modalComentarioPapeleria" class="modal-overlay">
+<div id="modalComentarioPapeleria" class="modal-overlay">
     <div class="modal-content-ac">
       <div class="modal-header">
         <h2>Agregar Comentario</h2>
@@ -198,7 +193,6 @@
       </form>
     </div>
   </div>
-<!-- Modal de Notificaciones de Comentarios -->
 <div id="modalNotificacion-Comentario" class="modal-overlay">
     <div class="modal-content-NotificacionesComentarios">
         <div class="modal-header">
@@ -216,7 +210,6 @@
                 <button class="tab-button" data-tab="leidas-comentarios">Leídas</button>
             </div>
 
-            <!-- Pestaña de Pendientes -->
             <div id="pendientes-comentarios" class="tab-content active">
                 <div class="table-container-notificaciones">
                     <table class="notifications-table">
@@ -233,7 +226,6 @@
                 </div>
             </div>
 
-            <!-- Pestaña de Leídas -->
             <div id="leidas-comentarios" class="tab-content">
                 <div class="table-container-notificaciones">
                     <table class="notifications-table">
@@ -258,8 +250,7 @@
 </div>
 
 
-<!--Mensajes de confirmacion-->
-  <div id="mensajeConfirmacionPapeleria" class="mensaje-confirmacion" style="display:none;">
+<div id="mensajeConfirmacionPapeleria" class="mensaje-confirmacion" style="display:none;">
     <span></span>
     <button onclick="cerrarMensaje()">Cerrar</button>
   </div>

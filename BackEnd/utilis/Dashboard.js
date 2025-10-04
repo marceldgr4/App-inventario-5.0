@@ -5,6 +5,17 @@
  * @returns {object} Un objeto que contiene los datos procesados para cada sección del dashboard (inventario, comida, etc.).
  */
 function obtenerDatosDashboard() {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'dashboard_data';
+  const cachedData = cache.get(cacheKey);
+
+  if (cachedData) {
+    Logger.log("Dashboard data loaded from cache.");
+    return JSON.parse(cachedData);
+  }
+
+  Logger.log("Dashboard data not in cache. Fetching from source.");
+
   const ss = SpreadsheetApp.openById(ID_INVENTARIO);
   if (!ss) {
     Logger.log(
@@ -15,7 +26,8 @@ function obtenerDatosDashboard() {
         "No se pudo acceder a la hoja de cálculo. Revise los registros de secuencia de comandos para obtener más detalles.",
     };
   }
-  return {
+
+  const dashboardData = {
     inventario: _getInventarioDataForDashboard(
       ss.getSheetByName(HOJA_ARTICULOS)
     ),
@@ -27,6 +39,11 @@ function obtenerDatosDashboard() {
     ),
     papeleria: _getPapeleriaDataForDashboard(ss.getSheetByName(HOJA_PAPELERIA)),
   };
+
+  // Cache the data for 15 minutes
+  cache.put(cacheKey, JSON.stringify(dashboardData), 900);
+
+  return dashboardData;
 }
 
 /**
@@ -79,7 +96,7 @@ function _getInventarioDataForDashboard(sheet) {
           inventarioData.masDeOchoMeses++;
         }
         inventarioData.programas[programa] =
-          (inventarioData.programas[programa] || 0) + 1;
+          (inventarioData.programas[programa] || 0) + unidades;
       } else {
         inventarioData.unidadesAgotadas++;
         if (!(programa in inventarioData.programas)) {
