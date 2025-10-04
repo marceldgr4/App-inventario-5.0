@@ -302,7 +302,7 @@
           console.error("Error loading comments:", error);
           mostrarMensaje("Error al cargar los comentarios.", "error");
         })
-        .getComentarioData();
+        getMisNotificacionesDeComentarios();
     }
 
     function renderComentarios(comentarios) {
@@ -663,7 +663,7 @@
           const usuario = currentUser ? currentUser.name : "Desconocido";
 
           registrarComentarioGenerico({
-            sheetName: "Inventario articulos", // Nombre de la hoja de cálculo
+            sheetName: "Inventario", // Nombre de la hoja de cálculo
             productoId: id,
             producto: producto,
             comentario: comentario,
@@ -709,7 +709,7 @@
      */
     function cargarNotificacionesDeComentariosArticulos() {
         showLoading(true);
-        const origen = "Inventario articulos"; // Origen específico para esta página
+        const origen = "Inventario"; // Origen específico para esta página
 
         Promise.all([
             new Promise((resolve, reject) => {
@@ -752,7 +752,7 @@
      * @param {Array<Object>} data - Array de notificaciones pendientes.
      */
     function renderNotificacionesPendientesArticulos(data) {
-        const tbody = document.getElementById('tablaComentariosPendientesBody');
+        const tbody = document.getElementById('notificacionesPendientesBody');
         if (!tbody) return;
         tbody.innerHTML = '';
         if (data.length === 0) {
@@ -779,7 +779,7 @@
      * @param {Array<Object>} data - Array de notificaciones leídas.
      */
     function renderNotificacionesLeidasArticulos(data) {
-        const tbody = document.getElementById('tablaComentariosLeidasBody');
+        const tbody = document.getElementById('notificacionesLeidasBody');
         if (!tbody) return;
         tbody.innerHTML = '';
         if (data.length === 0) {
