@@ -302,7 +302,7 @@
           console.error("Error loading comments:", error);
           mostrarMensaje("Error al cargar los comentarios.", "error");
         })
-        .getComentarioData();
+        getMisNotificacionesDeComentarios();
     }
 
     function renderComentarios(comentarios) {
@@ -485,6 +485,13 @@
     function cerrarModalVerImagen() {
       cerrarModal("modalVerImagen");
     }
+    function abrirModalNotificacionComentario() {
+      abrirModal("modalNotificacion-Comentario");
+      cargarNotificacionesDeComentariosArticulos();
+    }
+    function cerrarModalNotificacionComentario() {
+      cerrarModal("modalNotificacion-Comentario");
+    }
 
     // =========================================
     // --- 6. MANEJADORES DE ENVÍO DE FORMULARIOS ---
@@ -646,33 +653,24 @@
         .getElementById("comentarioForm")
         .addEventListener("submit", function (e) {
           e.preventDefault();
-          const { id } = pageState.productoComentarioSeleccionado || {};
           const comentario = document
             .getElementById("comentarioTexto")
             .value.trim();
+          if (!comentario)
+            return mostrarMensaje("El comentario no puede estar vacío.", "error");
 
-          if (!comentario) {
-            mostrarMensaje("Escriba un comentario antes de enviar.", "error");
-            return;
-          }
+          const { id, producto } = pageState.productoComentarioSeleccionado;
+          const usuario = currentUser ? currentUser.name : "Desconocido";
 
-          showLoading(true);
-          const onSuccess = () => {
-            closeAllModals();
-            loadInventario();
-          };
-
-          const comentarioData = {
-            idComentario: id,
-            comentarioTexto: comentario,
-          };
-
-          google.script.run
-            .withSuccessHandler((res) =>
-              handleServerResponse(res, closeAllModals, loadInventario)
-            )
-            .withFailureHandler(handleServerError)
-            .agregarComentarioInventario(id, comentario);
+          registrarComentarioGenerico({
+            sheetName: "Inventario", // Nombre de la hoja de cálculo
+            productoId: id,
+            producto: producto,
+            comentario: comentario,
+            usuario: usuario,
+            reloadFn: cargarNotificacionesDeComentariosArticulos, // Pasamos la función de recarga
+          });
+          cerrarModalComentario();
         });
     })();
 
@@ -701,8 +699,190 @@
         : 0;
     }
 
+    // =================================================
+    // --- 8. LÓGICA DE NOTIFICACIONES DE COMENTARIOS ---
+    // =================================================
+
+    /**
+     * @summary Carga las notificaciones de comentarios pendientes y leídas desde el backend.
+     * También actualiza el contador de notificaciones en el botón principal.
+     */
+    function cargarNotificacionesDeComentariosArticulos() {
+        showLoading(true);
+        const origen = "Inventario"; // Origen específico para esta página
+
+        Promise.all([
+            new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(response => resolve(JSON.parse(response)))
+                    .withFailureHandler(reject)
+                    .getNotificacionesPendientesUsuario(origen);
+            }),
+            new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(response => resolve(JSON.parse(response)))
+                    .withFailureHandler(reject)
+                    .getNotificacionesLeidasUsuario(origen);
+            })
+        ]).then(([pendientesResult, leidasResult]) => {
+            hideLoading();
+            if (pendientesResult.error || leidasResult.error) {
+                mostrarMensaje("Error al cargar notificaciones: " + (pendientesResult.error || leidasResult.error), "error");
+                return;
+            }
+            renderNotificacionesPendientesArticulos(pendientesResult.data || []);
+            renderNotificacionesLeidasArticulos(leidasResult.data || []);
+            
+            const count = (pendientesResult.data || []).length;
+            const notifCountEl = document.getElementById('notificacionCantidadComentarios');
+            if (notifCountEl) {
+                notifCountEl.textContent = count;
+                notifCountEl.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+
+        }).catch(error => {
+            hideLoading();
+            console.error("Error fatal al cargar notificaciones de comentarios:", error);
+            mostrarMensaje("Error de conexión al cargar notificaciones.", "error");
+        });
+    }
+
+    /**
+     * @summary Renderiza la tabla de notificaciones pendientes.
+     * @param {Array<Object>} data - Array de notificaciones pendientes.
+     */
+    function renderNotificacionesPendientesArticulos(data) {
+        const tbody = document.getElementById('notificacionesPendientesBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No tienes respuestas pendientes.</td></tr>';
+            return;
+        }
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${escapeHtml(item.Producto)}</td>
+                <td>${escapeHtml(item.Comentario)}</td>
+                <td>${escapeHtml(item.Respuesta)}</td>
+                <td>
+                    <button class="btn-confirmar" onclick="confirmarLecturaNotificacionArticulos(${item.Id})">
+                        <ion-icon name="checkmark-done-outline"></ion-icon> Confirmar
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    /**
+     * @summary Renderiza la tabla de notificaciones leídas.
+     * @param {Array<Object>} data - Array de notificaciones leídas.
+     */
+    function renderNotificacionesLeidasArticulos(data) {
+        const tbody = document.getElementById('notificacionesLeidasBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No tienes notificaciones leídas.</td></tr>';
+            return;
+        }
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${escapeHtml(item.Producto)}</td>
+                <td>${escapeHtml(item.Comentario)}</td>
+                <td>${escapeHtml(item.Respuesta)}</td>
+                <td>
+                    <button class="btn-eliminar" onclick="borrarNotificacionUsuarioArticulos(${item.Id})">
+                        <ion-icon name="trash-outline"></ion-icon> Borrar
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    /**
+     * @summary Maneja el clic en el botón 'Confirmar' de una notificación.
+     * @param {number} comentarioId - El ID del comentario a confirmar.
+     */
+    function confirmarLecturaNotificacionArticulos(comentarioId) {
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(response => {
+                const result = JSON.parse(response);
+                hideLoading();
+                if (result.success) {
+                    mostrarMensaje("Notificación movida a leídas.", "success");
+                    cargarNotificacionesDeComentariosArticulos(); // Recargar ambas pestañas
+                } else {
+                    mostrarMensaje("Error: " + result.message, "error");
+                }
+            })
+            .withFailureHandler(handleServerError)
+            .confirmarRespuesta(comentarioId);
+    }
+
+    /**
+     * @summary Maneja el clic en el botón 'Borrar' de una notificación leída.
+     * @param {number} comentarioId - El ID del comentario a borrar.
+     */
+    function borrarNotificacionUsuarioArticulos(comentarioId) {
+        if (!confirm("¿Estás seguro de que quieres borrar esta notificación? No podrás verla de nuevo.")) {
+            return;
+        }
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(response => {
+                const result = JSON.parse(response);
+                hideLoading();
+                if (result.success) {
+                    mostrarMensaje("Notificación borrada.", "success");
+                    cargarNotificacionesDeComentariosArticulos(); // Recargar para que desaparezca
+                } else {
+                    mostrarMensaje("Error: " + result.message, "error");
+                }
+            })
+            .withFailureHandler(handleServerError)
+            .marcarComentarioBorradoUsuario(comentarioId);
+    }
+    
+    /**
+     * @summary Configura los listeners para las pestañas del modal de notificaciones.
+     */
+    function setupNotificacionTabsArticulos() {
+        const tabContainer = document.querySelector('#modalNotificacion-Comentario .tab-buttons-container');
+        if (!tabContainer) return;
+
+        // Prevenir múltiples listeners
+        if (tabContainer.dataset.listenerAttached) return;
+        tabContainer.dataset.listenerAttached = 'true';
+
+        tabContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.tab-button');
+            if (button) {
+                const tabId = button.dataset.tab;
+                
+                document.querySelectorAll('#modalNotificacion-Comentario .tab-content').forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+
+                document.querySelectorAll('#modalNotificacion-Comentario .tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                const activeContent = document.getElementById(tabId);
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                    activeContent.style.display = 'block';
+                }
+                button.classList.add('active');
+            }
+        });
+    }
+
     // ===============================================
-    // --- 8. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
+    // --- 9. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
     // ===============================================
     function inicializarPaginaArticulos() {
       const setupListener = (id, event, handler) =>
@@ -725,7 +905,9 @@
       }
 
       document.getElementById("filtroEstado").value = "activo";
+      setupNotificacionTabsArticulos();
       loadInventario();
+      cargarNotificacionesDeComentariosArticulos();
     }
 
     registrarEscapeCierraModales([
@@ -734,6 +916,7 @@
       cerrarModalRetiro,
       cerrarModalComentario,
       cerrarModalNotificaciones,
+      cerrarModalNotificacionComentario,
     ]);
 
     // Exponer funciones al scope global
@@ -778,6 +961,11 @@
           "sortOptions",
           (val) => (pageState.fechaOrdenAscendente = val)
         ),
+      abrirModalNotificacionComentario,
+      cerrarModalNotificacionComentario,
+      cargarNotificacionesDeComentariosArticulos,
+      confirmarLecturaNotificacionArticulos,
+      borrarNotificacionUsuarioArticulos,
     });
 
     inicializarPaginaArticulos();

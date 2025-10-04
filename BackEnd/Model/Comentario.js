@@ -191,7 +191,7 @@ function actualizarComentarioEnHojaOrigen(sheetName, productoId, comentario) {
  * @returns {string} Un objeto JSON indicando el éxito o fracaso.
  */
 function registrarNuevoComentario(data) {
-  const { sheetName, productoId, comentario } = data;
+  const { sheetName, productoId, comentario, producto: productoDesdeCliente } = data;
   const activeUser = Session.getActiveUser();
   const usuario = activeUser ? activeUser.getEmail() : "Usuario desconocido";
 
@@ -202,8 +202,9 @@ function registrarNuevoComentario(data) {
   try {
     actualizarComentarioEnHojaOrigen(sheetName, productoId, comentario);
     const productoInfo = getProductInfoGenerico(productoId, sheetName);
-    const producto = productoInfo.PRODUCTO || "N/A";
-    const programa = productoInfo.PROGRAMA || sheetName;
+    
+    const producto = productoInfo ? productoInfo.PRODUCTO : (productoDesdeCliente || "N/A");
+    const programa = productoInfo ? productoInfo.PROGRAMA : sheetName;
 
     const commentSheet = getComentarioSheet();
     const newId = getNextId(commentSheet);
