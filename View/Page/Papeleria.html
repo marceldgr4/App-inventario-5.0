@@ -268,3 +268,12 @@
 <?!= include("View/Js/Js_Generico.html"); ?>
 <?!= include("View/Js/Js_Papeleria.html"); ?>
 <?!= include("View/Js/Js_Notifications.html"); ?>
+
+<script>
+  function cerrarModalNotificacionComentario() {
+    const modal = document.getElementById('modalNotificacion-Comentario');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+  }
+</script>

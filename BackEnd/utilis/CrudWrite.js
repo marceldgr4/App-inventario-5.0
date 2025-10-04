@@ -88,7 +88,7 @@ function agregarProductoGenerico(data, sheetName) {
     let formula = "";
     const rowNum = sheet.getLastRow() + 1;
     if (sheetName === HOJA_DECORACION) {
-      formula = `=IF(ISNUMBER(F${rowNum}); F${rowNum}; 0) - IF(ISNUMBER(G${rowNum});G${rowNum};0)`;
+      formula = `=IF(ISNUMBER(E${rowNum}); E${rowNum}; 0) - IF(ISNUMBER(F${rowNum}); F${rowNum}; 0)`;
     } else if (sheetName === HOJA_COMIDA) {
       formula = `=IF(ISNUMBER(G${rowNum}); G${rowNum}; 0) - IF(ISNUMBER(H${rowNum}); H${rowNum}; 0)`;
     } else if (idx["Ingresos"] !== -1 && idx["Salidas"] !== -1) {
@@ -291,19 +291,15 @@ function actualizarProductoGenerico(data, sheetName) {
         parseFloat(rowData[unidadesDispIdx]) || 0;
 
       // Lógica para actualizar los ingresos
-      const cantidadAgregadaDesdeFormulario =
-        parseFloat(data.ingresosEditar) || 0;
+      const cantidadAgregadaDesdeFormulario = parseFloat(data.ingresosEditar) || 0;
       if (cantidadAgregadaDesdeFormulario > 0) {
+        // Siempre se suman las nuevas unidades a los ingresos existentes.
+        const ingresosActuales = parseFloat(rowData[ingresosIdx]) || 0;
+        rowData[ingresosIdx] = ingresosActuales + cantidadAgregadaDesdeFormulario;
+
+        // Si el producto estaba agotado, se puede opcionalmente actualizar la fecha de ingreso.
         if (unidadesOriginalesEnFila === 0) {
-          // Si el producto estaba agotado, se reinicia
-          rowData[ingresosIdx] = cantidadAgregadaDesdeFormulario;
-          rowData[salidasIdx] = 0;
           rowData[fechaIngresoIdx] = new Date();
-        } else {
-          // Si ya había unidades, se suman
-          const ingresosActuales = parseFloat(rowData[ingresosIdx]) || 0;
-          rowData[ingresosIdx] =
-            ingresosActuales + cantidadAgregadaDesdeFormulario;
         }
       }
 

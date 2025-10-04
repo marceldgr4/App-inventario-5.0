@@ -19,7 +19,7 @@ const HOJA_HISTORIAL = "Historial_Modificaciones";
 const HOJA_COMENTARIOS = "Comentarios";
 const HOJA_DECORACION = "Inventario decoracion";
 const HOJA_COMIDA = "Inventario comida";
-const HOJA_PAPELERIA = "Inventario papeleria";
+const HOJA_PAPELERIA = "Papeleria";
 const HOJA_REGISTRO_USUARIO = "Registro de Inicio de Sesion";
 const HOJA_ACTA = "Acta";
 

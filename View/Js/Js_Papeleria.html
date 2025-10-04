@@ -360,10 +360,11 @@
           idEditar: pageState.productoAEditarId,
           productoEditar: document.getElementById("productoEditarPapeleria")
             .value,
-          unidadesAgregarEditar: parseFloat(
+          ingresosEditar: parseFloat( // Changed from unidadesAgregarEditar
             document.getElementById("unidadesAgregarEditarPapeleria").value
           ),
           imagenEditar: document.getElementById("imagenEditarPapeleria").value,
+          comentariosEditar: document.getElementById("comentariosEditarPapeleria").value // Added this line
         };
         google.script.run
           .withSuccessHandler((r) =>
@@ -399,49 +400,25 @@
     const formComentario = document.getElementById("comentarioPapeleriaForm");
     formComentario?.addEventListener("submit", function (e) {
       e.preventDefault();
-      showLoading(true);
-
-      if (!pageState.productoComentarioSeleccionado) {
-        hideLoading();
-        mostrarMensaje(
-          "No se ha seleccionado ningún producto para comentar.",
-          "error"
-        );
-        return;
-      }
-
       const comentarioTexto = document
         .getElementById("comentarioTextoPapeleria")
         .value.trim();
       if (!comentarioTexto) {
-        hideLoading();
-        mostrarMensaje("Por favor, ingrese un comentario.", "error");
-        return;
+        return mostrarMensaje("El comentario no puede estar vacío.", "error");
       }
 
-      google.script.run
-        .withSuccessHandler(function (responseString) {
-          const resp = JSON.parse(responseString);
-          if (resp.success) {
-            mostrarMensaje(
-              `Comentario agregado a ${resp.producto} por ${
-                resp.usuario
-              } el ${new Date(resp.fecha).toLocaleString()}`,
-              "success"
-            );
-            cerrarModal("modalComentarioPapeleria");
-            loadPapeleria();
-          } else {
-            mostrarMensaje("Error: " + resp.error, "error");
-          }
-          hideLoading();
-        })
-        .withFailureHandler(handleServerError);
-      agregarComentarioGenerico(
-        "Papeleria", // 👈 cambia según el módulo
-        pageState.productoComentarioSeleccionado.Id,
-        comentarioTexto
-      );
+      const { Id, producto } = pageState.productoComentarioSeleccionado;
+      const usuario = currentUser ? currentUser.name : "Desconocido";
+
+      registrarComentarioGenerico({
+        sheetName: "Papeleria",
+        productoId: Id,
+        producto: producto,
+        comentario: comentarioTexto,
+        usuario: usuario,
+        reloadFn: cargarNotificacionesDeComentariosPapeleria,
+      });
+      cerrarModalComentario();
     });
 
     // === ELIMINAR ===
@@ -550,68 +527,205 @@
     window.ordenarAscendente = ordenarAscendentePapeleria;
     window.ordenarDescendente = ordenarDescendentePapeleria;
 
-    // iniciar
-    inicializarPaginaPapeleria();
-
     // =================================================
     // --- LÓGICA DE NOTIFICACIONES DE COMENTARIOS ---
     // =================================================
-    function loadNotificacionesComentarios() {
-      google.script.run
-        .withSuccessHandler(function (comentarios) {
-          if (Array.isArray(comentarios)) {
-            renderizarTablasComentarios(comentarios);
-            actualizarIconoComentarios(comentarios.length);
-          }
-        })
-        .withFailureHandler(handleServerError)
-        .getComentariosPorHoja("Inventario papeleria");
+
+    /**
+     * @summary Carga las notificaciones de comentarios pendientes y leídas desde el backend.
+     * También actualiza el contador de notificaciones en el botón principal.
+     */
+    function cargarNotificacionesDeComentariosPapeleria() {
+        showLoading(true);
+        const origen = "Papeleria"; // Origen específico para esta página
+
+        Promise.all([
+            new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(response => resolve(JSON.parse(response)))
+                    .withFailureHandler(reject)
+                    .getNotificacionesPendientesUsuario(origen);
+            }),
+            new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(response => resolve(JSON.parse(response)))
+                    .withFailureHandler(reject)
+                    .getNotificacionesLeidasUsuario(origen);
+            })
+        ]).then(([pendientesResult, leidasResult]) => {
+            hideLoading();
+            if (pendientesResult.error || leidasResult.error) {
+                mostrarMensaje("Error al cargar notificaciones: " + (pendientesResult.error || leidasResult.error), "error");
+                return;
+            }
+            renderNotificacionesPendientesPapeleria(pendientesResult.data || []);
+            renderNotificacionesLeidasPapeleria(leidasResult.data || []);
+            
+            const count = (pendientesResult.data || []).length;
+            const notifCountEl = document.getElementById('notificacionCantidadComentarios');
+            if (notifCountEl) {
+                notifCountEl.textContent = count;
+                notifCountEl.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+
+        }).catch(error => {
+            hideLoading();
+            console.error("Error fatal al cargar notificaciones de comentarios:", error);
+            mostrarMensaje("Error de conexión al cargar notificaciones.", "error");
+        });
     }
 
-    function renderizarTablasComentarios(comentarios) {
-      const pendientesBody = document.getElementById(
-        "tablaComentariosPendientesBody"
-      );
-      const leidasBody = document.getElementById("tablaComentariosLeidasBody");
-      pendientesBody.innerHTML = "";
-      leidasBody.innerHTML = "";
-
-      // Aquí puedes agregar lógica para separar entre pendientes y leídos si tienes un campo 'Estado' en tus comentarios.
-      // Por ahora, todos se mostrarán como pendientes.
-      if (comentarios.length === 0) {
-        pendientesBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay comentarios.</td></tr>`;
-        return;
-      }
-
-      comentarios.forEach((c) => {
-        const row = `
-              <tr>
-                  <td>${c.ID || ""}</td>
-                  <td>${c.PRODUCTO || ""}</td>
-                  <td>${formatDate(c.FECHA)}</td>
-                  <td>${escapeHtml(c.COMENTARIO || "")}</td>
-              </tr>`;
-        pendientesBody.innerHTML += row;
-      });
+    /**
+     * @summary Renderiza la tabla de notificaciones pendientes.
+     * @param {Array<Object>} data - Array de notificaciones pendientes.
+     */
+    function renderNotificacionesPendientesPapeleria(data) {
+        const tbody = document.getElementById('notificacionesPendientesBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No tienes respuestas pendientes.</td></tr>';
+            return;
+        }
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${escapeHtml(item.Producto)}</td>
+                <td>${escapeHtml(item.Comentario)}</td>
+                <td>${escapeHtml(item.Respuesta)}</td>
+                <td>
+                    <button class="btn-confirmar" onclick="confirmarLecturaNotificacionPapeleria(${item.Id})">
+                        <ion-icon name="checkmark-done-outline"></ion-icon> Confirmar
+                    </button>
+                </td>
+            `;
+        });
     }
 
-    function actualizarIconoComentarios(count) {
-      const container = document.getElementById(
-        "notificacionContainerPapeleria"
-      );
-      const span = container ? container.querySelector("span") : null;
-      if (span) {
-        span.textContent = count;
-        span.style.display = count > 0 ? "inline-block" : "none";
-      }
+    /**
+     * @summary Renderiza la tabla de notificaciones leídas.
+     * @param {Array<Object>} data - Array de notificaciones leídas.
+     */
+    function renderNotificacionesLeidasPapeleria(data) {
+        const tbody = document.getElementById('notificacionesLeidasBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No tienes notificaciones leídas.</td></tr>';
+            return;
+        }
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${escapeHtml(item.Producto)}</td>
+                <td>${escapeHtml(item.Comentario)}</td>
+                <td>${escapeHtml(item.Respuesta)}</td>
+                <td>
+                    <button class="btn-eliminar" onclick="borrarNotificacionUsuarioPapeleria(${item.Id})">
+                        <ion-icon name="trash-outline"></ion-icon> Borrar
+                    </button>
+                </td>
+            `;
+        });
     }
 
-    window.abrirModalComentariosPapeleria = function () {
+    /**
+     * @summary Maneja el clic en el botón 'Confirmar' de una notificación.
+     * @param {number} comentarioId - El ID del comentario a confirmar.
+     */
+    function confirmarLecturaNotificacionPapeleria(comentarioId) {
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(response => {
+                const result = JSON.parse(response);
+                hideLoading();
+                if (result.success) {
+                    mostrarMensaje("Notificación movida a leídas.", "success");
+                    cargarNotificacionesDeComentariosPapeleria(); // Recargar ambas pestañas
+                } else {
+                    mostrarMensaje("Error: " + result.message, "error");
+                }
+            })
+            .withFailureHandler(handleServerError)
+            .confirmarRespuesta(comentarioId);
+    }
+
+    /**
+     * @summary Maneja el clic en el botón 'Borrar' de una notificación leída.
+     * @param {number} comentarioId - El ID del comentario a borrar.
+     */
+    function borrarNotificacionUsuarioPapeleria(comentarioId) {
+        if (!confirm("¿Estás seguro de que quieres borrar esta notificación? No podrás verla de nuevo.")) {
+            return;
+        }
+        showLoading(true);
+        google.script.run
+            .withSuccessHandler(response => {
+                const result = JSON.parse(response);
+                hideLoading();
+                if (result.success) {
+                    mostrarMensaje("Notificación borrada.", "success");
+                    cargarNotificacionesDeComentariosPapeleria(); // Recargar para que desaparezca
+                } else {
+                    mostrarMensaje("Error: " + result.message, "error");
+                }
+            })
+            .withFailureHandler(handleServerError)
+            .marcarComentarioBorradoUsuario(comentarioId);
+    }
+    
+    /**
+     * @summary Configura los listeners para las pestañas del modal de notificaciones.
+     */
+    function setupNotificacionTabsPapeleria() {
+        const tabContainer = document.querySelector('#modalNotificacion-Comentario .tab-buttons-container');
+        if (!tabContainer) return;
+
+        // Prevenir múltiples listeners
+        if (tabContainer.dataset.listenerAttached) return;
+        tabContainer.dataset.listenerAttached = 'true';
+
+        tabContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.tab-button');
+            if (button) {
+                const tabId = button.dataset.tab;
+                
+                document.querySelectorAll('#modalNotificacion-Comentario .tab-content').forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+
+                document.querySelectorAll('#modalNotificacion-Comentario .tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                const activeContent = document.getElementById(tabId);
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                    activeContent.style.display = 'block';
+                }
+                button.classList.add('active');
+            }
+        });
+    }
+
+    function abrirModalNotificacionComentario() {
       abrirModal("modalNotificacion-Comentario");
-      loadNotificacionesComentarios();
-    };
-    window.cerrarModalNotificaciones = function () {
+      cargarNotificacionesDeComentariosPapeleria();
+    }
+    function cerrarModalNotificacionComentario() {
       cerrarModal("modalNotificacion-Comentario");
-    };
+    }
+
+    // iniciar
+    inicializarPaginaPapeleria();
+    setupNotificacionTabsPapeleria();
+    cargarNotificacionesDeComentariosPapeleria();
+
+    window.abrirModalNotificacionComentario = abrirModalNotificacionComentario;
+    window.cerrarModalNotificacionComentario = cerrarModalNotificacionComentario;
+    window.cargarNotificacionesDeComentariosPapeleria = cargarNotificacionesDeComentariosPapeleria;
+    window.confirmarLecturaNotificacionPapeleria = confirmarLecturaNotificacionPapeleria;
+    window.borrarNotificacionUsuarioPapeleria = borrarNotificacionUsuarioPapeleria;
   })();
 </script>
