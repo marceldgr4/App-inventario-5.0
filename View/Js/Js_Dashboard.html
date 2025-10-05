@@ -159,15 +159,6 @@ function updateDashboard(data) {
   if (!data) return;
   cacheData = data; // 🔑 guardar datos en memoria
 
-  // KPIs globales
-  setTextById('total-gastos', formatNumber(data.resumen?.totalGastos || 0));
-  setTextById('categoria-mayor-gasto', data.resumen?.categoriaMayorGasto?.categoria || 'N/A');
-
-  // tendencia global
-  const tendencia = data.resumen?.tendenciaGlobal || {};
-  const keys = Object.keys(tendencia).sort();
-  renderLineChart('tendencia-global-chart', keys, keys.map(k=>tendencia[k]), 'Tendencia Global');
-
   // Inventario
   const inv = data.inventario || {};
   setTextById('inv-total-productos', inv.totalProductos || 0);

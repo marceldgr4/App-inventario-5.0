@@ -1,263 +1,379 @@
 <script>
-(function () {
-  console.log('[JS DIAG] Script de Usuario iniciado. El navegador está leyendo este bloque.');
-
-  // Js_Usuario - Versión corregida y consolidada
-  // Carga datos desde `getUsuarios()` y provee CRUD/UI para usuarios.
-
-  const state = {
-    fullData: [],
-    filtered: [],
-    currentPage: 1,
-    perPage: 10,
-    editingId: null,
-  };
-
-  console.log('[JS CHECK] Js_Usuario consolidado cargado');
-
-  // Helpers
-  function q(id) { return document.getElementById(id); }
-  function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function showLoadingLocal(){ if(typeof showLoading==='function') showLoading(true); else { const el=q('loadingOverlay'); if(el) el.style.display='flex'; }}
-  function hideLoadingLocal(){ if(typeof hideLoading==='function') hideLoading(); else { const el=q('loadingOverlay'); if(el) el.style.display='none'; }}
-  function showMsg(msg, type='success'){ if(typeof mostrarMensaje === 'function') mostrarMensaje(msg, type); else alert(msg); }
-
-  // Render tabla y paginación
-  function renderTable(){
-    const tbody = q('tablaUsuarioBody');
-    if(!tbody) return;
-    tbody.innerHTML = '';
-
-    const start = (state.currentPage-1)*state.perPage;
-    const pageItems = state.filtered.slice(start, start+state.perPage);
-
-    if(pageItems.length === 0){
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No hay usuarios para mostrar.</td></tr>';
-      renderPagination();
-      return;
-    }
-
-    pageItems.forEach(u => {
-      const id = u['Id'] || u['ID'] || u.id || '';
-      const nombre = u['Nombre Completo'] || u['NombreCompleto'] || u.nombre || '';
-      const user = u['Usuario'] || u.userName || u.user || '';
-      const cde = u['CDE'] || u.cde || '';
-      const email = u['Email'] || u.email || '';
-      const estado = u['Estado Usuario'] || u['Estado_User'] || u.Estado || '';
-      const rol = u['Rol'] || u.rol || '';
-      const fecha = u['Fecha Registro'] || u['Fecha de Registro'] || u['FECHA DE INGRESO'] || u['FechaRegistro'] || '';
-
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(id)}</td>
-        <td>${escapeHtml(nombre)}</td>
-        <td>${escapeHtml(user)}</td>
-        <td>******</td>
-  
-        <td>${escapeHtml(cde)}</td>
-        <td>${escapeHtml(email)}</td>
-        <td>${escapeHtml(estado)}</td>
-        <td>${escapeHtml(rol)}</td>
-        <td>${escapeHtml(fecha)}</td>
-        <td>
-          <button class="btn-edit" data-id="${escapeHtml(id)}">Editar</button>
-          <button class="btn-delete" data-id="${escapeHtml(id)}">Eliminar</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    renderPagination();
-  }
-
-  function renderPagination(){
-    const total = state.filtered.length;
-    const pages = Math.max(1, Math.ceil(total/state.perPage));
-    const container = q('usuarioPagination');
-    if(!container) return;
-    container.innerHTML = '';
-
-    for(let i=1;i<=pages;i++){
-      const btn = document.createElement('button');
-      btn.textContent = i;
-      if(i===state.currentPage) btn.classList.add('active');
-      btn.addEventListener('click', ()=>{ state.currentPage = i; renderTable(); });
-      container.appendChild(btn);
-    }
-  }
-
-  // Normalizar respuesta del servidor
-  function normalizeServerResponse(resp){
-    if(!resp) return [];
-    if(Array.isArray(resp)) return resp;
-    if(typeof resp === 'string'){
-      try{ const p = JSON.parse(resp); return normalizeServerResponse(p); }catch(e){ return []; }
-    }
-    if(resp.data && Array.isArray(resp.data)) return resp.data;
-    return [];
-  }
-
-  // Cargar usuarios
-  function loadUsers(){
-    showLoadingLocal();
-    console.log('[JS USR] solicitando getUsuarios()...');
-
-    // --- INICIO: Fallback por Timeout ---
-    const timeoutId = setTimeout(() => {
-      console.error('[JS USR] Timeout: La llamada a getUsuarios() tardó demasiado.');
-      hideLoadingLocal();
-      showMsg('El servidor tardó demasiado en responder. Revisa la conexión y los logs del servidor.', 'error');
-    }, 10000); // 15 segundos de espera
-    // --- FIN: Fallback por Timeout ---
-
-    if(typeof google === 'undefined' || !google.script || !google.script.run){
-      console.error('[JS USR] google.script.run no disponible');
-      hideLoadingLocal();
-      showMsg('google.script.run no está disponible. Ejecuta la WebApp correctamente.', 'error');
-      return;
-    }
-
-    google.script.run
-      .withSuccessHandler((resp)=>{
-        clearTimeout(timeoutId); // <-- Cancelar el timeout si hay éxito
-        console.log('[JS USR] getUsuarios success', resp);
-        const data = normalizeServerResponse(resp);
-        state.fullData = data;
-        state.filtered = [...state.fullData];
-        state.currentPage = 1;
-        hideLoadingLocal();
-        renderTable();
-      })
-      .withFailureHandler((err)=>{
-        clearTimeout(timeoutId); // <-- Cancelar el timeout si hay fallo
-        console.error('[JS USR] getUsuarios failure', err);
-        hideLoadingLocal();
-        showMsg('Error al cargar usuarios: ' + (err && err.message ? err.message : err), 'error');
-      })
-      .getUsuarios();
-  }
-
-  // Búsqueda
-  function applySearch(){
-    const term = (q('buscarUsuario')?.value || '').toLowerCase().trim();
-    if(!term){ state.filtered = [...state.fullData]; state.currentPage = 1; renderTable(); return; }
-    state.filtered = state.fullData.filter(u => {
-      const nombre = (u['Nombre Completo']||u['NombreCompleto']||u.nombre||'').toString().toLowerCase();
-      const user = (u['Usuario']||u.userName||u.user||'').toString().toLowerCase();
-      return nombre.includes(term) || user.includes(term);
-    });
-    state.currentPage = 1;
-    renderTable();
-  }
-
-  // CRUD: agregar
-  function submitAdd(e){
-    e.preventDefault();
-    const payload = {
-      nombreCompleto: q('nombreCompletoAgregarUsuario').value,
-      userName: q('userNameAgregarUsuario').value,
-      password: q('passwordAgregarUsuario').value,
-      cde: q('cdeAgregarUsuario').value,
-      email: q('emailAgregarUsuario').value,
-      rol: q('rolAgregarUsuario').value,
-      estado: q('estadoAgregarUsuario').value,
+  // Js_Usuario.html - Versión Refactorizada v2.0
+  // Patrón consistente con Js_Articulos.html
+  (function () {
+    // =================================================
+    // --- VARIABLES DE ESTADO DE LA PÁGINA
+    // =================================================
+    const pageState = {
+      fullData: [],
+      datosMostrados: [],
+      currentPage: 1,
+      itemsPerPage: 10,
+      usuarioAEditarId: null,
+      fechaOrdenAscendente: false,
     };
-    showLoadingLocal();
-    google.script.run
-      .withSuccessHandler((r)=>{ hideLoadingLocal(); showMsg('Usuario agregado', 'success'); cerrarModal('modalAgregarUsuario'); loadUsers(); })
-      .withFailureHandler((err)=>{ hideLoadingLocal(); showMsg('Error al agregar: ' + (err && err.message ? err.message : err), 'error'); })
-      .agregarUsuario(payload);
-  }
 
-  // CRUD: editar
-  function openEditModal(id){
-    const usuario = state.fullData.find(u => String(u.Id||u.id||u.ID) === String(id));
-    if(!usuario){ showMsg('Usuario no encontrado', 'error'); return; }
-    state.editingId = id;
-    abrirModal('modalEditarUsuario');
-    q('usuarioIdEditarUsuario').textContent = id;
-    q('nombreCompletoEditarUsuario').value = usuario['Nombre Completo']||usuario['NombreCompleto']||usuario.nombre||'';
-    q('userNameEditarUsuario').value = usuario['Usuario']||usuario.userName||usuario.user||'';
-    q('passwordEditarUsuario').value = '';
-    q('cdeEditarUsuario').value = usuario['CDE']||usuario.cde||'';
-    q('emailEditarUsuario').value = usuario['Email']||usuario.email||'';
-    q('rolEditarUsuario').value = usuario['Rol']||usuario.rol||'Usuario';
-    q('estadoEditarUsuario').value = usuario['Estado Usuario']||usuario['Estado_User']||usuario.Estado||'Activo';
-  }
+    // =================================================
+    // --- 1. CARGA DE DATOS Y MANEJO DE RESPUESTAS ---
+    // =================================================
+    
+    /**
+     * Normaliza la respuesta del servidor a un formato consistente
+     */
+    function normalizeServerResponse(response) {
+      // Si es null o undefined, retornar array vacío
+      if (!response) return [];
+      
+      // Si ya es un array, retornarlo directamente
+      if (Array.isArray(response)) return response;
+      
+      // Si es un string, intentar parsearlo como JSON
+      if (typeof response === 'string') {
+        try {
+          const parsed = JSON.parse(response);
+          return normalizeServerResponse(parsed);
+        } catch (e) {
+          console.error('[Usuario] Error al parsear respuesta JSON:', e);
+          return [];
+        }
+      }
+      
+      // Si es un objeto con propiedad 'data'
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      // Si es un objeto con propiedad 'success' y 'data'
+      if (response.success && response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      // Si no coincide con ningún formato esperado, retornar array vacío
+      console.warn('[Usuario] Formato de respuesta no reconocido:', response);
+      return [];
+    }
 
-  function submitEdit(e){
-    e.preventDefault();
-    const payload = {
-      id: state.editingId,
-      nombreCompleto: q('nombreCompletoEditarUsuario').value,
-      userName: q('userNameEditarUsuario').value,
-      password: q('passwordEditarUsuario').value,
-      cde: q('cdeEditarUsuario').value,
-      email: q('emailEditarUsuario').value,
-      rol: q('rolEditarUsuario').value,
-      estado: q('estadoEditarUsuario').value,
-    };
-    showLoadingLocal();
-    google.script.run
-      .withSuccessHandler((r)=>{ hideLoadingLocal(); showMsg('Usuario actualizado', 'success'); cerrarModal('modalEditarUsuario'); loadUsers(); })
-      .withFailureHandler((err)=>{ hideLoadingLocal(); showMsg('Error al editar: ' + (err && err.message ? err.message : err), 'error'); })
-      .editarUsuario(payload);
-  }
+    function loadUsuarios() {
+      showLoading(true);
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          
+          console.log('[Usuario] Respuesta raw de getUsuarios:', response);
+          
+          // Normalizar la respuesta
+          const data = normalizeServerResponse(response);
+          
+          console.log('[Usuario] Datos normalizados:', data);
+          
+          pageState.fullData = data;
+          pageState.currentPage = 1;
+          aplicarFiltrosYOrdenar();
+          
+          // Manejo seguro del DOM
+          const noDataEl = document.getElementById("noDataUsuarios");
+          const containerEl = document.getElementById("tableContainer");
+          
+          if (pageState.fullData.length === 0) {
+            if (noDataEl) noDataEl.style.display = "block";
+            if (containerEl) containerEl.style.display = "none";
+          } else {
+            if (noDataEl) noDataEl.style.display = "none";
+            if (containerEl) containerEl.style.display = "block";
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          console.error('[Usuario] Error al cargar usuarios:', error);
+          mostrarMensaje('Error al cargar usuarios: ' + (error.message || error), 'error');
+        })
+        .getUsuarios();
+    }
 
-  // CRUD: eliminar
-  function deleteUser(id){
-    if(!confirm('¿Seguro que desea desactivar este usuario?')) return;
-    showLoadingLocal();
-    google.script.run
-      .withSuccessHandler((r)=>{ hideLoadingLocal(); showMsg('Usuario desactivado', 'success'); loadUsers(); })
-      .withFailureHandler((err)=>{ hideLoadingLocal(); showMsg('Error al eliminar: ' + (err && err.message ? err.message : err), 'error'); })
-      .eliminarUsuario(id);
-  }
+    // ============================================
+    // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN ---
+    // ============================================
+    function renderPaginatedTable() {
+      renderPaginatedTableGeneric({
+        data: pageState.datosMostrados,
+        currentPage: pageState.currentPage,
+        itemsPerPage: pageState.itemsPerPage,
+        tbodyId: "tablaUsuarioBody",
+        paginationContainerId: "usuarioPagination",
+        noDataMessage: "No hay usuarios que coincidan con los filtros.",
+        onRowCreated: (row, item) => {
+          row.dataset.id = item["Id"] || item["ID"] || "";
+          row.dataset.nombre = item["Nombre Completo"] || item["NombreCompleto"] || "";
+          row.dataset.usuario = item["Usuario"] || item["userName"] || "";
+        },
+        renderRow: (item) => {
+          const id = item["Id"] || item["ID"] || "";
+          const nombre = item["Nombre Completo"] || item["NombreCompleto"] || "";
+          const usuario = item["Usuario"] || item["userName"] || "";
+          const cde = item["CDE"] || "";
+          const email = item["Email"] || "";
+          const estado = item["Estado Usuario"] || item["Estado_User"] || item["Estado"] || "";
+          const rol = item["Rol"] || "";
+          const fecha = item["Fecha Registro"] || item["Fecha de Registro"] || item["FechaRegistro"] || "";
 
-  // Delegación de eventos en la tabla
-  function attachTableDelegation(){
-    const tbody = q('tablaUsuarioBody');
-    if(!tbody) return;
-    tbody.addEventListener('click', function(e){
-      const btnEdit = e.target.closest('.btn-edit');
-      const btnDel = e.target.closest('.btn-delete');
-      if(btnEdit){ openEditModal(btnEdit.dataset.id); }
-      if(btnDel){ deleteUser(btnDel.dataset.id); }
+          return `
+            <td>${escapeHtml(id)}</td>
+            <td>${escapeHtml(nombre)}</td>
+            <td>${escapeHtml(usuario)}</td>
+            <td>******</td>
+            <td>${escapeHtml(cde)}</td>
+            <td>${escapeHtml(email)}</td>
+            <td>${escapeHtml(estado)}</td>
+            <td>${escapeHtml(rol)}</td>
+            <td>${formatDate(fecha)}</td>
+            <td>
+              <button class="btn-modificar" title="Editar usuario">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="btn-eliminar" title="Eliminar usuario">
+                <ion-icon name="trash-bin-outline"></ion-icon>
+              </button>
+            </td>
+          `;
+        },
+        onPageChange: (page) => {
+          pageState.currentPage = page;
+          renderPaginatedTable();
+        },
+      });
+    }
+
+    // Delegación de eventos para los botones de acciones
+    document.getElementById("tablaUsuarioBody")?.addEventListener("click", (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
+
+      const id = row.dataset.id;
+      const nombre = row.dataset.nombre;
+
+      if (e.target.closest(".btn-modificar")) abrirModalEditar(id);
+      if (e.target.closest(".btn-eliminar")) confirmarEliminar(id, nombre);
     });
-  }
 
-  // Inicialización
-  function initHandlers(){
-    console.log('[JS DIAG] initHandlers: Adjuntando eventos...');
-    q('buscarUsuario')?.addEventListener('input', applySearch);
-    q('sortContainer')?.addEventListener('click', (e)=>{ e.stopPropagation(); q('sortOptions').classList.toggle('show'); });
-    q('agregarUsuarioForm')?.addEventListener('submit', submitAdd);
-    q('editarUsuarioForm')?.addEventListener('submit', submitEdit);
-    q('toggleSidebarBtn')?.addEventListener('click', ()=>{ document.body.classList.toggle('sidebar-collapsed'); });
-    attachTableDelegation();
-    console.log('[JS DIAG] initHandlers: Eventos adjuntados.');
-  }
+    // =================================================
+    // --- 3. FILTROS Y ORDENAMIENTO ---
+    // =================================================
+    function aplicarFiltrosYOrdenarUsuarios() {
+      const buscarTerm = (document.getElementById("buscarUsuario")?.value || "").toLowerCase().trim();
+      
+      let resultados = [...pageState.fullData];
+      
+      // Aplicar filtro de búsqueda si existe
+      if (buscarTerm) {
+        resultados = resultados.filter(item => {
+          const nombre = (item["Nombre Completo"] || item["NombreCompleto"] || "").toString().toLowerCase();
+          const usuario = (item["Usuario"] || item["userName"] || "").toString().toLowerCase();
+          const email = (item["Email"] || "").toString().toLowerCase();
+          
+          return nombre.includes(buscarTerm) || 
+                 usuario.includes(buscarTerm) || 
+                 email.includes(buscarTerm);
+        });
+      }
+      
+      // Aplicar ordenamiento por fecha
+      resultados.sort((a, b) => {
+        const fechaA = new Date(a["Fecha Registro"] || a["Fecha de Registro"] || a["FechaRegistro"] || 0);
+        const fechaB = new Date(b["Fecha Registro"] || b["Fecha de Registro"] || b["FechaRegistro"] || 0);
+        return pageState.fechaOrdenAscendente ? fechaA - fechaB : fechaB - fechaA;
+      });
+      
+      pageState.datosMostrados = resultados;
+      pageState.currentPage = 1;
+      renderPaginatedTable();
+    }
+    
+    const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarUsuarios;
 
-  function initializeApp() {
-    console.log('[JS DIAG] initializeApp: El DOM está listo. Iniciando la aplicación de usuario.');
-    initHandlers();
-    console.log('[JS DIAG] initializeApp: Llamando a loadUsers().');
-    loadUsers();
-    console.log('[JS DIAG] initializeApp: La llamada a loadUsers() ha sido despachada.');
-  }
+    function aplicarBusquedaUsuarios() {
+      aplicarFiltrosYOrdenar();
+    }
 
-  // Robusto DOMContentLoaded handler
-  if (document.readyState === 'loading') {
-    // El DOM todavía está cargando, esperar al evento
-    document.addEventListener('DOMContentLoaded', initializeApp);
-    console.log('[JS DIAG] Registrado listener para DOMContentLoaded.');
-  } else {
-    // El DOM ya está listo, ejecutar inmediatamente
-    console.log('[JS DIAG] El DOM ya está listo (readyState: ' + document.readyState + '). Ejecutando initializeApp() directamente.');
-    initializeApp();
-  }
+    // ===================================
+    // --- 4. MANEJO DE MODALES ---
+    // ===================================
+    function abrirModalAgregarUsuario() {
+      abrirModal("modalAgregarUsuario");
+      document.getElementById("agregarUsuarioForm").reset();
+    }
 
-  console.log('[JS DIAG] Script de Usuario: Fin del bloque de script alcanzado.');
+    function cerrarModalAgregarUsuario() {
+      cerrarModal("modalAgregarUsuario");
+    }
 
-})();
+    function abrirModalEditar(id) {
+      pageState.usuarioAEditarId = id;
+      const usuario = pageState.fullData.find(
+        (item) => String(item.Id || item.ID) === String(id)
+      );
+
+      if (usuario) {
+        abrirModal("modalEditarUsuario");
+        document.getElementById("usuarioIdEditarUsuario").textContent = id;
+        document.getElementById("nombreCompletoEditarUsuario").value = 
+          usuario["Nombre Completo"] || usuario["NombreCompleto"] || "";
+        document.getElementById("userNameEditarUsuario").value = 
+          usuario["Usuario"] || usuario["userName"] || "";
+        document.getElementById("passwordEditarUsuario").value = "";
+        document.getElementById("cdeEditarUsuario").value = usuario["CDE"] || "";
+        document.getElementById("emailEditarUsuario").value = usuario["Email"] || "";
+        document.getElementById("rolEditarUsuario").value = usuario["Rol"] || "Usuario";
+        document.getElementById("estadoEditarUsuario").value = 
+          usuario["Estado Usuario"] || usuario["Estado_User"] || usuario["Estado"] || "Activo";
+      } else {
+        mostrarMensaje("Error: No se pudo encontrar el usuario para editar.", "error");
+      }
+    }
+
+    function cerrarModalEditarUsuario() {
+      cerrarModal("modalEditarUsuario");
+      pageState.usuarioAEditarId = null;
+    }
+
+    // =========================================
+    // --- 5. MANEJADORES DE ENVÍO DE FORMULARIOS ---
+    // =========================================
+    (function () {
+      // ===========================
+      // FORMULARIO: AGREGAR USUARIO
+      // ===========================
+      document
+        .getElementById("agregarUsuarioForm")
+        ?.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const payload = {
+            nombreCompleto: document.getElementById("nombreCompletoAgregarUsuario").value.trim(),
+            userName: document.getElementById("userNameAgregarUsuario").value.trim(),
+            password: document.getElementById("passwordAgregarUsuario").value,
+            cde: document.getElementById("cdeAgregarUsuario").value.trim(),
+            email: document.getElementById("emailAgregarUsuario").value.trim(),
+            rol: document.getElementById("rolAgregarUsuario").value,
+            estado: document.getElementById("estadoAgregarUsuario").value,
+          };
+
+          if (!payload.nombreCompleto || !payload.userName || !payload.password || 
+              !payload.cde || !payload.email) {
+            mostrarMensaje("Complete todos los campos obligatorios.", "error");
+            return;
+          }
+
+          showLoading(true);
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, cerrarModalAgregarUsuario, loadUsuarios)
+            )
+            .withFailureHandler(handleServerError)
+            .agregarUsuario(payload);
+        });
+
+      // ===========================
+      // FORMULARIO: EDITAR USUARIO
+      // ===========================
+      document
+        .getElementById("editarUsuarioForm")
+        ?.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const payload = {
+            id: pageState.usuarioAEditarId,
+            nombreCompleto: document.getElementById("nombreCompletoEditarUsuario").value.trim(),
+            userName: document.getElementById("userNameEditarUsuario").value.trim(),
+            password: document.getElementById("passwordEditarUsuario").value,
+            cde: document.getElementById("cdeEditarUsuario").value.trim(),
+            email: document.getElementById("emailEditarUsuario").value.trim(),
+            rol: document.getElementById("rolEditarUsuario").value,
+            estado: document.getElementById("estadoEditarUsuario").value,
+          };
+
+          if (!payload.nombreCompleto || !payload.userName || !payload.cde || !payload.email) {
+            mostrarMensaje("Complete todos los campos obligatorios.", "error");
+            return;
+          }
+
+          showLoading(true);
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, cerrarModalEditarUsuario, loadUsuarios)
+            )
+            .withFailureHandler(handleServerError)
+            .editarUsuario(payload);
+        });
+    })();
+
+    // =================================================
+    // --- 6. FUNCIONES DE UTILIDAD (HELPERS) ---
+    // =================================================
+    function confirmarEliminar(id, nombreUsuario) {
+      if (confirm(`¿Seguro que deseas desactivar al usuario "${nombreUsuario}"?`)) {
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler((res) =>
+            handleServerResponse(res, null, loadUsuarios)
+          )
+          .withFailureHandler(handleServerError)
+          .eliminarUsuario(id);
+      }
+    }
+
+    function cerrarMensajeUsuario() {
+      const mensaje = document.getElementById("mensajeConfirmacionUsuario");
+      if (mensaje) mensaje.style.display = "none";
+    }
+
+    // ===============================================
+    // --- 7. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
+    // ===============================================
+    function inicializarPaginaUsuarios() {
+      // Configurar listeners de búsqueda
+      const setupListener = (id, event, handler) =>
+        document.getElementById(id)?.addEventListener(event, handler);
+      
+      setupListener("buscarUsuario", "input", aplicarBusquedaUsuarios);
+
+      // Cargar datos iniciales
+      loadUsuarios();
+    }
+
+    // Registrar tecla ESC para cerrar modales
+    registrarEscapeCierraModales([
+      cerrarModalAgregarUsuario,
+      cerrarModalEditarUsuario,
+    ]);
+
+    // Exponer funciones al scope global
+    Object.assign(window, {
+      abrirModalAgregarUsuario,
+      cerrarModalAgregarUsuario,
+      abrirModalEditar,
+      cerrarModalEditarUsuario,
+      confirmarEliminar,
+      cerrarMensajeUsuario,
+      aplicarBusquedaUsuarios,
+      buscarPorNombreUsuario: aplicarBusquedaUsuarios, // Alias para compatibilidad
+      ordenarPorFechaUsuario: (e) => ordenarPorFechaGenerico(e, "sortOptions"),
+      ordenarAscendenteUsuario: () =>
+        ordenarAscendenteGenerico(
+          aplicarFiltrosYOrdenar,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+      ordenarDescendenteUsuario: () =>
+        ordenarDescendenteGenerico(
+          aplicarFiltrosYOrdenar,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+    });
+
+    // Inicializar la aplicación
+    inicializarPaginaUsuarios();
+  })();
 </script>

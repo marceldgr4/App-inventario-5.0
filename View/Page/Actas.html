@@ -1,0 +1,204 @@
+<?!= include("View/Css/Css_Generico.html"); ?>
+<?!= include("View/Css/Css_Tablas.html"); ?>
+<?!= include("View/Css/Css_Modal.html"); ?>
+<?!= include("View/Css/Css_Filtros.html"); ?>
+<?!= include("View/Css/Css_Notificaciones.html"); ?>
+
+     <div class="inventory-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1>Gestión de Actas</h1>
+            <p>Administración de actas de entrega con documentos PDF</p>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="abrirModalAgregarActa()">
+                    <ion-icon name="add-circle-outline"></ion-icon> Nueva Acta
+                </button>
+                <button class="btn btn-secondary" onclick="abrirModalNotificacionComentarioActa()">
+                    <ion-icon name="chatbubble-ellipses-outline"></ion-icon> Notificaciones
+                    <div id="notificacionContainerComentariosActa">
+                        <span id="notificacionCantidadComentariosActa" style="display: none;"></span>
+                    </div>
+                </button>
+            </div>
+            <div class="search-group">
+                <input type="text" id="buscarProducto" class="search-input" placeholder="Buscar actas..." oninput="buscarPorNombre()">
+            </div>
+        </div>
+
+        <!-- Ordenamiento -->
+        <div id="sortContainer">
+            <span>Ordenar por Fecha de Entrega:</span>
+            <i class="fas fa-sort sort-menu-icon" onclick="ordenarPorFechaActa(event)"></i>
+            <div id="sortOptions" class="sort-options">
+                <a href="#" onclick="ordenarAscendenteActa(); return false;">Ascendente</a>
+                <a href="#" onclick="ordenarDescendenteActa(); return false;">Descendente</a>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="table-container">
+            <table class="inventory-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha Entrega</th>
+                        <th>Programa</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Nombre Completo</th>
+                        <th>Ciudad</th>
+                        <th>Usuario</th>
+                        <th>Fecha Carga</th>
+                        <th>PDF</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody"></tbody>
+            </table>
+        </div>
+        <div id="pagination" class="pagination"></div>
+
+        <!-- Modal Agregar -->
+        <div id="modalAgregarActa" class="modal-overlay">
+            <div class="modal-content-ac">
+                <div class="modal-header">
+                    <h2 class="modal-title">Subir Nueva Acta</h2>
+                    <span class="close-btn" onclick="cerrarModalAgregarActa()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="formActaAgregar">
+                        <div class="form-group">
+                            <label for="fechaEntregaAgregar">Fecha de Entrega:</label>
+                            <input type="date" id="fechaEntregaAgregar" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productoAgregar">Producto:</label>
+                            <input type="text" id="productoAgregar" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="programaAgregar">Programa:</label>
+                            <input type="text" id="programaAgregar" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cantidadAgregar">Cantidad:</label>
+                            <input type="number" id="cantidadAgregar" class="form-control" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nombreCompletoAgregar">Nombre Completo:</label>
+                            <input type="text" id="nombreCompletoAgregar" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ciudadAgregar">Ciudad:</label>
+                            <input type="text" id="ciudadAgregar" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nombreUsuarioAgregar">Nombre de Usuario:</label>
+                            <input type="text" id="nombreUsuarioAgregar" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pdfArchivoAgregar">Archivo PDF:</label>
+                            <input type="file" id="pdfArchivoAgregar" class="form-control" accept=".pdf" required>
+                        </div>
+                        <div id="output"></div>
+                        <div class="modal-footer">
+                            <button type="submit" id="cargar" class="btn btn-primary">Guardar Acta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Comentario -->
+        <div id="modalComentarioActa" class="modal-overlay">
+            <div class="modal-content-ac">
+                <div class="modal-header">
+                    <h2 class="modal-title">Agregar Comentario</h2>
+                    <span class="close-btn" onclick="cerrarModalComentarioActa()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p><strong>ID:</strong> <span id="comentarioProductoIdActa"></span></p>
+                    <p><strong>Producto:</strong> <span id="comentarioProductoNombreActa"></span></p>
+                    <p><strong>Programa:</strong> <span id="comentarioProductoProgramaActa"></span></p>
+                    <form id="comentarioActaForm">
+                        <div class="form-group">
+                            <label for="comentarioTextoActa">Comentario:</label>
+                            <textarea id="comentarioTextoActa" class="form-control" rows="4" required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Guardar Comentario</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Notificaciones de Comentarios -->
+        <div id="modalNotificacion-ComentarioActa" class="modal-overlay">
+            <div class="modal-content-NotificacionesComentarios">
+                <div class="modal-header">
+                    <h2 class="modal-title">
+                        <ion-icon name="chatbubble-ellipses-outline"></ion-icon> Mis Notificaciones
+                    </h2>
+                    <button class="btn btn-secondary" onclick="cargarNotificacionesDeComentariosActa()" style="margin-right: 10px;">
+                        <ion-icon name="refresh-outline"></ion-icon> Recargar
+                    </button>
+                    <span class="close-btn" onclick="cerrarModalNotificacionComentarioActa()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="tab-buttons-container">
+                        <button class="tab-button active" onclick="mostrarTab('pendientes-comentarios-acta', this)">Pendientes</button>
+                        <button class="tab-button" onclick="mostrarTab('leidas-comentarios-acta', this)">Leídas</button>
+                    </div>
+                    <div id="pendientes-comentarios-acta" class="tab-content active">
+                        <div class="table-container-notificaciones">
+                            <table class="notifications-table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Tu Comentario</th>
+                                        <th>Respuesta</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notificacionesPendientesBodyActa"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="leidas-comentarios-acta" class="tab-content">
+                        <div class="table-container-notificaciones">
+                            <table class="notifications-table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Tu Comentario</th>
+                                        <th>Respuesta</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notificacionesLeidasBodyActa"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay 
+        <div id="loadingOverlayActa">
+            <div class="spinner"></div>
+        </div>-->
+
+        <!-- Mensaje Confirmación -->
+        <div id="mensajeConfirmacion" class="mensaje-confirmacion">
+            <span></span>
+            <button onclick="cerrarMensajeActa()">Cerrar</button>
+        </div>
+    </div>
+ <?!= include("View/Js/Js_Generico.html"); ?>
+    <?!= include("View/Js/Js_Actas.html"); ?>
+  
+  
