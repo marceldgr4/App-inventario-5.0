@@ -89,8 +89,8 @@ function loadContent(pageName) {
     pageName === "Articulos" ||
     pageName === "Categorias" ||
     pageName === "Usuarios" ||
-    pageName === "Proveedores" ||
-    pageName === "Clientes" ||
+    pageName === "Registro" ||
+    pageName === "Perfil" ||
     pageName === "Ventas" ||
     pageName === "Compras" ||
     pageName === "Reportes" ||
