@@ -1,166 +1,161 @@
 <script>
-    /**
-     * Se ejecuta cuando el DOM está completamente cargado.
-     * Inicia la carga de los datos del perfil y adjunta el manejador de eventos al formulario.
-     */
-    document.addEventListener('DOMContentLoaded', function() {
-      loadPerfilData();
-      // Asegurar que el formulario exista antes de adjuntar el evento
-      const perfilForm = document.getElementById('perfilForm');
-      if (perfilForm) {
-          perfilForm.addEventListener('submit', handleFormSubmit);
-      } else {
-          console.error("Error: Elemento 'perfilForm' no encontrado.");
-      }
-    });
+(function(){
+  console.log('[PERFIL DIAG] Script de Perfil iniciado.');
 
-    /**
-     * @summary Muestra la superposición de carga.
-     */
-    function showLoading() {
-      const loadingOverlay = document.getElementById('loadingOverlayPerfil');
-      if (loadingOverlay) {
-        // Asumiendo que 'loadingOverlayPerfil' existe en tu HTML principal
-        loadingOverlay.style.display = 'flex';
-      }
+  // Helpers: usar las funciones genéricas si están disponibles
+  function showLoadingLocal(){ if(typeof showLoading === 'function') showLoading(true); else { const el = document.getElementById('loadingOverlay'); if(el) el.style.display = 'flex'; }}
+  function hideLoadingLocal(){ if(typeof hideLoading === 'function') hideLoading(); else { const el = document.getElementById('loadingOverlay'); if(el) el.style.display = 'none'; }}
+  function showMessageLocal(msg, type){ if(typeof mostrarMensaje === 'function') mostrarMensaje(msg, type); else { const el = document.getElementById('perfilMessage'); if(el){ el.textContent = msg; el.className = 'feedback-message ' + (type||'info'); el.style.display = 'block'; setTimeout(()=> el.style.display='none',5000);} else alert(msg); }}
+
+  // Inicialización de handlers
+  function attachFormHandler(){
+    const perfilForm = document.getElementById('perfilForm');
+    if (perfilForm) {
+      perfilForm.removeEventListener('submit', handleFormSubmit);
+      perfilForm.addEventListener('submit', handleFormSubmit);
+      console.log('[PERFIL DIAG] submit handler adjuntado.');
+    } else {
+      console.warn("[PERFIL DIAG] Elemento 'perfilForm' no encontrado al adjuntar handler.");
+    }
+  }
+
+  // Normalizar respuesta del servidor (acepta string o objeto)
+  function normalizeResponse(resp){
+    if(!resp) return null;
+    if(typeof resp === 'string'){
+      try{ return JSON.parse(resp); } catch(e){ console.error('[PERFIL DIAG] fallo al parsear string respuesta:', e); return null; }
+    }
+    return resp;
+  }
+
+  // Carga de datos del perfil con timeout de seguridad
+  function loadPerfilData(){
+    showLoadingLocal();
+    console.log('[PERFIL DIAG] solicitando getMiPerfilData()...');
+
+    const timeoutId = setTimeout(()=>{
+      console.error('[PERFIL DIAG] Timeout: getMiPerfilData tardó demasiado. Ocultando loading.');
+      hideLoadingLocal();
+      showMessageLocal('El servidor no respondió a tiempo al cargar el perfil. Revisa logs.', 'error');
+    }, 15000);
+
+    if(typeof google === 'undefined' || !google.script || !google.script.run){
+      console.error('[PERFIL DIAG] google.script.run no disponible');
+      clearTimeout(timeoutId);
+      hideLoadingLocal();
+      showMessageLocal('google.script.run no está disponible. Abre la WebApp correctamente.', 'error');
+      return;
     }
 
-    /**
-     * @summary Oculta la superposición de carga.
-     */
-    function hideLoading() {
-      const loadingOverlay = document.getElementById('loadingOverlayPerfil');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-      }
-    }
-
-    /**
-     * @summary Muestra un mensaje temporal de feedback al usuario.
-     * @param {string} message - El texto del mensaje a mostrar.
-     * @param {string} type - El tipo de mensaje ('success' o 'error').
-     */
-    function showMessage(message, type) {
-      const messageDiv = document.getElementById('perfilMessage');
-      if (messageDiv) {
-        messageDiv.textContent = message;
-        messageDiv.className = 'feedback-message ' + type;
-        messageDiv.style.display = 'block';
-
-        setTimeout(() => {
-          messageDiv.style.display = 'none';
-        }, 5000);
-      }
-    }
-
-    /**
-     * @summary Carga los datos del perfil del usuario actualmente autenticado desde el servidor.
-     * **POSIBLE CAUSA DEL ERROR RESUELTA:** Manejo robusto del parseo JSON y la asignación de valores.
-     */
-    function loadPerfilData() {
-      showLoading();
-      google.script.run
-        .withSuccessHandler(function(responseString) {
-          hideLoading();
-          try {
-            const response = JSON.parse(responseString);
-            
-            if (response.success && response.data) {
-              // Asignación de valores a los inputs, usando el operador de coalescencia nula (|| '') para seguridad
-              document.getElementById('nombreCompletoPerfil').value = response.data.nombreCompleto || '';
-              document.getElementById('userNamePerfil').value = response.data.userName || '';
-              
-            } else {
-              // Si success es false, o data es nulo/indefinido
-              showMessage(response.message || "Error: El servidor no devolvió datos válidos.", "error");
-            }
-          } catch (e) {
-            // Error al parsear la cadena JSON
-            console.error("Error de parseo JSON en loadPerfilData:", e, "Respuesta recibida:", responseString);
-            showMessage("Error de comunicación con el servidor. Intente más tarde.", "error");
-          }
-        })
-        .withFailureHandler(function(error) {
-          hideLoading();
-          // Error en la llamada google.script.run
-          console.error("Fallo de RPC en loadPerfilData:", error);
-          showMessage("Error del servidor (RPC): " + error.message, "error");
-        })
-        // Llamada a la función del backend
-        .getMiPerfilData(); 
-    }
-
-    /**
-     * @summary Maneja el evento de envío del formulario de actualización de perfil.
-     */
-    function handleFormSubmit(event) {
-      event.preventDefault();
-      showLoading();
-
-      const nombreCompletoInput = document.getElementById('nombreCompletoPerfil');
-      const userNameInput = document.getElementById('userNamePerfil');
-      const newPasswordInput = document.getElementById('newPasswordPerfil');
-      const confirmNewPasswordInput = document.getElementById('confirmNewPasswordPerfil');
-
-      // Comprobación de existencia de elementos antes de acceder a .value
-      if (!nombreCompletoInput || !userNameInput || !newPasswordInput || !confirmNewPasswordInput) {
-           showMessage("Error interno: Faltan elementos del formulario.", "error");
-           hideLoading();
-           return;
-      }
-
-      const nombreCompleto = nombreCompletoInput.value.trim();
-      const userName = userNameInput.value.trim();
-      const newPassword = newPasswordInput.value;
-      const confirmNewPassword = confirmNewPasswordInput.value;
-
-      if (!nombreCompleto || !userName) {
-        showMessage("Nombre completo y nombre de usuario son obligatorios.", "error");
-        hideLoading();
-        return;
-      }
-
-      if (newPassword !== "") {
-        if (newPassword !== confirmNewPassword) {
-          showMessage("Las nuevas contraseñas no coinciden.", "error");
-          hideLoading();
+    google.script.run
+      .withSuccessHandler(function(response){
+        clearTimeout(timeoutId);
+        console.log('[PERFIL DIAG] getMiPerfilData success', response);
+        const res = normalizeResponse(response);
+        hideLoadingLocal();
+        if(!res){
+          showMessageLocal('Respuesta inválida del servidor.', 'error');
           return;
         }
-        if (!/^[a-zA-Z]/.test(newPassword)) {
-          showMessage("La nueva contraseña debe comenzar con una letra, tal como requiere el servidor.", "error");
-          hideLoading();
-          return;
+        if(res.success && res.data){
+          // Asignar valores de forma segura
+          const nombreEl = document.getElementById('nombreCompletoPerfil');
+          const userEl = document.getElementById('userNamePerfil');
+          if(nombreEl) nombreEl.value = res.data.nombreCompleto || '';
+          if(userEl) userEl.value = res.data.userName || '';
+          console.log('[PERFIL DIAG] Perfil cargado en la UI.');
+        } else {
+          showMessageLocal(res.message || 'No se pudieron obtener los datos del perfil.', 'error');
         }
-      }
+      })
+      .withFailureHandler(function(err){
+        clearTimeout(timeoutId);
+        console.error('[PERFIL DIAG] getMiPerfilData failure', err);
+        hideLoadingLocal();
+        showMessageLocal('Error al cargar perfil: ' + (err && err.message ? err.message : err), 'error');
+      })
+      .getMiPerfilData();
+  }
 
-      const formData = {
-        nombreCompleto: nombreCompleto,
-        userName: userName,
-        newPassword: newPassword
-      };
+  // Manejo del submit del formulario
+  function handleFormSubmit(evt){
+    evt.preventDefault();
+    showLoadingLocal();
+    console.log('[PERFIL DIAG] Enviando actualizarMiPerfil...');
 
-      google.script.run
-        .withSuccessHandler(function(responseString) {
-          hideLoading();
-           try {
-            const response = JSON.parse(responseString);
-            if (response.success) {
-              showMessage(response.message, "success");
-              loadPerfilData();
-              // Limpiar campos de contraseña después de un éxito
-              newPasswordInput.value = "";
-              confirmNewPasswordInput.value = "";
-            } else {
-              showMessage(response.message || "Error al actualizar el perfil.", "error");
-            }
-          } catch (e) {
-            showMessage("Error al procesar respuesta del servidor para la actualización: " + e.message, "error");
-          }
-        })
-        .withFailureHandler(function(error) {
-          hideLoading();
-          showMessage("Error del servidor al actualizar: " + error.message, "error");
-        })
-        .actualizarMiPerfil(formData);
+    const nombreEl = document.getElementById('nombreCompletoPerfil');
+    const userEl = document.getElementById('userNamePerfil');
+    const newPwdEl = document.getElementById('newPasswordPerfil');
+    const confirmPwdEl = document.getElementById('confirmNewPasswordPerfil');
+
+    if(!nombreEl || !userEl){
+      showMessageLocal('Formulario incompleto.', 'error');
+      hideLoadingLocal();
+      return;
     }
+
+    const payload = {
+      nombreCompleto: nombreEl.value.trim(),
+      userName: userEl.value.trim(),
+      newPassword: newPwdEl ? newPwdEl.value : ''
+    };
+
+    const timeoutId = setTimeout(()=>{
+      console.error('[PERFIL DIAG] Timeout: actualizarMiPerfil tardó demasiado.');
+      hideLoadingLocal();
+      showMessageLocal('El servidor no respondió a tiempo al actualizar el perfil.', 'error');
+    }, 15000);
+
+    if(typeof google === 'undefined' || !google.script || !google.script.run){
+      clearTimeout(timeoutId);
+      hideLoadingLocal();
+      showMessageLocal('google.script.run no disponible.', 'error');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(response){
+        clearTimeout(timeoutId);
+        console.log('[PERFIL DIAG] actualizarMiPerfil success', response);
+        const res = normalizeResponse(response);
+        hideLoadingLocal();
+        if(!res){ showMessageLocal('Respuesta inválida al actualizar.', 'error'); return; }
+        if(res.success){
+          showMessageLocal(res.message || 'Perfil actualizado.', 'success');
+          // limpiar contraseñas
+          if(newPwdEl) newPwdEl.value = '';
+          if(confirmPwdEl) confirmPwdEl.value = '';
+          // recargar datos
+          loadPerfilData();
+        } else {
+          showMessageLocal(res.message || 'Error al actualizar perfil.', 'error');
+        }
+      })
+      .withFailureHandler(function(err){
+        clearTimeout(timeoutId);
+        console.error('[PERFIL DIAG] actualizarMiPerfil failure', err);
+        hideLoadingLocal();
+        showMessageLocal('Error al actualizar perfil: ' + (err && err.message ? err.message : err), 'error');
+      })
+      .actualizarMiPerfil(payload);
+  }
+
+  // Inicialización robusta
+  function initializeApp(){
+    console.log('[PERFIL DIAG] initializeApp: adjuntando handlers y cargando perfil');
+    attachFormHandler();
+    loadPerfilData();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initializeApp);
+    console.log('[PERFIL DIAG] Registrado listener DOMContentLoaded.');
+  } else {
+    console.log('[PERFIL DIAG] document.readyState:', document.readyState, '- ejecutando initializeApp inmediatamente.');
+    initializeApp();
+  }
+
+  console.log('[PERFIL DIAG] Script de Perfil: fin del bloque.');
+
+})();
 </script>

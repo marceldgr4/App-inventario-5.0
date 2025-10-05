@@ -1,11 +1,7 @@
 <?!= include("View/Css/Css_Generico.html"); ?>
-<?!= include("View/Css/Css_Articulos.html"); ?>
 <?!= include("View/Css/Css_Tablas.html"); ?>
-<?!= include("View/Css/Css_Filtros.html"); ?>
-<?!= include("View/Css/Css_Comida.html"); ?>
-<?!= include("View/Css/Css_Notifications.html"); ?>
 <?!= include("View/Css/Css_Modal.html"); ?>
-<?!= include("View/Css/Css_Comentarios.html"); ?>
+
 
 <div class="content">
   <button id="toggleSidebarBtn">
@@ -17,9 +13,6 @@
     <ion-icon name="person-add-outline"></ion-icon> + Agregar Usuario
   </button>
 
-  <!-- ============================
-       Barra búsqueda y orden
-  ============================= -->
   <div class="search-sort-container">
     <input type="text" id="buscarUsuario" onkeyup="buscarPorNombreUsuario()" placeholder="Buscar Usuario..." class="search-input">
     
@@ -32,14 +25,11 @@
     </div>
   </div>
 
-  <!-- ============================
-       Modal Agregar Usuario
-  ============================= -->
-  <div id="modalAgregarUsuario" class="modal">
-    <div class="modal-content">
+  <div id="modalAgregarUsuario" class="modal-overlay">
+    <div class="modal-content-ac">
       <div class="modal-header">
         <h3>Agregar Usuario</h3>
-        <span class="close" onclick="cerrarModalAgregarUsuario()">&times;</span>
+        <span class="close-btn" onclick="cerrarModal('modalAgregarUsuario')">&times;</span>
       </div>
       <div id="agregarUsuarioMessage" class="modal-message"></div> 
       <form id="agregarUsuarioForm">
@@ -78,14 +68,11 @@
     </div>
   </div>
 
-  <!-- ============================
-       Modal Editar Usuario
-  ============================= -->
-  <div id="modalEditarUsuario" class="modal">
-    <div class="modal-content">
+  <div id="modalEditarUsuario" class="modal-overlay">
+    <div class="modal-content-ac">
       <div class="modal-header">
         <h3>Editar Usuario (ID: <span id="usuarioIdEditarUsuario"></span>)</h3>
-        <span class="close" onclick="cerrarModalEditarUsuario()">&times;</span>
+        <span class="close-btn" onclick="cerrarModal('modalEditarUsuario')">&times;</span>
       </div>
       <form id="editarUsuarioForm">
 
@@ -125,10 +112,7 @@
 
   
 
-  <!-- ============================
-       Tabla
-  ============================= -->
-  <table id="UsuarioTable" class="data-table">
+  <table id="UsuarioTable" class="inventory-table">
     <thead>
       <tr>
         <th>ID</th>
@@ -146,10 +130,7 @@
     <tbody id="tablaUsuarioBody"></tbody>
   </table>
 
-  <!-- ============================
-       Paginación + Mensajes
-  ============================= -->
-  <div id="usuarioPagination" class="pagination-controls"></div>
+  <div id="usuarioPagination" class="pagination-controls pagination"></div>
 
   <div id="mensajeConfirmacionUsuario" class="mensaje-confirmacion" style="display:none;">
     <span></span>
@@ -158,5 +139,3 @@
 </div>
 <?!= include('View/Js/Js_Generico.html'); ?>
 <?!= include('View/Js/Js_Usuario.html'); ?>
-
-

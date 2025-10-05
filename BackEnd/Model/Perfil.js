@@ -31,22 +31,32 @@ function getMiPerfilData() {
     }
 
     for (let i = 1; i < data.length; i++) {
-      // Comparación por Email del usuario activo
+      // Comparacin por Email del usuario activo
       if (data[i][emailColIdx] === activeUserSession.email) {
-        return JSON.stringify({
+        return {
           success: true,
           data: {
-            // Asegúrate de que las claves 'nombreCompleto' y 'userName' coincidan con el frontend
+            // Asegarte de que las claves 'nombreCompleto' y 'userName' coincidan con el frontend
             nombreCompleto: data[i][nombreColIdx],
             userName: data[i][userNameColIdx],
           }
-        });
+        };
       }
     }
-    return JSON.stringify({ success: false, message: "Usuario no encontrado en la hoja." });
+    return { success: false, message: "Usuario no encontrado en la hoja." };
   } catch (e) {
     Logger.log('Error en getMiPerfilData: ' + e.toString());
-    return JSON.stringify({ success: false, message: 'Error al obtener datos del perfil: ' + e.message });
+    return { success: false, message: 'Error al obtener datos del perfil: ' + e.message };
+  }
+}
+
+/** Compatibilidad: wrapper que retorna JSON string (si alguna parte del proyecto lo espera) */
+function getMiPerfilDataJSON(){
+  try{
+    return JSON.stringify(getMiPerfilData());
+  }catch(e){
+    Logger.log('ERROR getMiPerfilDataJSON: ' + e.stack);
+    return JSON.stringify({ success: false, message: e.message });
   }
 }
 
@@ -142,10 +152,21 @@ function actualizarMiPerfil(data) {
       null
     );
 
-    return JSON.stringify({ success: true, message: "Perfil actualizado exitosamente." });
+  return { success: true, message: "Perfil actualizado exitosamente." };
 
   } catch (e) {
     Logger.log('Error en actualizarMiPerfil: ' + e.toString() + " Stack: " + e.stack);
-    return JSON.stringify({ success: false, message: 'Error al actualizar el perfil: ' + e.message });
+    Logger.log('Error en actualizarMiPerfil: ' + e.toString() + " Stack: " + e.stack);
+    return { success: false, message: 'Error al actualizar el perfil: ' + e.message };
+  }
+}
+
+/** Compatibilidad: wrapper que retorna JSON string (si alguna parte del proyecto lo espera) */
+function actualizarMiPerfilJSON(data){
+  try{
+    return JSON.stringify(actualizarMiPerfil(data));
+  }catch(e){
+    Logger.log('ERROR actualizarMiPerfilJSON: ' + e.stack);
+    return JSON.stringify({ success: false, message: e.message });
   }
 }
