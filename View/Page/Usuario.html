@@ -1,114 +1,162 @@
+<?!= include("View/Css/Css_Generico.html"); ?>
+<?!= include("View/Css/Css_Articulos.html"); ?>
+<?!= include("View/Css/Css_Tablas.html"); ?>
+<?!= include("View/Css/Css_Filtros.html"); ?>
+<?!= include("View/Css/Css_Comida.html"); ?>
+<?!= include("View/Css/Css_Notifications.html"); ?>
+<?!= include("View/Css/Css_Modal.html"); ?>
+<?!= include("View/Css/Css_Comentarios.html"); ?>
+
 <div class="content">
-    <button id="toggleSidebarBtn">
-      <ion-icon name="menu-outline"></ion-icon>
-    </button>
-  <h2>Usuario</h2>
-  <button class="btn-agregar" onclick="abrirModalAgregarUsuario()">+ Agregar Usuario</button>
-  <div>
-    <input type="text" id="buscarUsuario" onkeyup="buscarPorNombreUsuario()" placeholder="Buscar Usuario...">
-  </div>
-  <div id="sortContainer">
-    <img class="calendario" src="https://i.ibb.co/4gWJ1s4c/Intouch-Icons-Calendar.png" alt="Intouch-Icons-Calendar" border="0">
-    <i class="fas fa-sort sort-menu-icon" onclick="ordenarPorFechaUsuario(event)"></i>
-    <div id="sortOptions" class="sort-options">
-      <a href="#" onclick="ordenarAscendenteUsuario(); return false;">Ascendente</a>
-      <a href="#" onclick="ordenarDescendenteUsuario(); return false;">Descendente</a>
+  <button id="toggleSidebarBtn">
+    <ion-icon name="menu-outline"></ion-icon>
+  </button>
+
+  <h2>Usuarios</h2>
+  <button class="btn-agregar btn-primary" onclick="abrirModalAgregarUsuario()">
+    <ion-icon name="person-add-outline"></ion-icon> + Agregar Usuario
+  </button>
+
+  <!-- ============================
+       Barra búsqueda y orden
+  ============================= -->
+  <div class="search-sort-container">
+    <input type="text" id="buscarUsuario" onkeyup="buscarPorNombreUsuario()" placeholder="Buscar Usuario..." class="search-input">
+    
+    <div id="sortContainer">
+      <i class="fas fa-sort sort-menu-icon" onclick="ordenarPorFechaUsuario(event)" title="Ordenar por Fecha"></i>
+      <div id="sortOptions" class="sort-options">
+        <a href="#" onclick="ordenarAscendenteUsuario(); return false;">Ascendente (Fecha)</a>
+        <a href="#" onclick="ordenarDescendenteUsuario(); return false;">Descendente (Fecha)</a>
+      </div>
     </div>
   </div>
-    <div id="modalAgregarUsuario" class="modal">
+
+  <!-- ============================
+       Modal Agregar Usuario
+  ============================= -->
+  <div id="modalAgregarUsuario" class="modal">
     <div class="modal-content">
       <div class="modal-header">
         <h3>Agregar Usuario</h3>
         <span class="close" onclick="cerrarModalAgregarUsuario()">&times;</span>
       </div>
+      <div id="agregarUsuarioMessage" class="modal-message"></div> 
       <form id="agregarUsuarioForm">
-        <label for="nombreCompletoAgregarUsuario"> Nombre Completo *:</label>
+        
+        <label for="nombreCompletoAgregarUsuario">Nombre Completo *:</label>
         <input type="text" id="nombreCompletoAgregarUsuario" required>
 
-        <label for ="userNameAgregarUsuario"> Nombre de Usuario * </label>
+        <label for="userNameAgregarUsuario">Nombre de Usuario *:</label>
         <input type="text" id="userNameAgregarUsuario" required>
 
-        <label for="passwordAgregarUsuario"> Contraseña *:</label>
+        <label for="passwordAgregarUsuario">Contraseña *:</label>
         <input type="password" id="passwordAgregarUsuario" required>
 
-        <label for="cdeAgregarUsuario"> CDE :</label>
-        <input type="number" id="cdeAgregarUsuario" >
+        <label for="cdeAgregarUsuario">CDE *:</label>
+        <input type="text" id="cdeAgregarUsuario" required>
 
-        <label for="emailAgregarUsuario"> Email *:</label>
-        <input type="text" id="emailAgregarUsuario" required>
+        <label for="emailAgregarUsuario">Email *:</label>
+        <input type="email" id="emailAgregarUsuario" required>
 
-        <label for="rolAgregarUsuario">Rol:</label>
-        <select id="rolAgregarUsuario" name="rolAgregarUsuario">
+        <label for="estadoAgregarUsuario">Estado Usuario *:</label>
+        <select id="estadoAgregarUsuario" required>
+          <option value="Activo">Activo</option>
+          <option value="Inactivo">Inactivo</option>
+        </select>
+
+        <label for="rolAgregarUsuario">Rol *:</label>
+        <select id="rolAgregarUsuario" required>
+          <option value="Administrador">Administrador</option>
           <option value="Usuario">Usuario</option>
-          <option value="Admin">Admin</option>
-          </select>
-
-<button type="submit" class="submit-btn">Guardar Usuario</button>
+        </select>
+        
+        <button type="submit" class="submit-btn btn-primary">
+          <ion-icon name="person-add-outline"></ion-icon> Agregar Usuario
+        </button>
       </form>
     </div>
   </div>
-    <div id="modalEditarUsuario" class="modal">
+
+  <!-- ============================
+       Modal Editar Usuario
+  ============================= -->
+  <div id="modalEditarUsuario" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Modificar Usuario</h3>
+        <h3>Editar Usuario (ID: <span id="usuarioIdEditarUsuario"></span>)</h3>
         <span class="close" onclick="cerrarModalEditarUsuario()">&times;</span>
       </div>
-      <p>ID de Usuario: <span id="usuarioIdEditarUsuario"></span></p>
       <form id="editarUsuarioForm">
+
         <label for="nombreCompletoEditarUsuario">Nombre Completo *:</label>
         <input type="text" id="nombreCompletoEditarUsuario" required>
 
         <label for="userNameEditarUsuario">Nombre de Usuario *:</label>
         <input type="text" id="userNameEditarUsuario" required>
 
-        <label for="passwordEditarUsuario">Password *:</label>
-        <input type="password" id="passwordEditarUsuario" required>
-
-        <label for="cdeEditarUsuario">CDE:</label>
-        <input type="number" id="cdeEditarUsuario">
+        <label for="passwordEditarUsuario">Contraseña (Dejar vacío para no cambiar):</label>
+        <input type="password" id="passwordEditarUsuario" placeholder="******">
+        
+        <label for="cdeEditarUsuario">CDE *:</label>
+        <input type="text" id="cdeEditarUsuario" required>
 
         <label for="emailEditarUsuario">Email *:</label>
-        <input type="text" id="emailEditarUsuario" required>
+        <input type="email" id="emailEditarUsuario" required>
+
+        <label for="estadoEditarUsuario">Estado Usuario *:</label>
+        <select id="estadoEditarUsuario" required>
+          <option value="Activo">Activo</option>
+          <option value="Inactivo">Inactivo</option>
+        </select>
 
         <label for="rolEditarUsuario">Rol *:</label>
-        <input type="text" id="rolEditarUsuario" required>
+        <select id="rolEditarUsuario" required>
+          <option value="Administrador">Administrador</option>
+          <option value="Usuario">Usuario</option>
+        </select>
 
-          <button type="submit" class="submit-btn">
-          <span><ion-icon name="cloud-upload-outline"></ion-icon></span> Guardar Cambios</button>
+        <button type="submit" class="submit-btn btn-secondary">
+          <ion-icon name="cloud-upload-outline"></ion-icon> Guardar Cambios
+        </button>
       </form>
     </div>
   </div>
 
+  
 
- <div id="loadingOverlayUsuario"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 20px;">
-      Cargando... <i class="fas fa-spinner fa-spin"></i>
-    </div>
-  </div>
-
-  <table id="UsuarioTable">
+  <!-- ============================
+       Tabla
+  ============================= -->
+  <table id="UsuarioTable" class="data-table">
     <thead>
       <tr>
         <th>ID</th>
-        <th>NombreCompleto</th>
-        <th>UserName</th>
-        <th>Password</th>
+        <th>Nombre Completo</th>
+        <th>Usuario</th>
+        <th>Contraseña</th>
         <th>CDE</th>
         <th>Email</th>
         <th>Estado Usuario</th>
         <th>Rol</th>
-        <th>Fecha de Registro</th>
+        <th>Fecha Registro</th>
         <th>Acciones</th>
       </tr>
     </thead>
-    <tbody id="tablaUsuarioBody">
-    </tbody>
+    <tbody id="tablaUsuarioBody"></tbody>
   </table>
-  <div id="usuarioPagination"></div>
+
+  <!-- ============================
+       Paginación + Mensajes
+  ============================= -->
+  <div id="usuarioPagination" class="pagination-controls"></div>
 
   <div id="mensajeConfirmacionUsuario" class="mensaje-confirmacion" style="display:none;">
     <span></span>
-    <button onclick="cerrarMensajeUsuario()">Cerrar</button>
+    <button onclick="cerrarMensajeUsuario()">&times;</button>
   </div>
 </div>
+<?!= include('View/Js/Js_Generico.html'); ?>
+<?!= include('View/Js/Js_Usuario.html'); ?>
+
+

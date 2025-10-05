@@ -1,270 +1,333 @@
-//=======================================
-//--- Funciones Específicas de Usuario ---
-//=======================================
-
 /**
- * @summary Obtiene el objeto de la hoja de 'Usuario'.
- * @returns {GoogleAppsScript.Spreadsheet.Sheet | null} El objeto de la hoja de usuarios.
+ * Usuarios.gs
+ * Backend Apps Script para módulo Usuarios
  */
-function getUsuarioSheet() {
-  // Asume que getSheetByName(HOJA_USUARIO) está en un archivo Comunes.js
-  return getSheetByName(HOJA_USUARIO);
-}
 
-/**
- * @summary Obtiene los datos de todos los usuarios activos de la hoja 'Usuario'.
- * @returns {string} Una cadena JSON con los datos de los usuarios.
- */
+/** Obtener todos los usuarios (objeto JS { success, data }) */
 function getUsuarioData() {
-  // Asume que getInventoryDataForSheet(HOJA_USUARIO) está en un archivo Comunes.js
-  return getInventoryDataForSheet(HOJA_USUARIO);
-}
-
-/**
- * @summary Obtiene la información completa de un usuario específico por su ID.
- * @param {string|number} id El ID del usuario a buscar.
- * @returns {object|null} Un objeto con la información del usuario o null si no se encuentra.
- */
-function getUsuarioInfo(id) {
-  // Asume que getProductInfoGenerico está definido globalmente
-  return getProductInfoGenerico(id, HOJA_USUARIO);
-}
-
-/**
- * @summary Prepara los datos de un nuevo usuario y llama a la función principal para agregarlo.
- * @description Wrapper para agregar un usuario, mapeando los campos del cliente.
- * @param {object} data El objeto con los datos del nuevo usuario desde el cliente.
- * @returns {string} El resultado de la operación de agregado.
- */
-function agregarUsuario(data) {
-  const newData = {
-    nombreCompletoAgregar: data.nombreCompletoAgregar,
-    userNameAgregar: data.userNameAgregar,
-    passwordAgregar: data.passwordAgregar,
-    cdeAgregar: data.cdeAgregar,
-    // Se usa 'emilAgregar' del cliente, y se mapea a 'emailAgregar' para la implementación
-    emailAgregar: data.emilAgregar,
-    rolAgregar: data.rolAgregar,
-  };
-  // Llama a la implementación principal (ver abajo)
-  return _ejecutarAgregarUsuario(newData, HOJA_USUARIO);
-}
-
-/**
- * @summary Prepara los datos de un usuario a actualizar y llama a la función principal.
- * @description Wrapper para actualizar un usuario, mapeando los campos del cliente.
- * @param {object} data El objeto con los datos a actualizar del usuario, incluyendo su ID.
- * @returns {string} El resultado de la operación de actualización.
- */
-function actualizarUsuario(data) {
-  const updateData = {
-    idEditar: data.idEditar,
-    nombreCompletoEditar: data.nombreCompletoEditar,
-    userNameEditar: data.userNameEditar,
-    passwordEditar: data.passwordEditar,
-    emailEditar: data.emilEditar, // Usamos 'emilEditar' por compatibilidad con el cliente
-    rolEditar: data.rolEditar,
-  };
-  // Llama a la implementación principal (ver abajo)
-  return _ejecutarActualizarUsuario(updateData, HOJA_USUARIO);
-}
-
-/**
- * @summary Llama a la función principal para eliminar (desactivar) un usuario.
- * @param {string|number} idToDelete El ID del usuario a desactivar.
- * @returns {string} El resultado de la operación de eliminación.
- */
-function eliminarUsuario(idToDelete) {
-  // Llama a la implementación principal (ver abajo)
-  return _ejecutarEliminarUsuario(idToDelete, HOJA_USUARIO);
-}
-
-//=========================================================
-//--- Implementaciones CRUD (Funciones Internas de Lógica) ---
-//=========================================================
-
-/**
- * @summary Función principal para agregar un nuevo usuario a la hoja.
- * @param {object} data Objeto con los datos del usuario a agregar.
- * @param {string} sheetName El nombre de la hoja de destino.
- * @returns {string} Un mensaje de éxito o un objeto JSON de error.
- * @private
- */
-function _ejecutarAgregarUsuario(data, sheetName) {
-  const sheet = getSheetByName(sheetName);
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-  // Validación de campos obligatorios
-  if (
-    !data.nombreCompletoAgregar ||
-    !data.userNameAgregar ||
-    !data.passwordAgregar ||
-    !data.emailAgregar ||
-    !data.rolAgregar
-  ) {
-    return JSON.stringify({ success: false, message: 'Por favor, complete todos los campos obligatorios.' });
-  }
-
-  const newRowData = [];
-  const lastRow = sheet.getLastRow();
-  let newId = 1;
-
-  // Lógica para generar un nuevo ID autoincremental
-  const idHeaderIndex = headers.indexOf('Id');
-  if (idHeaderIndex !== -1) {
-    if (lastRow >= ((sheet.getFrozenRows() || 0) + 1)) {
-      const ids = sheet.getRange((sheet.getFrozenRows() || 0) + 1, idHeaderIndex + 1, lastRow - (sheet.getFrozenRows() || 0), 1)
-        .getValues().flat().map(id => parseInt(id)).filter(id => !isNaN(id));
-      if (ids.length > 0) newId = Math.max(...ids) + 1;
-    }
-  }
-
-  // Mapeo de datos a las columnas correspondientes
-  newRowData[headers.indexOf('Id')] = newId;
-  newRowData[headers.indexOf('NombreCompleto')] = data.nombreCompletoAgregar;
-  newRowData[headers.indexOf('userName')] = data.userNameAgregar;
-  newRowData[headers.indexOf('password')] = data.passwordAgregar;
-  newRowData[headers.indexOf('CDE')] = data.cdeAgregar || '';
-  newRowData[headers.indexOf('Email')] = data.emailAgregar;
-  newRowData[headers.indexOf('Estado_User')] = 'Activo';
-
-  // Normalización del Rol
-  let rolParaGuardar = data.rolAgregar;
-  if (rolParaGuardar && typeof rolParaGuardar === 'string') {
-    if (rolParaGuardar.toLowerCase() === 'usuario') {
-      rolParaGuardar = ROL_USUARIO;
-    } else if (rolParaGuardar.toLowerCase() === 'admin') {
-      rolParaGuardar = ROL_ADMIN;
-    }
-  }
-  newRowData[headers.indexOf('Rol')] = rolParaGuardar;
-  newRowData[headers.indexOf('Fecha de Registro')] = new Date();
-
-  sheet.appendRow(newRowData);
-
-  // Registrar la acción en el historial (Asume que getActiveUser() y _registrarHistorialModificacion están definidos)
-  const activeUser = getActiveUser();
-  const performingUser = activeUser ? (activeUser.name || activeUser.email) : 'Sistema';
-  _registrarHistorialModificacion(
-    newId,
-    data.userNameAgregar || data.nombreCompletoAgregar,
-    'Gestión de Usuarios',
-    null, null,
-    `Usuario agregado: ${data.userNameAgregar || data.nombreCompletoAgregar}`,
-    performingUser,
-    new Date(), null
-  );
-
-  return `Usuario agregado exitosamente a ${sheetName}.`;
-}
-
-/**
- * @summary Función principal para actualizar los datos de un usuario existente.
- * @param {object} data Objeto con los datos a actualizar, debe contener 'idEditar'.
- * @param {string} sheetName El nombre de la hoja donde está el usuario.
- * @returns {string} Un mensaje de éxito/error o un objeto JSON.
- * @private
- */
-function _ejecutarActualizarUsuario(data, sheetName) {
-  const sheet = getSheetByName(sheetName);
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  // Asume que findRowById(id, sheetName) está en Comunes.js
-  const rowIndex = findRowById(data.idEditar, sheetName);
-
-  if (rowIndex > 0) {
-    let cambiosRealizados = false;
-    let nombreOriginal = sheet.getRange(rowIndex, headers.indexOf('NombreCompleto') + 1).getValue();
-
-    // Función auxiliar para actualizar un campo
-    const updateField = (fieldKey, headerName) => {
-      const headerIndex = headers.indexOf(headerName);
-      if (data[fieldKey] !== undefined && headerIndex > -1) {
-        if (headerName === 'password' && data[fieldKey] === "") return;
-
-        sheet.getRange(rowIndex, headerIndex + 1).setValue(data[fieldKey]);
-        cambiosRealizados = true;
-      }
-    };
-
-    updateField('nombreCompletoEditar', 'NombreCompleto');
-    updateField('userNameEditar', 'userName');
-    updateField('passwordEditar', 'password');
-    updateField('emailEditar', 'Email');
-    updateField('cdeEditar', 'CDE');
-
-    // Actualización y Normalización del Rol
-    if (data.rolEditar !== undefined && headers.indexOf('Rol') > -1) {
-      let rolParaActualizar = data.rolEditar;
-      if (rolParaActualizar && typeof rolParaActualizar === 'string') {
-        if (rolParaActualizar.toLowerCase() === 'usuario') {
-          rolParaActualizar = ROL_USUARIO;
-        } else if (rolParaActualizar.toLowerCase() === 'admin') {
-          rolParaActualizar = ROL_ADMIN;
+  try {
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    const raw = _getInventoryDataForSheet(sheetName); // array de objetos
+    // Normalizar fechas a ISO strings para evitar problemas de serialización
+    const data = (raw || []).map(item => {
+      const out = {};
+      for (const k in item) {
+        const v = item[k];
+        try {
+          if (Object.prototype.toString.call(v) === '[object Date]') {
+            out[k] = Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss'Z'");
+          } else {
+            out[k] = v;
+          }
+        } catch (e) {
+          out[k] = v;
         }
       }
-      sheet.getRange(rowIndex, headers.indexOf('Rol') + 1).setValue(rolParaActualizar);
-      cambiosRealizados = true;
-    }
-
-    if (cambiosRealizados) {
-      const activeUser = getActiveUser();
-      const performingUser = activeUser ? (activeUser.name || activeUser.email) : 'Sistema';
-      _registrarHistorialModificacion(
-        data.idEditar,
-        data.userNameEditar || nombreOriginal,
-        'Gestión de Usuarios',
-        null, null,
-        `Usuario actualizado: ${data.userNameEditar || nombreOriginal}`,
-        performingUser,
-        new Date(), null
-      );
-      return `Usuario modificado exitosamente a ${sheetName}.`;
-    } else {
-      return JSON.stringify({ success: false, message: `No se realizaron cambios para el usuario ID ${data.idEditar}.` });
-    }
-
-  } else {
-    return JSON.stringify({ success: false, message: `No se encontró el Usuario con el ID ${data.idEditar} en ${sheetName}.` });
+      return out;
+    });
+    return { success: true, data };
+  } catch (e) {
+    Logger.log('ERROR getUsuarioData: ' + e.stack);
+    return { success: false, data: [], error: e.message };
   }
 }
 
-/**
- * @summary Realiza una "eliminación lógica" de un usuario cambiando su estado a "Desactivado".
- * @param {string|number} idToDelete El ID del usuario a desactivar.
- * @param {string} sheetName El nombre de la hoja de usuarios.
- * @returns {string} Un mensaje indicando el resultado de la operación.
- * @private
- */
-function _ejecutarEliminarUsuario(idToDelete, sheetName) {
-  const sheet = getSheetByName(sheetName);
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const rowIndex = findRowById(idToDelete, sheetName);
-  const activeUserPerformingAction = Session.getActiveUser().getEmail();
+/** Alias (compatibilidad) */
+/** Alias (compatibilidad) */
+function fetchUsuarioData() {
+  return getUsuarioData();
+}
 
-  if (rowIndex > 0) {
-    // Cambiar estado a 'Desactivado'
-    sheet
-      .getRange(rowIndex, headers.indexOf('Estado_User') + 1)
-      .setValue('Desactivado');
+/** Compatibilidad: devolver JSON string (algunos módulos esperan stringified) */
+function getUsuariosJSON() {
+  try {
+    const resp = getUsuarioData();
+    return JSON.stringify(resp);
+  } catch (e) {
+    Logger.log('ERROR getUsuariosJSON: ' + e.stack);
+    return JSON.stringify({ success: false, data: [], error: e.message });
+  }
+}
 
-    const nombreCompletoDelUsuarioEliminado = sheet
-      .getRange(rowIndex, headers.indexOf('NombreCompleto') + 1)
-      .getValue();
+/** Obtener info de un usuario por ID (retorna objeto JS o null) */
+function getUsuarioInfo(id) {
+  try {
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    return getInfo(id, sheetName); // asume getInfo() existe
+  } catch (e) {
+    Logger.log('ERROR getUsuarioInfo: ' + e.stack);
+    return null;
+  }
+}
 
-    // Registrar en historial
+/** Agregar usuario */
+function agregarUsuario(data) {
+  try {
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    Logger.log('agregarUsuario: llamada recibida. payload=' + JSON.stringify(data));
+    // Compatibilidad: el frontend envía { nombreCompleto, userName, password, cde, email, rol }
+    // mientras que la implementación interna espera campos con sufijo "Agregar".
+    const payload = Object.assign({}, data);
+    if (payload.nombreCompleto && !payload.nombreCompletoAgregar) payload.nombreCompletoAgregar = payload.nombreCompleto;
+    if (payload.userName && !payload.userNameAgregar) payload.userNameAgregar = payload.userName;
+    if (payload.password && !payload.passwordAgregar) payload.passwordAgregar = payload.password;
+    if (payload.cde && !payload.cdeAgregar) payload.cdeAgregar = payload.cde;
+    if (payload.email && !payload.emailAgregar) payload.emailAgregar = payload.email;
+    if (payload.rol && !payload.rolAgregar) payload.rolAgregar = payload.rol;
+
+    const result = _ejecutarAgregarUsuario(payload, sheetName);
+    Logger.log('agregarUsuario: resultado=' + JSON.stringify(result));
+    // Retornar objeto (no string) para facilitar consumo desde google.script.run
+    return result;
+  } catch (e) {
+    Logger.log('ERROR agregarUsuario: ' + e.stack);
+    return { success: false, error: e.message };
+  }
+}
+
+/** Actualizar usuario */
+function actualizarUsuario(data) {
+  try {
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    const result = _ejecutarActualizarUsuario(data, sheetName);
+    return result;
+  } catch (e) {
+    Logger.log('ERROR actualizarUsuario: ' + e.stack);
+    return { success: false, error: e.message };
+  }
+}
+
+/** Eliminar (desactivar) usuario */
+function eliminarUsuario(id) {
+  try {
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    Logger.log('eliminarUsuario: llamada recibida. id=' + id);
+    const result = _ejecutarEliminarUsuario(id, sheetName);
+    Logger.log('eliminarUsuario: resultado=' + JSON.stringify(result));
+    return result;
+  } catch (e) {
+    Logger.log('ERROR eliminarUsuario: ' + e.stack);
+    return { success: false, error: e.message };
+  }
+}
+
+/** Compatibilidad: devolver directamente la lista de usuarios (usado por la UI) */
+function getUsuarios() {
+  try {
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    Logger.log('getUsuarios: llamada recibida. Hoja=' + sheetName);
+    const raw = _getInventoryDataForSheet(sheetName) || [];
+    // Convertir fechas a strings ISO
+    const data = raw.map(item => {
+      const out = {};
+      for (const k in item) {
+        const v = item[k];
+        if (Object.prototype.toString.call(v) === '[object Date]') {
+          out[k] = Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss'Z'");
+        } else {
+          out[k] = v;
+        }
+      }
+      return out;
+    });
+    Logger.log('getUsuarios: registros leidos=' + data.length);
+    return data;
+  } catch (e) {
+    Logger.log('ERROR getUsuarios: ' + e.stack);
+    return [];
+  }
+}
+
+/** Compatibilidad: wrapper para llamadas desde la UI que envían {id, nombreCompleto, userName, ...} */
+function editarUsuario(data) {
+  try {
+    Logger.log('editarUsuario: llamada recibida. payload=' + JSON.stringify(data));
+    // Mapear a la forma interna esperada por _ejecutarActualizarUsuario
+    const payload = {};
+    if (data.id !== undefined) payload.idEditar = data.id;
+    if (data.nombreCompleto !== undefined) payload.nombreCompletoEditar = data.nombreCompleto;
+    if (data.userName !== undefined) payload.userNameEditar = data.userName;
+    if (data.password !== undefined) payload.passwordEditar = data.password;
+    if (data.cde !== undefined) payload.cdeEditar = data.cde;
+    if (data.email !== undefined) payload.emailEditar = data.email;
+    if (data.rol !== undefined) payload.rolEditar = data.rol;
+
+    const sheetName = getHojasConfig().USUARIO.nombre;
+    const result = _ejecutarActualizarUsuario(payload, sheetName);
+    Logger.log('editarUsuario: resultado=' + JSON.stringify(result));
+    return result;
+  } catch (e) {
+    Logger.log('ERROR editarUsuario: ' + e.stack);
+    return { success: false, error: e.message };
+  }
+}
+
+/* ===========================
+   Implementaciones internas
+   =========================== */
+
+/** Agregar Usuario */
+function _ejecutarAgregarUsuario(data, sheetName) {
+  try {
+    const sheet = getSheetByName(sheetName);
+    if (!sheet) return { success: false, message: 'Hoja no encontrada: ' + sheetName };
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    // Validación obligatoria
+    if (!data?.nombreCompletoAgregar || !data?.userNameAgregar || !data?.passwordAgregar || !data?.emailAgregar || !data?.rolAgregar) {
+      return { success: false, message: 'Por favor complete todos los campos obligatorios.' };
+    }
+
+    // Generar nuevo ID
+    const idHeaderIndex = headers.indexOf('Id');
+    let newId = 1;
+    if (idHeaderIndex !== -1 && sheet.getLastRow() >= 2) {
+      const idValues = sheet.getRange(2, idHeaderIndex + 1, sheet.getLastRow() - 1, 1).getValues().flat()
+        .map(v => parseInt(v, 10)).filter(n => !isNaN(n));
+      if (idValues.length) newId = Math.max(...idValues) + 1;
+    }
+
+    // Construcción de fila
+    const newRow = new Array(headers.length).fill('');
+    const setIfHeader = (headerName, value) => {
+      const idx = headers.indexOf(headerName);
+      if (idx > -1) newRow[idx] = value;
+    };
+
+    setIfHeader('Id', newId);
+    setIfHeader('NombreCompleto', data.nombreCompletoAgregar);
+    setIfHeader('userName', data.userNameAgregar);
+    setIfHeader('password', data.passwordAgregar);
+    setIfHeader('CDE', data.cdeAgregar || '');
+    setIfHeader('Email', data.emailAgregar);
+    setIfHeader('Estado_User', 'Activo');
+
+    // Rol
+    let rol = data.rolAgregar;
+    if (rol?.toLowerCase() === 'usuario') rol = typeof ROL_USUARIO !== 'undefined' ? ROL_USUARIO : 'Usuario';
+    if (rol?.toLowerCase().startsWith('admin')) rol = typeof ROL_ADMIN !== 'undefined' ? ROL_ADMIN : 'Administrador';
+    setIfHeader('Rol', rol);
+
+    setIfHeader('Fecha de Registro', new Date());
+
+    sheet.appendRow(newRow);
+
+    // Registrar historial
+    const active = getActiveUser();
+    const performingUser = active?.getEmail ? active.getEmail() : (active?.email || 'Sistema');
     _registrarHistorialModificacion(
-      idToDelete,
-      nombreCompletoDelUsuarioEliminado,
+      newId,
+      data.userNameAgregar,
       'Gestión de Usuarios',
-      null,
-      null,
-      `Usuario Desactivado: ${nombreCompletoDelUsuarioEliminado} (ID: ${idToDelete})`,
-      activeUserPerformingAction,
+      null, null,
+      `Usuario agregado: ${data.userNameAgregar}`,
+      performingUser,
       new Date(),
       null
     );
-    return `Usuario ${nombreCompletoDelUsuarioEliminado} (ID: ${idToDelete}) desactivado exitosamente.`;
-  } else {
-    return `No se encontró el Usuario con el ID ${idToDelete} en ${sheetName}.`;
+
+    return { success: true, message: `Usuario agregado exitosamente.`, id: newId };
+  } catch (e) {
+    Logger.log('_ejecutarAgregarUsuario ERROR: ' + e.stack);
+    return { success: false, message: 'Error al agregar usuario: ' + e.message };
+  }
+}
+
+/** Actualizar Usuario */
+function _ejecutarActualizarUsuario(data, sheetName) {
+  try {
+    if (!data?.idEditar) return { success: false, message: 'Falta idEditar.' };
+
+    const sheet = getSheetByName(sheetName);
+    if (!sheet) return { success: false, message: 'Hoja no encontrada.' };
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const rowIndex = findRowById(data.idEditar, sheetName);
+    if (rowIndex <= 0) return { success: false, message: `No se encontró el Usuario con el ID ${data.idEditar}.` };
+
+    let cambios = false;
+
+    const updateIf = (fieldKey, headerName, allowEmpty) => {
+      const idx = headers.indexOf(headerName);
+      if (idx === -1) return;
+      if (data[fieldKey] === undefined) return;
+      if (!allowEmpty && !data[fieldKey]) return;
+      sheet.getRange(rowIndex, idx + 1).setValue(data[fieldKey]);
+      cambios = true;
+    };
+
+    updateIf('nombreCompletoEditar', 'NombreCompleto', false);
+    updateIf('userNameEditar', 'userName', false);
+    updateIf('passwordEditar', 'password', true);
+    updateIf('emailEditar', 'Email', false);
+    updateIf('cdeEditar', 'CDE', true);
+
+    if (data.rolEditar !== undefined && headers.indexOf('Rol') > -1) {
+      let rol = data.rolEditar;
+      if (rol?.toLowerCase() === 'usuario') rol = typeof ROL_USUARIO !== 'undefined' ? ROL_USUARIO : 'Usuario';
+      if (rol?.toLowerCase().startsWith('admin')) rol = typeof ROL_ADMIN !== 'undefined' ? ROL_ADMIN : 'Administrador';
+      sheet.getRange(rowIndex, headers.indexOf('Rol') + 1).setValue(rol);
+      cambios = true;
+    }
+
+    if (cambios) {
+      const active = getActiveUser();
+      const performingUser = active?.getEmail ? active.getEmail() : (active?.email || 'Sistema');
+      _registrarHistorialModificacion(
+        data.idEditar,
+        data.userNameEditar,
+        'Gestión de Usuarios',
+        null, null,
+        `Usuario actualizado: ${data.userNameEditar}`,
+        performingUser,
+        new Date(),
+        null
+      );
+      return { success: true, message: 'Usuario actualizado exitosamente.' };
+    }
+
+    return { success: false, message: `No se realizaron cambios para el usuario ID ${data.idEditar}.` };
+  } catch (e) {
+    Logger.log('_ejecutarActualizarUsuario ERROR: ' + e.stack);
+    return { success: false, message: 'Error al actualizar usuario: ' + e.message };
+  }
+}
+
+/** Eliminar Usuario (lógico) */
+function _ejecutarEliminarUsuario(idToDelete, sheetName) {
+  try {
+    const sheet = getSheetByName(sheetName);
+    if (!sheet) return { success: false, message: 'Hoja no encontrada.' };
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const rowIndex = findRowById(idToDelete, sheetName);
+    if (rowIndex <= 0) return { success: false, message: `No se encontró el Usuario con el ID ${idToDelete}.` };
+
+    const estadoIdx = headers.indexOf('Estado_User');
+    if (estadoIdx > -1) sheet.getRange(rowIndex, estadoIdx + 1).setValue('Desactivado');
+
+    const nombreCompleto = headers.indexOf('NombreCompleto') > -1
+      ? sheet.getRange(rowIndex, headers.indexOf('NombreCompleto') + 1).getValue()
+      : '';
+
+    const active = getActiveUser();
+    const performingUser = active?.getEmail ? active.getEmail() : (active?.email || 'Sistema');
+
+    _registrarHistorialModificacion(
+      idToDelete,
+      nombreCompleto,
+      'Gestión de Usuarios',
+      null, null,
+      `Usuario Desactivado: ${nombreCompleto} (ID: ${idToDelete})`,
+      performingUser,
+      new Date(),
+      null
+    );
+
+    return { success: true, message: `Usuario ${nombreCompleto} desactivado exitosamente.` };
+  } catch (e) {
+    Logger.log('_ejecutarEliminarUsuario ERROR: ' + e.stack);
+    return { success: false, message: 'Error al desactivar usuario: ' + e.message };
   }
 }

@@ -31,10 +31,12 @@ function getMiPerfilData() {
     }
 
     for (let i = 1; i < data.length; i++) {
+      // Comparación por Email del usuario activo
       if (data[i][emailColIdx] === activeUserSession.email) {
         return JSON.stringify({
           success: true,
           data: {
+            // Asegúrate de que las claves 'nombreCompleto' y 'userName' coincidan con el frontend
             nombreCompleto: data[i][nombreColIdx],
             userName: data[i][userNameColIdx],
           }
@@ -51,7 +53,6 @@ function getMiPerfilData() {
 /**
  * @summary Actualiza el perfil del usuario actualmente logueado.
  * @description Permite cambiar el nombre completo, nombre de usuario y, opcionalmente, la contraseña.
- * Actualiza tanto la hoja de cálculo como la sesión del usuario (PropertiesService) y registra la acción.
  * @param {object} data Objeto que contiene `nombreCompleto`, `userName` y, opcionalmente, `newPassword`.
  * @returns {string} Un objeto JSON con el resultado de la operación.
  */
@@ -78,7 +79,6 @@ function actualizarMiPerfil(data) {
   }
 
   try {
-    // Asume que getSheetByName(HOJA_USUARIO) está en Comunes.js
     const sheet = getSheetByName(HOJA_USUARIO);
     if (!sheet) {
       return JSON.stringify({ success: false, message: `Hoja "${HOJA_USUARIO}" no encontrada.` });
@@ -119,16 +119,14 @@ function actualizarMiPerfil(data) {
 
     // Actualizar PropertiesService si el nombre cambió
     if (activeUserSession.name !== data.nombreCompleto) {
-      // Asume que CLAVE_PROPIEDAD_USUARIO está definido globalmente
-      let userProps = JSON.parse(PropertiesService.getUserProperties().getProperty(CLAVE_PROPIEDAD_USUARIO));
-      if (userProps) {
-        userProps.name = data.nombreCompleto;
-        PropertiesService.getUserProperties().setProperty(CLAVE_PROPIEDAD_USUARIO, JSON.stringify(userProps));
-      }
+      const userPropsString = PropertiesService.getUserProperties().getProperty(CLAVE_PROPIEDAD_USUARIO);
+      let userProps = userPropsString ? JSON.parse(userPropsString) : {};
+
+      userProps.name = data.nombreCompleto;
+      PropertiesService.getUserProperties().setProperty(CLAVE_PROPIEDAD_USUARIO, JSON.stringify(userProps));
     }
 
     // Registrar en Historial
-    // Asume que _registrarHistorialModificacion está definido globalmente
     let actionDetail = "Perfil actualizado.";
     if (passwordChanged) {
       actionDetail = "Perfil actualizado (contraseña cambiada).";

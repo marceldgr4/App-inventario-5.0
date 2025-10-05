@@ -88,7 +88,7 @@ function loadContent(pageName) {
   if (
     pageName === "Articulos" ||
     pageName === "Categorias" ||
-    pageName === "Usuarios" ||
+    pageName === "Usuario" ||
     pageName === "Registro" ||
     pageName === "Perfil" ||
     pageName === "Ventas" ||
