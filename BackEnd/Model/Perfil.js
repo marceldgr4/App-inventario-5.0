@@ -8,42 +8,60 @@
  * @returns {string} Un objeto JSON con el estado de la operación y los datos del perfil.
  */
 function getMiPerfilData() {
-  // Asume que getActiveUser() está definido globalmente
+  // Asume que getActiveUser() est\u00e1 definido globalmente
   const activeUserSession = getActiveUser();
   if (!activeUserSession || !activeUserSession.email) {
-    return JSON.stringify({ success: false, message: "No se pudo identificar al usuario activo." });
+    return { success: false, message: "No se pudo identificar al usuario activo." };
   }
 
   try {
-    // Asume que getSheetByName(HOJA_USUARIO) está en Comunes.js
+    // Obtener hoja
     const sheet = getSheetByName(HOJA_USUARIO);
     if (!sheet) {
-      return JSON.stringify({ success: false, message: `Hoja "${HOJA_USUARIO}" no encontrada.` });
+      return { success: false, message: `Hoja "${HOJA_USUARIO}" no encontrada.` };
     }
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
+
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    if (lastRow < 2) return { success: false, message: 'No hay registros de usuarios.' };
+
+    // Leer cabeceras
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
     const emailColIdx = headers.indexOf('Email');
     const nombreColIdx = headers.indexOf('NombreCompleto');
     const userNameColIdx = headers.indexOf('userName');
 
     if (emailColIdx === -1 || nombreColIdx === -1 || userNameColIdx === -1) {
-      return JSON.stringify({ success: false, message: "Columnas requeridas no encontradas en la hoja de usuarios." });
+      return { success: false, message: "Columnas requeridas no encontradas en la hoja de usuarios." };
     }
 
-    for (let i = 1; i < data.length; i++) {
-      // Comparacin por Email del usuario activo
-      if (data[i][emailColIdx] === activeUserSession.email) {
-        return {
-          success: true,
-          data: {
-            // Asegarte de que las claves 'nombreCompleto' y 'userName' coincidan con el frontend
-            nombreCompleto: data[i][nombreColIdx],
-            userName: data[i][userNameColIdx],
-          }
-        };
-      }
+    // Leer solo la columna de emails (menos datos que leer toda la hoja)
+    const emailVals = sheet.getRange(2, emailColIdx + 1, Math.max(0, lastRow - 1), 1).getValues().flat();
+    // Buscar el índice donde coincida el email
+    let foundIndex = -1;
+    for (let i = 0; i < emailVals.length; i++) {
+      try {
+        if (String(emailVals[i]).trim() === String(activeUserSession.email).trim()) {
+          foundIndex = i;
+          break;
+        }
+      } catch (ignored) {}
     }
-    return { success: false, message: "Usuario no encontrado en la hoja." };
+
+    if (foundIndex === -1) {
+      return { success: false, message: 'Usuario no encontrado en la hoja.' };
+    }
+
+    const rowNumber = 2 + foundIndex; // fila real en la hoja (1-based)
+    const rowValues = sheet.getRange(rowNumber, 1, 1, lastCol).getValues()[0];
+
+    return {
+      success: true,
+      data: {
+        nombreCompleto: rowValues[nombreColIdx] || '',
+        userName: rowValues[userNameColIdx] || ''
+      }
+    };
   } catch (e) {
     Logger.log('Error en getMiPerfilData: ' + e.toString());
     return { success: false, message: 'Error al obtener datos del perfil: ' + e.message };
