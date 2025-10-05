@@ -1,366 +1,218 @@
-  <script>
-    /**
- * Se ejecuta cuando el DOM está completamente cargado. Inicia la obtención de los datos
- * para el dashboard y configura los listeners para los filtros de año en los gráficos de gastos.
- */
-document.addEventListener('DOMContentLoaded', () => {
-  // Carga inicial de todos los datos del dashboard.
-  google.script.run.withSuccessHandler(updateDashboard).obtenerDatosDashboard();
-    // Evento de escucha para el filtro de año del gráfico de gastos de Decoración.
-  const filtroAnoDecoracion = document.getElementById('filtroAnoDecoracion');
-  if (filtroAnoDecoracion) {
-    filtroAnoDecoracion.addEventListener('change', actualizarGraficoGastoDecoracion);
-  }
+<!-- Js_Dashboard.html -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
-     // Evento de escucha para el filtro de año del gráfico de gastos de Comida.
+<script>
+/* =========================
+   Variables globales
+   ========================= */
+let cacheData = null; // aquí guardamos los datos que llegan del servidor
+let graficoGastoComida = null;
+let graficoGastoDecoracion = null;
 
-  const filtroAnoComida = document.getElementById('filtroAnoComida');
-  if (filtroAnoComida) {
-    filtroAnoComida.addEventListener('change', actualizarGraficoGastoComida);
-  }
-});
-
-// ===================================
-// --- VARIABLES GLOBALES PARA GRÁFICOS ---
-// ===================================
-let datosGastoMensualDecoracion = {};
-let graficoGastoDecoracion; // Variable para mantener la instancia del gráfico de decoración
-let datosGastoMensualComida = {};
-let graficoGastoComida; // Variable para mantener la instancia del gráfico de comida
-
-/**
- * @summary Función principal que actualiza toda la interfaz del dashboard con los datos del servidor.
- * @description Recibe un objeto con datos agregados de todas las categorías y lo utiliza para
- * poblar las tarjetas de KPIs y renderizar los distintos gráficos (pastel, barras, líneas).
- * @param {object} data - El objeto de datos agregado devuelto por `obtenerDatosDashboard` desde el servidor.
- */
-function updateDashboard(data) {
-  // Articulos
-  document.getElementById('inv-total-productos').textContent = data.inventario?.totalProductos || 0;
-  document.getElementById('inv-unidades-agotadas').textContent =data.inventario?.unidadesAgotadas || 0;
-  document.getElementById('inv-unidades-disponibles').textContent = data.inventario?.unidadesDisponibles || 0;
-  document.getElementById('inv-total-programas').textContent = Object.keys( data.inventario?.programas || {}).length;
-  document.getElementById('inv-stock-mas-8meses').textContent = data.inventario?.masDeOchoMeses || 0;
-
-  // Inventario Charts (Dona con nombres a la derecha)
-  const programasInventario = Object.keys(data.inventario?.programas || {});
-  const unidadesInventario = Object.values(data.inventario?.programas || {});
-  renderPieChart('inv-pie-chart', programasInventario, unidadesInventario);
-
-  // Inventario Bar Chart (Cantidad de productos por programa)
-  const productosPorPrograma = data.inventario?.productosPorPrograma || [];
-  const conteoPorPrograma = calcularConteoPorPrograma(productosPorPrograma);
-  const programasBarInventario = Object.keys(conteoPorPrograma);
-  const conteos = Object.values(conteoPorPrograma);
-  renderBarChart('inv-bar-chart', programasBarInventario, conteos,'Cantidad de productos'
-  );
- // --- Sección: Comida ---
-  document.getElementById('com-total-productos').textContent = data.comida?.totalProductos || 0;
-  document.getElementById('com-unidades-disponibles').textContent = data.comida?.unidadesDisponibles || 0;
-  document.getElementById('com-unidades-agotadas').textContent = data.comida?.unidadesAgotadas || 0;
-// Ordenar productos por unidades (de mayor a menor)
-  const topProductosComida = (data.comida?.productos || [])
-    .filter(p => p.unidades > 0) // opcional: excluye productos sin stock
-    .sort((a, b) => b.unidades - a.unidades)
-    .slice(0, 7);
-
-  const labelsComida = topProductosComida.map(p => p.producto);
-  const dataComida = topProductosComida.map(p => p.unidades);
-
-  renderBarChart('com-bar-chart', labelsComida, dataComida, 'Top 7 productos con más unidades' );
-  // Almacenar los datos de gasto mensual para comida
-  datosGastoMensualComida = data.comida?.gastoMensual || {};
-  llenarFiltroAno('filtroAnoComida', datosGastoMensualComida);
-  actualizarGraficoGasto('gastoComidaPorMes', datosGastoMensualComida, 'filtroAnoComida', 'Gasto de Comida', graficoGastoComida );
-
-// --- Sección: Decoración ---
-  document.getElementById('dec-total-productos').textContent = data.decoracion?.totalProductos || 0;
-  document.getElementById('dec-unidades-disponibles').textContent = data.decoracion?.unidadesDisponibles || 0;
-  document.getElementById('dec-unidades-agotadas').textContent = data.decoracion?.unidadesAgotadas || 0;
-
-  renderPieChart('dec-pie-chart',
-    Object.keys(data.decoracion?.categorias || {}),
-    Object.values(data.decoracion?.categorias || {})
-  );
- // Almacenar los datos de gasto mensual para decoración
-  datosGastoMensualDecoracion = data.decoracion?.gastoMensual || {};
-  llenarFiltroAno('filtroAnoDecoracion', datosGastoMensualDecoracion);
-  actualizarGraficoGasto('gastoDecoracionPorMes', datosGastoMensualDecoracion,'filtroAnoDecoracion','Gasto de Decoración', graficoGastoDecoracion
-  );
-  // Gráfica de barra
-  const topProductosDec = (data.decoracion?.productos || [])
-    .sort((a, b) => b.unidades - a.unidades)
-    .slice(0, 7);
-
-  const labelsDecoracion = topProductosDec.map(p => p.producto);
-  const dataDecoracion = topProductosDec.map(p => p.unidades);
-
-  renderBarChart( 'dec-bar-chart',  labelsDecoracion,  dataDecoracion,  'Top 7 productos con más unidades' );
-
-   // --- Sección: Papelería ---
-  document.getElementById('pap-total-productos').textContent = data.papeleria?.totalProductos || 0;
-  document.getElementById('pap-unidades-disponibles').textContent = data.papeleria?.unidadesDisponibles || 0;
-  document.getElementById('pap-unidades-agotadas').textContent =  data.papeleria?.unidadesAgotadas || 0;
-
-  renderBarChart('pap-bar-chart',  data.papeleria?.productos ? data.papeleria.productos.slice(0, 7).map(p => p.producto) : [],
-    data.papeleria?.productos ? data.papeleria.productos.slice(0, 7).map(p => p.unidades) : [], 'Top 7 Productos Papelería'
-  );
+/* =========================
+   Helpers
+   ========================= */
+function showLoading() {
+  const o = document.getElementById('loading-overlay');
+  if (o) o.style.display = 'flex';
 }
-/**
- * @summary Calcula el número de productos activos (con unidades > 0) para cada programa.
- * @param {Array<object>} productosPorPrograma - Un arreglo de objetos de productos.
- * @returns {object} Un objeto donde las claves son los nombres de los programas y los valores son la cantidad de productos.
- */
-function calcularConteoPorPrograma(productosPorPrograma) {
-  return productosPorPrograma
-    .filter(p => p.unidades > 0)
-    .reduce((conteo, p) => {
-      conteo[p.programa] = (conteo[p.programa] || 0) + 1;
-      return conteo;
-    }, {});
+function hideLoading() {
+  const o = document.getElementById('loading-overlay');
+  if (o) o.style.display = 'none';
 }
-/**
- * @summary Renderiza un gráfico de pastel en un elemento canvas usando Chart.js.
- * @param {string} canvasId - El ID del elemento `<canvas>`.
- * @param {Array<string>} labels - Arreglo de etiquetas para cada segmento.
- * @param {Array<number>} data - Arreglo de valores numéricos.
- */
-function renderPieChart(canvasId, labels, data) {
+
+function setTextById(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value != null ? value : '';
+}
+
+function formatNumber(n) {
+  try { return Number(n).toLocaleString(); } catch(e){ return String(n); }
+}
+
+function destroyChartIfExists(canvasId) {
+  const chart = Chart.getChart(canvasId);
+  if (chart) chart.destroy();
+}
+
+/* =========================
+   Render de gráficos
+   ========================= */
+function renderPieChart(canvasId, labels, data, title) {
+  destroyChartIfExists(canvasId);
   const ctx = document.getElementById(canvasId)?.getContext('2d');
   if (!ctx) return;
   new Chart(ctx, {
     type: 'pie',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          data: data,
-          backgroundColor: [
-            'rgba(0, 23, 5, 0.7)',            'rgba(77, 227, 102, 0.7)',            'rgba(255, 200, 68, 0.7)',            'rgba(118, 109, 250, 0.7)',
-            'rgba(22, 6, 68, 0.7)',            'rgba(252, 128, 95, 0.7)',            'rgba(243, 51, 63, 0.7)',            'rgba(22, 153, 104, 0.7)',
-            'rgba(43, 82, 67, 0.7)',            'rgba(128, 0, 128, 0.7)', // Anade más colores si es necesario
-          ],
-          borderWidth: 1,
-        },
-      ],
-    },
+    data: { labels, datasets: [{ data, backgroundColor: ['#4a90e2','#e94e77','#2ecc71','#f39c12','#9b59b6'] }] },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'right',
-          labels: {
-            usePointStyle: true,
-            boxWidth: 5,
-            padding: 5,
-            font: { size: 10 },
-          },
-          align: 'center',
-          maxWidth: 200,
-          columnWidth: 100,
-        },
-        tooltip: {
-          callbacks: {
-            label: context => {
-              let label = context.label || '';
-              if (context.parsed !== null) {
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((context.parsed / total) * 100).toFixed(2);
-                label += `: ${context.parsed} (${percentage}%)`;
-              }
-              return label;
-            },
-          },
-        },
-        title: {
-          display: true,
-          text: 'Unidades disponibles por programa',
-        },
-        datalabels: {
-          color: '#fff',
-          formatter: (value, context) => {
-            const chart = context.chart;
-            const dataset = context.dataset;
-            const dataIndex = context.dataIndex;
-            const visibleData = dataset.data.filter((_, i) =>
-              chart.getDataVisibility(i)
-            );
-            const visibleTotal = visibleData.reduce((a, b) => a + b, 0);
-            const percentage = ((value / visibleTotal) * 100).toFixed(1);
-            const isVisible = chart.getDataVisibility(dataIndex);
-            if (!isVisible) return null;
-            const visibleCount = visibleData.length;
-            return parseFloat(percentage) >= 5 || visibleCount <= 5
-              ? `${percentage}%`
-              : '';
-          },
-          font: { size: 10 },
-        },
-      },
-    },
-    plugins: [ChartDataLabels],
+        legend: { position: 'right' },
+        title: { display: !!title, text: title }
+      }
+    }
   });
 }
-/**
- * @summary Renderiza un gráfico de barras en un elemento canvas usando Chart.js.
- * @param {string} canvasId - El ID del elemento `<canvas>`.
- * @param {Array<string>} labels - Arreglo de etiquetas para el eje X.
- * @param {Array<number>} data - Arreglo de valores para la altura de las barras.
- * @param {string} labelText - La etiqueta para el conjunto de datos.
- */
-function renderBarChart(canvasId, labels, data, labelText) {
+
+function renderBarChart(canvasId, labels, data, title) {
+  destroyChartIfExists(canvasId);
   const ctx = document.getElementById(canvasId)?.getContext('2d');
   if (!ctx) return;
   new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: labelText,
-          data: data,
-          backgroundColor: 'rgba(22, 153, 104, 0.7)',
-          borderWidth: 1,
-        },
-      ],
-    },
+    data: { labels, datasets: [{ label: title, data, backgroundColor: '#4a90e2' }] },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true },
-        x: {},
-      },
-      plugins: {
-        legend: { display: true },
-        title: {
-          display: true,
-          text:
-            labelText +
-            (labelText === 'Cantidad de productos' ? ' por Programa' : ''),
-        },
-      },
-    },
-  });
-}
-/**
- * @summary Popula un elemento `<select>` con los años únicos extraídos de los datos de gastos.
- * @param {string} selectId - El ID del elemento `<select>` a poblar.
- * @param {object} datos - El objeto de datos de gasto mensual con claves en formato 'YYYY-MM'.
- */
-function llenarFiltroAno(selectId, datos) {
-  const filtroAno = document.getElementById(selectId);
-  if (!filtroAno || !datos) return;
-  const anosUnicos = [
-    ...new Set(Object.keys(datos).map(anoMes => anoMes.split('-')[0])),
-  ].sort();
-  filtroAno.innerHTML = '<option value="">Todos los anos</option>';
-  anosUnicos.forEach(ano => {
-    const opcion = document.createElement('option');
-    opcion.value = ano;
-    opcion.textContent = ano;
-    filtroAno.appendChild(opcion);
-  });
-}
-/**
- * @summary Actualiza o crea un gráfico de barras de gasto mensual.
- * @description Destruye el gráfico existente si lo hay, filtra los datos por el año seleccionado
- * y renderiza un nuevo gráfico con los gastos de los 12 meses.
- * @param {string} canvasId - El ID del canvas para el gráfico.
- * @param {object} datos - El objeto completo de datos de gasto mensual.
- * @param {string} filtroId - El ID del `<select>` del filtro de año.
- * @param {string} titulo - El título base para el gráfico.
- * @param {Chart} graficoExistente - La instancia del gráfico Chart.js existente para ser destruida.
- */
-function actualizarGraficoGasto(  canvasId,  datos,  filtroId,  titulo,  graficoExistente) {
-  const anoSeleccionado = document.getElementById(filtroId)?.value;
-  const datosFiltrados = filtrarDatosPorAno(datos, anoSeleccionado);
-  const mesesOrdenados = [
-    '1', '2','3','4', '5','6','7','8','9','10','11','12',];
-  const etiquetasMeses = [
-    'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
-  ];
-  const gastosPorMes = [];
-  const etiquetasGrafico = [];
-
-  mesesOrdenados.forEach(mes => {
-    const anoMes = `${anoSeleccionado ? anoSeleccionado + '-' : ''}${
-      mes < 10 ? '0' + mes : mes
-    }`;
-    let gasto = datosFiltrados[anoMes] || 0;
-    if (!anoSeleccionado && datos) {
-      gasto = Object.keys(datos)
-        .filter(ym => ym.endsWith('-' + (mes < 10 ? '0' + mes : mes)))
-        .reduce((sum, ym) => sum + (datos[ym] || 0), 0);
-      if (gasto > 0) {
-        etiquetasGrafico.push(etiquetasMeses[parseInt(mes) - 1]);
-        gastosPorMes.push(gasto);
-      }
-    } else if (anoSeleccionado) {
-      etiquetasGrafico.push(etiquetasMeses[parseInt(mes) - 1]);
-      gastosPorMes.push(gasto);
+      plugins: { title: { display: !!title, text: title } },
+      scales: { y: { beginAtZero: true } }
     }
   });
+}
 
+function renderLineChart(canvasId, labels, data, title) {
+  destroyChartIfExists(canvasId);
   const ctx = document.getElementById(canvasId)?.getContext('2d');
   if (!ctx) return;
-  if (graficoExistente) {
-    graficoExistente.destroy();
-  }
-
-  window[graficoExistente ? 'graficoGastoComida' : 'graficoGastoDecoracion'] =
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: etiquetasGrafico,
-        datasets: [
-          {
-            label:
-              'Gasto por mes' +
-              (anoSeleccionado ? ' - ' + anoSeleccionado : ' (Todos los anos)'),
-            data: gastosPorMes,
-            backgroundColor:
-              canvasId === 'gastoDecoracionPorMes'
-                ? 'rgba(77, 227, 102, 0.7)'
-                : 'rgba(255, 200, 68, 0.7)',
-            borderWidth: 1,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Gasto Total' },
-          },
-          x: { title: { display: true, text: 'Mes' } },
-        },
-        plugins: {
-          legend: { display: true },
-          title: {
-            display: true,
-            text:
-              titulo +
-              ' por Mes' +
-              (anoSeleccionado ? ' - ' + anoSeleccionado : ''),
-            padding: { top: 10, bottom: 30 },
-          },
-        },
-      },
-    });
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: title, data, fill: true, borderColor: '#4a90e2', tension: 0.2 }] },
+    options: {
+      responsive: true,
+      plugins: { title: { display: !!title, text: title } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
 }
-function filtrarDatosPorAno(datos, ano) {
-  if (!ano) return datos;
-  const datosFiltrados = {};
-  for (const anoMes in datos) {
-    if (anoMes.startsWith(ano)) {
-      datosFiltrados[anoMes] = datos[anoMes];
+
+/* =========================
+   Filtros con listener único
+   ========================= */
+function llenarFiltroAno(selectId, datos, callback) {
+  const filtro = document.getElementById(selectId);
+  if (!filtro) return;
+  filtro.innerHTML = '<option value="">Todos los años</option>';
+  const anos = [...new Set(Object.keys(datos || {}).map(k => k.split('-')[0]))].sort();
+  anos.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    filtro.appendChild(opt);
+  });
+  filtro.onchange = callback;
+}
+
+/* =========================
+   Gráfico de gastos con resalte
+   ========================= */
+function actualizarGraficoGasto(canvasId, datos, filtroId, titulo) {
+  const anoSel = document.getElementById(filtroId)?.value || '';
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const valores = [];
+  const etiquetas = [];
+
+  for (let i=1;i<=12;i++) {
+    const mm = i.toString().padStart(2,'0');
+    let val = 0;
+    if (!anoSel) {
+      for (const k of Object.keys(datos||{})) {
+        if (k.endsWith('-'+mm)) val += datos[k];
+      }
+    } else {
+      val = datos[`${anoSel}-${mm}`] || 0;
+    }
+    if (anoSel || val > 0) {
+      etiquetas.push(meses[i-1]);
+      valores.push(val);
     }
   }
-  return datosFiltrados;
+
+  // resaltar mayor
+  const maxVal = Math.max(...valores,0);
+  const bgColors = valores.map(v => v===maxVal ? '#e94e77' : '#4a90e2');
+
+  destroyChartIfExists(canvasId);
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if (!ctx) return;
+  if (canvasId==='gastoComidaPorMes') { if (graficoGastoComida) graficoGastoComida.destroy(); }
+  if (canvasId==='gastoDecoracionPorMes') { if (graficoGastoDecoracion) graficoGastoDecoracion.destroy(); }
+
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: etiquetas, datasets: [{ label: titulo, data: valores, backgroundColor: bgColors }] },
+    options: {
+      responsive: true,
+      plugins: { title: { display: true, text: titulo } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  if (canvasId==='gastoComidaPorMes') graficoGastoComida = chart;
+  if (canvasId==='gastoDecoracionPorMes') graficoGastoDecoracion = chart;
 }
 
+/* =========================
+   Función principal
+   ========================= */
+function updateDashboard(data) {
+  hideLoading();
+  if (!data) return;
+  cacheData = data; // 🔑 guardar datos en memoria
+
+  // KPIs globales
+  setTextById('total-gastos', formatNumber(data.resumen?.totalGastos || 0));
+  setTextById('categoria-mayor-gasto', data.resumen?.categoriaMayorGasto?.categoria || 'N/A');
+
+  // tendencia global
+  const tendencia = data.resumen?.tendenciaGlobal || {};
+  const keys = Object.keys(tendencia).sort();
+  renderLineChart('tendencia-global-chart', keys, keys.map(k=>tendencia[k]), 'Tendencia Global');
+
+  // Inventario
+  const inv = data.inventario || {};
+  setTextById('inv-total-productos', inv.totalProductos || 0);
+  setTextById('inv-unidades-disponibles', inv.unidadesDisponibles || 0);
+  setTextById('inv-unidades-agotadas', inv.unidadesAgotadas || 0);
+  setTextById('inv-total-programas', Object.keys(inv.programas||{}).length);
+  setTextById('inv-stock-mas-8meses', inv.masDeOchoMeses || 0);
+  renderPieChart('inv-pie-chart', Object.keys(inv.programas||{}), Object.values(inv.programas||{}), 'Inventario');
+
+  // Comida
+  const com = data.comida || {};
+  setTextById('com-total-productos', com.totalProductos || 0);
+  setTextById('com-unidades-disponibles', com.unidadesDisponibles || 0);
+  setTextById('com-unidades-agotadas', com.unidadesAgotadas || 0);
+  llenarFiltroAno('filtroAnoComida', com.gastoMensual, () => {
+    actualizarGraficoGasto('gastoComidaPorMes', com.gastoMensual, 'filtroAnoComida', 'Gasto Comida');
+  });
+  actualizarGraficoGasto('gastoComidaPorMes', com.gastoMensual, 'filtroAnoComida', 'Gasto Comida');
+
+  // Decoración
+  const dec = data.decoracion || {};
+  setTextById('dec-total-productos', dec.totalProductos || 0);
+  setTextById('dec-unidades-disponibles', dec.unidadesDisponibles || 0);
+  setTextById('dec-unidades-agotadas', dec.unidadesAgotadas || 0);
+  llenarFiltroAno('filtroAnoDecoracion', dec.gastoMensual, () => {
+    actualizarGraficoGasto('gastoDecoracionPorMes', dec.gastoMensual, 'filtroAnoDecoracion', 'Gasto Decoración');
+  });
+  actualizarGraficoGasto('gastoDecoracionPorMes', dec.gastoMensual, 'filtroAnoDecoracion', 'Gasto Decoración');
+
+  // Papelería
+  const pap = data.papeleria || {};
+  setTextById('pap-total-productos', pap.totalProductos || 0);
+  setTextById('pap-unidades-disponibles', pap.unidadesDisponibles || 0);
+  setTextById('pap-unidades-agotadas', pap.unidadesAgotadas || 0);
+  renderBarChart('pap-bar-chart', (pap.productos||[]).slice(0,7).map(p=>p.producto), (pap.productos||[]).slice(0,7).map(p=>p.unidades), 'Top Papelería');
+}
+
+/* =========================
+   Inicialización
+   ========================= */
+document.addEventListener('DOMContentLoaded', () => {
+  showLoading();
+  google.script.run.withSuccessHandler(updateDashboard).withFailureHandler(err => {
+    hideLoading();
+    console.error('Error al cargar datos', err);
+  }).obtenerDatosDashboard();
+});
 </script>

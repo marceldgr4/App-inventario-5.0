@@ -1,0 +1,132 @@
+<script>
+    /**
+     * Se ejecuta cuando el DOM está completamente cargado.
+     * Inicia la carga de los datos del perfil y adjunta el manejador de eventos al formulario.
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+      loadPerfilData();
+      document.getElementById('perfilForm').addEventListener('submit', handleFormSubmit);
+    });
+ /**
+     * @summary Muestra la superposición de carga en la página de perfil.
+     */
+    function showLoading() {
+      document.getElementById('loadingOverlayPerfil').style.display = 'block';
+    }
+/**
+     * @summary Oculta la superposición de carga en la página de perfil.
+     */
+    function hideLoading() {
+      document.getElementById('loadingOverlayPerfil').style.display = 'none';
+    }
+  /**
+     * @summary Muestra un mensaje temporal de feedback al usuario.
+     * @param {string} message - El texto del mensaje a mostrar.
+     * @param {string} type - El tipo de mensaje ('success' o 'error'), que controla el estilo.
+     */
+    function showMessage(message, type) {
+      const messageDiv = document.getElementById('perfilMessage');
+      messageDiv.textContent = message;
+      messageDiv.className = type; // 'success' o 'error'
+      messageDiv.style.display = 'block';
+      
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000); // Ocultar mensaje después de 5 segundos
+    }
+ /**
+     * @summary Carga los datos del perfil del usuario actualmente autenticado desde el servidor.
+     * @description Llama a la función `getMiPerfilData` del servidor. En caso de éxito,
+     * rellena los campos del formulario de perfil (nombre completo y nombre de usuario) con los datos recibidos.
+     */
+    function loadPerfilData() {
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(responseString) {
+          hideLoading();
+          try {
+            const response = JSON.parse(responseString);
+            if (response.success && response.data) {
+              document.getElementById('nombreCompletoPerfil').value = response.data.nombreCompleto || '';
+              document.getElementById('userNamePerfil').value = response.data.userName || '';
+            } else {
+              showMessage(response.message || "Error al cargar datos del perfil.", "error");
+            }
+          } catch (e) {
+            showMessage("Error al procesar respuesta del servidor: " + e.message, "error");
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showMessage("Error del servidor: " + error.message, "error");
+        })
+        .getMiPerfilData();
+    }
+/**
+     * @summary Maneja el evento de envío del formulario de actualización de perfil.
+     * @description Valida los campos, incluyendo la confirmación de la nueva contraseña,
+     * y envía los datos a la función `actualizarMiPerfil` del servidor para guardar los cambios.
+     * @param {Event} event - El objeto del evento de envío del formulario.
+     */
+    function handleFormSubmit(event) {
+      event.preventDefault();
+      showLoading();
+
+      const nombreCompleto = document.getElementById('nombreCompletoPerfil').value.trim();
+      const userName = document.getElementById('userNamePerfil').value.trim();
+      const newPassword = document.getElementById('newPasswordPerfil').value; // No trim() para que el usuario pueda decidir si está "vacío"
+      const confirmNewPassword = document.getElementById('confirmNewPasswordPerfil').value;
+
+      if (!nombreCompleto || !userName) {
+        showMessage("Nombre completo y nombre de usuario son obligatorios.", "error");
+        hideLoading();
+        return;
+      }
+
+      if (newPassword !== "") { // Solo validar si se ingresó una nueva contraseña
+        if (newPassword !== confirmNewPassword) {
+          showMessage("Las nuevas contraseñas no coinciden.", "error");
+          hideLoading();
+          return;
+        }
+        if (!/^[a-zA-Z]/.test(newPassword)) {
+          showMessage("La nueva contraseña debe comenzar con una letra.", "error");
+          hideLoading();
+          return;
+        }
+      }
+      
+      const formData = {
+        nombreCompleto: nombreCompleto,
+        userName: userName,
+        newPassword: newPassword // Enviar vacía si no se quiere cambiar, el servidor lo manejará
+      };
+
+      google.script.run
+        .withSuccessHandler(function(responseString) {
+          hideLoading();
+           try {
+            const response = JSON.parse(responseString);
+            if (response.success) {
+              showMessage(response.message, "success");
+              // Opcional: Actualizar el nombre de usuario en la barra de navegación si es dinámico y cambió.
+              // Esto podría requerir una llamada adicional o recargar parte de la página.
+              // Por ahora, recargar los datos del perfil en el formulario es una buena práctica.
+              loadPerfilData(); 
+              // Limpiar campos de contraseña después de un éxito
+              document.getElementById('newPasswordPerfil').value = "";
+              document.getElementById('confirmNewPasswordPerfil').value = "";
+            } else {
+              showMessage(response.message || "Error al actualizar el perfil.", "error");
+            }
+          } catch (e) {
+            showMessage("Error al procesar respuesta del servidor para la actualización: " + e.message, "error");
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showMessage("Error del servidor al actualizar: " + error.message, "error");
+        })
+        .actualizarMiPerfil(formData);
+    }
+  </script>
