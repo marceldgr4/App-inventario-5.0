@@ -78,6 +78,7 @@ function loadContent(pageName) {
   // Por convención, el contenido de 'Home' está en 'Home_content.html'.
   let contentFile;
   if (
+<<<<<<< Updated upstream
    
     pageName === 'Articulos' ||
     pageName === 'Categorias' ||
@@ -93,6 +94,22 @@ function loadContent(pageName) {
     pageName === 'Papeleria'
 
   ){
+=======
+    pageName === "Articulos" ||
+    pageName === "Categorias" ||
+    pageName === "Usuarios" ||
+    pageName === "Dashboard" ||
+    pageName === "Clientes" ||
+    pageName === "Ventas" ||
+    pageName === "Compras" ||
+    pageName === "Reportes" ||
+    pageName === "Historial" ||
+    pageName === "Comida" ||
+    pageName === "Decoracion" ||
+    pageName === "Papeleria" ||
+    pageName === "Comentario"
+  ) {
+>>>>>>> Stashed changes
     contentFile = `View/Page/${pageName}`;
   } else {
     contentFile = `View/${pageName}_content`;

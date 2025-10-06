@@ -1,0 +1,101 @@
+
+  <?!= include('Css_App'); ?>
+
+ 
+  <?!= include('Css_Filtros'); ?>
+  <?!= include('Css_Generico'); ?>
+  <?!= include('Css_HomeContent'); ?>
+
+  
+  <?!= include('Css_Notifications'); ?>
+  
+  <?!= include('Css_Tablas'); ?>
+<div>
+<h1>Dashboard</h1>
+        <div class="content">
+            <div class="dashboard">
+                
+                <div class="summary-cards" id="inventario-seccion">
+                    <div class="card_I">
+                        <h3>ARTÍCULOS</h3>
+                        <div class="card">PRODUCTO: <span id="inv-total-productos"></span></div>
+                        <div class="card">UNIDADES AGOTADAS: <span id="inv-unidades-agotadas"></span></div>
+                        <div class="card">UNIDADES DISPONIBLES: <span id="inv-unidades-disponibles"></span></div>
+                        <div class="card">PROGRAMA: <span id="inv-total-programas"></span></div>
+                        <div class="card">UNIDADES EN STOCK MÁS DE 8 MESES: <span id="inv-stock-mas-8meses"></span></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="inv-pie-chart"></canvas>
+                    </div>
+                    <div class="chart-container_bar">
+                        <canvas id="inv-bar-chart" ></canvas>
+                    </div>
+                </div>
+                <div class="summary-cards" id="comida-seccion">
+                    <div class="card_C">
+                        <h3>COMIDA</h3>
+                        <div class="card">PRODUCTOS: <span id="com-total-productos"></span></div>
+                        <div class="card">UNIDADES DISPONIBLES: <span id="com-unidades-disponibles"></span></div>
+                        <div class="card">UNIDADES AGOTADAS: <span id="com-unidades-agotadas"></span></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="com-bar-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="gastoComidaPorMes"></canvas>
+                    </div>
+                    <div class="filter-container">
+                        <label for="filtroAnoComida">Filtrar por año:</label>
+                        <select id="filtroAnoComida">
+                            <option value="">Todos los años</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="summary-cards" id="decoracion-seccion">
+                    <div class="card_D">
+                        <h3>DECORACIÓN</h3>
+                        <div class="card">PRODUCTO: <span id="dec-total-productos"></span></div>
+                        <div class="card">Unidades disponibles: <span id="dec-unidades-disponibles"></span></div>
+                        <div class="card">UNIDADES AGOTADAS: <span id="dec-unidades-agotadas"></span></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dec-pie-chart"></canvas>
+                    </div>
+                    <div>
+                        <div class="chart-container">
+                            <canvas id="dec-bar-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="gastoDecoracionPorMes"></canvas>
+                    </div>
+                    <div class="filter-container">
+                        <label for="filtroAnoDecoracion">Filtrar por año:</label>
+                        <select id="filtroAnoDecoracion">
+                            <option value="">Todos los años</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="summary-cards" id="papeleria-seccion">
+                    <div class="card_P">
+                        <h3>PAPELERÍA</h3>
+                        <div class="card">PRODUCTO: <span id="pap-total-productos"></span></div>
+                        <div class="card">Unidades disponibles: <span id="pap-unidades-disponibles"></span></div>
+                        <div class="card">UNIDADES AGOTADAS: <span id="pap-unidades-agotadas"></span></div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="pap-bar-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+            <div id="page-content"></div>
+        </div>
+        </div>
+  </div>
+  <!-- ...tu contenido... -->
+  <?!= include("View/Js/Js_Dashboard.html"); ?>
+<?!= include("View/Js/Js_Generico.html"); ?>
+  <!-- Incluye otros JS si es necesario -->
