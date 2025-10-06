@@ -5,28 +5,40 @@
  * @returns {object} Un objeto que contiene los datos procesados para cada sección del dashboard (inventario, comida, etc.).
  */
 function obtenerDatosDashboard() {
-  const ss = SpreadsheetApp.openById(ID_INVENTARIO);
-  if (!ss) {
-    Logger.log(
-      "Error: No se pudo abrir la hoja de cálculo con el ID: " + ID_INVENTARIO
-    );
+  try {
+    const cache = CacheService.getScriptCache();
+    const cacheKey = 'dashboard_data';
+    const cachedData = cache.get(cacheKey);
+
+    if (cachedData) {
+      Logger.log("Dashboard data loaded from cache.");
+      return JSON.parse(cachedData);
+    }
+
+    Logger.log("Dashboard data not in cache. Fetching from source.");
+
+    const ss = SpreadsheetApp.openById(ID_INVENTARIO);
+    if (!ss) {
+      throw new Error("No se pudo abrir la hoja de cálculo con el ID: " + ID_INVENTARIO);
+    }
+
+    const dashboardData = {
+      inventario: _getInventarioDataForDashboard(ss.getSheetByName(HOJA_ARTICULOS)),
+      comida: _getComidaDataForDashboardWithMonthlySpending(ss.getSheetByName(HOJA_COMIDA)),
+      decoracion: _getDecoracionDataForDashboardWithMonthlySpending(ss.getSheetByName(HOJA_DECORACION)),
+      papeleria: _getPapeleriaDataForDashboard(ss.getSheetByName(HOJA_PAPELERIA)),
+    };
+
+    // Cache the data for 15 minutes
+    cache.put(cacheKey, JSON.stringify(dashboardData), 900);
+
+    return dashboardData;
+  } catch (error) {
+    Logger.log("Error en obtenerDatosDashboard: " + error.toString());
     return {
-      error:
-        "No se pudo acceder a la hoja de cálculo. Revise los registros de secuencia de comandos para obtener más detalles.",
+      error: "Error del servidor: " + error.toString(),
     };
   }
-  return {
-    inventario: _getInventarioDataForDashboard(
-      ss.getSheetByName(HOJA_ARTICULOS)
-    ),
-    comida: _getComidaDataForDashboardWithMonthlySpending(
-      ss.getSheetByName(HOJA_COMIDA)
-    ),
-    decoracion: _getDecoracionDataForDashboardWithMonthlySpending(
-      ss.getSheetByName(HOJA_DECORACION)
-    ),
-    papeleria: _getPapeleriaDataForDashboard(ss.getSheetByName(HOJA_PAPELERIA)),
-  };
 }
 
 /**
@@ -79,7 +91,7 @@ function _getInventarioDataForDashboard(sheet) {
           inventarioData.masDeOchoMeses++;
         }
         inventarioData.programas[programa] =
-          (inventarioData.programas[programa] || 0) + 1;
+          (inventarioData.programas[programa] || 0) + unidades;
       } else {
         inventarioData.unidadesAgotadas++;
         if (!(programa in inventarioData.programas)) {
@@ -267,3 +279,7 @@ function _getPapeleriaDataForDashboard(sheet) {
 
   return papeleriaData;
 }
+
+//==============
+
+

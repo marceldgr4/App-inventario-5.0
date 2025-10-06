@@ -1,0 +1,190 @@
+// Funciones de Perfil de Usuario
+// =========================================================================
+
+/**
+ * @summary Obtiene los datos del perfil del usuario actualmente logueado.
+ * @description Usa la sesión activa para encontrar al usuario en la hoja 'Usuario' y devuelve sus datos públicos.
+ * No devuelve la contraseña por seguridad.
+ * @returns {string} Un objeto JSON con el estado de la operación y los datos del perfil.
+ */
+function getMiPerfilData() {
+  // Asume que getActiveUser() est\u00e1 definido globalmente
+  const activeUserSession = getActiveUser();
+  if (!activeUserSession || !activeUserSession.email) {
+    return { success: false, message: "No se pudo identificar al usuario activo." };
+  }
+
+  try {
+    // Obtener hoja
+    const sheet = getSheetByName(HOJA_USUARIO);
+    if (!sheet) {
+      return { success: false, message: `Hoja "${HOJA_USUARIO}" no encontrada.` };
+    }
+
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    if (lastRow < 2) return { success: false, message: 'No hay registros de usuarios.' };
+
+    // Leer cabeceras
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    const emailColIdx = headers.indexOf('Email');
+    const nombreColIdx = headers.indexOf('NombreCompleto');
+    const userNameColIdx = headers.indexOf('userName');
+
+    if (emailColIdx === -1 || nombreColIdx === -1 || userNameColIdx === -1) {
+      return { success: false, message: "Columnas requeridas no encontradas en la hoja de usuarios." };
+    }
+
+    // Leer solo la columna de emails (menos datos que leer toda la hoja)
+    const emailVals = sheet.getRange(2, emailColIdx + 1, Math.max(0, lastRow - 1), 1).getValues().flat();
+    // Buscar el índice donde coincida el email
+    let foundIndex = -1;
+    for (let i = 0; i < emailVals.length; i++) {
+      try {
+        if (String(emailVals[i]).trim() === String(activeUserSession.email).trim()) {
+          foundIndex = i;
+          break;
+        }
+      } catch (ignored) {}
+    }
+
+    if (foundIndex === -1) {
+      return { success: false, message: 'Usuario no encontrado en la hoja.' };
+    }
+
+    const rowNumber = 2 + foundIndex; // fila real en la hoja (1-based)
+    const rowValues = sheet.getRange(rowNumber, 1, 1, lastCol).getValues()[0];
+
+    return {
+      success: true,
+      data: {
+        nombreCompleto: rowValues[nombreColIdx] || '',
+        userName: rowValues[userNameColIdx] || ''
+      }
+    };
+  } catch (e) {
+    Logger.log('Error en getMiPerfilData: ' + e.toString());
+    return { success: false, message: 'Error al obtener datos del perfil: ' + e.message };
+  }
+}
+
+/** Compatibilidad: wrapper que retorna JSON string (si alguna parte del proyecto lo espera) */
+function getMiPerfilDataJSON(){
+  try{
+    return JSON.stringify(getMiPerfilData());
+  }catch(e){
+    Logger.log('ERROR getMiPerfilDataJSON: ' + e.stack);
+    return JSON.stringify({ success: false, message: e.message });
+  }
+}
+
+/**
+ * @summary Actualiza el perfil del usuario actualmente logueado.
+ * @description Permite cambiar el nombre completo, nombre de usuario y, opcionalmente, la contraseña.
+ * @param {object} data Objeto que contiene `nombreCompleto`, `userName` y, opcionalmente, `newPassword`.
+ * @returns {string} Un objeto JSON con el resultado de la operación.
+ */
+function actualizarMiPerfil(data) {
+  // Asume que getActiveUser() y las constantes están definidas globalmente
+  const activeUserSession = getActiveUser();
+  if (!activeUserSession || !activeUserSession.email) {
+    return JSON.stringify({ success: false, message: "No se pudo identificar al usuario activo para la actualización." });
+  }
+
+  // Validación de datos recibidos
+  if (!data || !data.nombreCompleto || !data.userName) {
+    return JSON.stringify({ success: false, message: "Nombre completo y nombre de usuario son requeridos." });
+  }
+
+  let newPassword = data.newPassword ? data.newPassword.trim() : "";
+  let passwordChanged = false;
+
+  if (newPassword !== "") {
+    if (!/^[a-zA-Z]/.test(newPassword)) {
+      return JSON.stringify({ success: false, message: "La nueva contraseña debe comenzar con una letra." });
+    }
+    passwordChanged = true;
+  }
+
+  try {
+    const sheet = getSheetByName(HOJA_USUARIO);
+    if (!sheet) {
+      return JSON.stringify({ success: false, message: `Hoja "${HOJA_USUARIO}" no encontrada.` });
+    }
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+    const idColIdx = headers.indexOf('Id');
+    const emailColIdx = headers.indexOf('Email');
+    const nombreColIdx = headers.indexOf('NombreCompleto');
+    const userNameColIdx = headers.indexOf('userName');
+    const passwordColIdx = headers.indexOf('password');
+
+    if (idColIdx === -1 || emailColIdx === -1 || nombreColIdx === -1 || userNameColIdx === -1 || passwordColIdx === -1) {
+      return JSON.stringify({ success: false, message: "Columnas críticas no encontradas para actualizar perfil." });
+    }
+
+    let rowIndex = -1;
+    let userIdForHistory = null;
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][emailColIdx] === activeUserSession.email) {
+        rowIndex = i + 1; // getRange es 1-based
+        userIdForHistory = sheetData[i][idColIdx];
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return JSON.stringify({ success: false, message: "Usuario no encontrado para actualizar." });
+    }
+
+    // Actualizar Hoja de Cálculo
+    sheet.getRange(rowIndex, nombreColIdx + 1).setValue(data.nombreCompleto);
+    sheet.getRange(rowIndex, userNameColIdx + 1).setValue(data.userName);
+    if (passwordChanged) {
+      sheet.getRange(rowIndex, passwordColIdx + 1).setValue(newPassword);
+    }
+
+    // Actualizar PropertiesService si el nombre cambió
+    if (activeUserSession.name !== data.nombreCompleto) {
+      const userPropsString = PropertiesService.getUserProperties().getProperty(CLAVE_PROPIEDAD_USUARIO);
+      let userProps = userPropsString ? JSON.parse(userPropsString) : {};
+
+      userProps.name = data.nombreCompleto;
+      PropertiesService.getUserProperties().setProperty(CLAVE_PROPIEDAD_USUARIO, JSON.stringify(userProps));
+    }
+
+    // Registrar en Historial
+    let actionDetail = "Perfil actualizado.";
+    if (passwordChanged) {
+      actionDetail = "Perfil actualizado (contraseña cambiada).";
+    }
+    _registrarHistorialModificacion(
+      userIdForHistory,
+      data.userName,
+      'Perfil de Usuario',
+      null, null,
+      actionDetail,
+      activeUserSession.name || activeUserSession.email,
+      new Date(),
+      null
+    );
+
+  return { success: true, message: "Perfil actualizado exitosamente." };
+
+  } catch (e) {
+    Logger.log('Error en actualizarMiPerfil: ' + e.toString() + " Stack: " + e.stack);
+    Logger.log('Error en actualizarMiPerfil: ' + e.toString() + " Stack: " + e.stack);
+    return { success: false, message: 'Error al actualizar el perfil: ' + e.message };
+  }
+}
+
+/** Compatibilidad: wrapper que retorna JSON string (si alguna parte del proyecto lo espera) */
+function actualizarMiPerfilJSON(data){
+  try{
+    return JSON.stringify(actualizarMiPerfil(data));
+  }catch(e){
+    Logger.log('ERROR actualizarMiPerfilJSON: ' + e.stack);
+    return JSON.stringify({ success: false, message: e.message });
+  }
+}
