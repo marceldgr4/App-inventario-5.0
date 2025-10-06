@@ -1,269 +1,370 @@
-    <?!= include("View/Css/Css_Generico.html"); ?>
-    
-    <?!= include("View/Css/Css_Tablas.html"); ?>
-    <?!= include("View/Css/Css_Filtros.html"); ?>
- 
-    <?!= include("View/Css/Css_Comentarios.html"); ?>
-    <?!= include("View/Css/Css_Notifications.html"); ?>
-       <?!= include("View/Css/Css_Modal.html"); ?>
+<?!= include("View/Css/Css_Generico.html"); ?>
 
+<?!= include("View/Css/Css_Tablas.html"); ?>
+<?!= include("View/Css/Css_Filtros.html"); ?>
+
+<?!= include("View/Css/Css_Comentarios.html"); ?>
+<?!= include("View/Css/Css_Notifications.html"); ?>
+<?!= include("View/Css/Css_Modal.html"); ?>
 
 <div class="inventory-container">
-    <div class="header-section">
-        <h1>Inventario de Decoración</h1>
-        <p>Gestión de inventario de artículos de Decoración.</p>
-  
+  <div class="header-section">
+    <h1>Inventario de Decoración</h1>
+    <p>Gestión de inventario de artículos de Decoración.</p>
 
     <div class="action-bar">
-        <div class="butoon-group">
-            <button class="btn btn-primary" onclick="abrirModalAgregar()">
-                <ion-icon name="add-circle-outline"></ion-icon> Agregar Decoración
-            </button>
-        </div>
+      <div class="butoon-group">
+        <button class="btn btn-primary" onclick="abrirModalAgregar()">
+          <ion-icon name="add-circle-outline"></ion-icon> Agregar Decoración
+        </button>
+        <button class="btn btn-secondary" onclick="abrirModalNotificacionComentario()">
+          <ion-icon name="chatbubble-ellipses-outline"></ion-icon> Notificaciones de Comentarios
+          <div id="notificacionContainerComentariosDecoracion">
+            <span id="notificacionCantidadComentarios" style="display: none;"></span>
+          </div>
+        </button>
+      </div>
 
-        <div class="search-group">
-            <input type="text" id="buscarDecoracion" class="search-input" placeholder="Buscar por nombre de producto...">
-            <button class="btn btn-outline" onclick="aplicarFiltrosYOrdenarDecoracion()">
-                <i class="fas fa-search"></i> Buscar
-            </button>
-            <button class="btn btn-outline" onclick="limpiarTodosLosFiltrosDecoracion()">
-                <i class="fas fa-times"></i> Limpiar
-            </button>
-        </div>
+      <div class="search-group">
+        <input
+          type="text"
+          id="buscarDecoracion"
+          class="search-input"
+          placeholder="Buscar por nombre de producto..."
+        />
+        <button
+          class="btn btn-outline"
+          onclick="aplicarFiltrosYOrdenarDecoracion()"
+        >
+          <i class="fas fa-search"></i> Buscar
+        </button>
+        <button
+          class="btn btn-outline"
+          onclick="limpiarTodosLosFiltrosDecoracion()"
+        >
+          <i class="fas fa-times"></i> Limpiar
+        </button>
+      </div>
     </div>
-    
+
     <!--filtros-->
     <div class="filtro">
-        <div id="toggleFiltrosDecoracionIconContainer" style="cursor: pointer;">
-            <ion-icon name="filter-outline" style="font-size: 20px; vertical-align: middle;"></ion-icon>
-            <span style="vertical-align: middle; margin-left: 5px;">Filtros</span>
+      <div id="toggleFiltrosDecoracionIconContainer" style="cursor: pointer">
+        <ion-icon
+          name="filter-outline"
+          style="font-size: 20px; vertical-align: middle"
+        ></ion-icon>
+        <span style="vertical-align: middle; margin-left: 5px">Filtros</span>
+      </div>
+      <div id="filtrosAdicionalesContainer" class="filtros-adicionales-ocultos">
+        <input
+          type="text"
+          id="filtroTipo"
+          placeholder="Filtrar por Tipo"
+          class="form-control"
+        />
+        <div class="filter-item">
+          <label for="filtroEstado">Estado:</label>
+          <select id="filtroEstado" class="form-control">
+            <option value="activo" selected>Activo</option>
+            <option value="desactivado">Desactivado</option>
+            <option value="">Todos</option>
+          </select>
         </div>
-        <div id="filtrosAdicionalesContainer" class="filtros-adicionales-ocultos">
-            <input type="text" id="filtroTipo" placeholder="Filtrar por Tipo" class="form-control">
-            <div class="filter-item">
-                <label for="filtroEstado">Estado:</label>
-                <select id="filtroEstado" class="form-control">
-                    <option value="activo" selected>Activo</option>
-                    <option value="desactivado">Desactivado</option>
-                    <option value="">Todos</option>
-                </select>
-            </div>
-        </div>
+      </div>
 
-    <div id="noData" class="no-data-container" style="display:none;">
+      <div id="noData" class="no-data-container" style="display: none">
         <i class="fas fa-inbox no-data-icon"></i>
         <h3 class="no-data-title">No se encontraron artículos de decoración</h3>
         <p>Haz clic en "Agregar Decoración" para añadir tu primer artículo</p>
-    </div>
+      </div>
 
-    <div id="table-container-Decoracion">
+      <div id="table-container-Decoracion">
         <table id="decoracionTable" class="inventory-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Producto</th>
-                    <th>Tipo</th>
-                    <th>Fecha de Ingreso</th>
-                    <th>U.Ingreso</th>
-                    <th>U.Retirada</th>
-                    <th>U.Disponibles</th>
-                    <th>Precio</th>
-                    <th>Imagen</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="tablaDecoracionBody"></tbody>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th>Fecha de Ingreso</th>
+              <th>U.Ingreso</th>
+              <th>U.Retirada</th>
+              <th>U.Disponibles</th>
+              <th>Precio</th>
+              <th>Imagen</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaDecoracionBody"></tbody>
         </table>
         <div id="decoracionPagination" class="pagination"></div>
-    </div>
+      </div>
 
-    <!-- Modal Agregar -->
-    <div id="modalAgregarDecoracion" class="modal-overlay">
+      <!-- Modal Agregar -->
+      <div id="modalAgregarDecoracion" class="modal-overlay">
         <div class="modal-content-ac">
-            <div class="modal-header">
-                <h2>Agregar Decoración</h2>
-                <span class="close-btn" onclick="cerrarModal()">&times;</span>
+          <div class="modal-header">
+            <h2>Agregar Decoración</h2>
+            <span class="close-btn" onclick="cerrarModal()">&times;</span>
+          </div>
+          <form id="agregarDecoracionForm">
+            <div class="form-group">
+              <label for="productoAgregar" class="required">Producto:</label>
+              <input
+                type="text"
+                id="productoAgregar"
+                class="form-control"
+                required
+              />
             </div>
-            <form id="agregarDecoracionForm">
-                <div class="form-group">
-                    <label for="productoAgregar" class="required">Producto:</label>
-                    <input type="text" id="productoAgregar" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="tipoAgregar" class="required">Tipo:</label>
-                    <input type="text" id="tipoAgregar" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="cantidadAgregar" class="required">Ingresar Unidades:</label>
-                    <input type="number" id="cantidadAgregar" class="form-control" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="precioAgregar" class="required">Precio:</label>
-                    <input type="text" id="precioAgregar" class="form-control" placeholder="$ 0.00" required>
-                </div>
-                <div class="form-group">
-                    <label for="imagenArchivoAgregar">Imagen (desde equipo):</label>
-                    <input type="file" id="imagenArchivoAgregar" class="form-control" accept="image/*">
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Guardar Decoración</button>
-                </div>
-            </form>
+            <div class="form-group">
+              <label for="tipoAgregar" class="required">Tipo:</label>
+              <input
+                type="text"
+                id="tipoAgregar"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="ingresosAgregar" class="required"
+                >Ingresar Unidades:</label
+              >
+              <input
+                type="number"
+                id="ingresosAgregar"
+                class="form-control"
+                min="0"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="precioAgregar" class="required">Precio:</label>
+              <input
+                type="text"
+                id="precioAgregar"
+                class="form-control"
+                placeholder="$ 0.00"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="imagenArchivoAgregar">Imagen (desde equipo):</label>
+              <input
+                type="file"
+                id="imagenArchivoAgregar"
+                class="form-control"
+                accept="image/*"
+              />
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">
+                Guardar Decoración
+              </button>
+            </div>
+          </form>
         </div>
-    </div>
+      </div>
 
-    <!-- Modal Editar -->
-    <div id="modalEditarDecoracion" class="modal-overlay">
+      <!-- Modal Editar -->
+      <div id="modalEditarDecoracion" class="modal-overlay">
         <div class="modal-content-ac">
-            <div class="modal-header">
-                <h2>Modificar Producto de Decoración</h2>
-                <span class="close-btn" onclick="cerrarModal()">&times;</span>
+          <div class="modal-header">
+            <h2>Modificar Producto de Decoración</h2>
+            <span class="close-btn" onclick="cerrarModal()">&times;</span>
+          </div>
+          <p>ID del Producto: <span id="productoIdEditarDecoracion"></span></p>
+          <form id="editarDecoracionForm">
+            <div class="form-group">
+              <label for="productoIdEditarDecoracion"> Producto:</label>
+              <input
+                type="text"
+                id="productoEditar"
+                class="form-control"
+                required
+              />
             </div>
-            <p>ID del Producto: <span id="productoIdEditarDecoracion"></span></p>
-            <form id="editarDecoracionForm">
-                <div class="form-group">
-                    <label for="productoIdEditarDecoracion"> Producto:</label>
-                    <input type="text" id="productoEditar" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="tipoEditarDecoracion">Tipo:</label>
-                    <input type="text" id="tipoEditar" class="form-control" required>
-                </div>
-                 
-                <div class="form-group">
-                    <label for="unidadesAgregarEditarDecoracion" >Unidades a agregar:</label>
-                    <input type="number" id="unidadesAgregarEditar" class="form-control" min="0" value="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="precioEditarDecoracion">Precio:</label>
-                    <input type="text" id="precioEditarDecoracion" class="form-control" placeholder="$ 0.00" required>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
+            <div class="form-group">
+              <label for="tipoEditarDecoracion">Tipo:</label>
+              <input
+                type="text"
+                id="tipoEditar"
+                class="form-control"
+                required
+              />
+            </div>
 
-    <!-- Modal Retiro -->
-    <div id="modalRetiroDecoracion" class="modal-overlay">
+            <div class="form-group">
+              <label for="unidadesAgregarEditarDecoracion"
+                >Unidades a agregar:</label
+              >
+              <input
+                type="number"
+                id="ingresosEditar"
+                class="form-control"
+                min="0"
+                value="0"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="precioEditarDecoracion">Precio:</label>
+              <input
+                type="text"
+                id="precioEditarDecoracion"
+                class="form-control"
+                placeholder="$ 0.00"
+                required
+              />
+            </div>
+
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Retiro -->
+      <div id="modalRetiroDecoracion" class="modal-overlay">
         <div class="modal-content-ac">
-            <div class="modal-header">
-                <h2>Retirar Articulo De Decoración</h2>
-                <span class="close-btn" onclick="cerrarModal()">&times;</span>
+          <div class="modal-header">
+            <h2>Retirar Articulo De Decoración</h2>
+            <span class="close-btn" onclick="cerrarModal()">&times;</span>
+          </div>
+          <p>ID del Producto: <span id="productoIdRetiroDecoracion"></span></p>
+          <p>Producto: <span id="productoNombreRetiroDecoracion"></span></p>
+          <p>
+            Unidades Disponibles:
+            <span id="unidadesDisponiblesRetiroDecoracion"></span>
+          </p>
+          <form id="retiroDecoracionForm">
+            <div class="form-group">
+              <label for="unidadesRetirarDecoracion" class="required"
+                >Unidades a retirar:</label
+              >
+              <input
+                type="number"
+                id="unidadesRetirar"
+                class="form-control"
+                min="1"
+                required
+              />
             </div>
-            <p>ID del Producto: <span id="productoIdRetiroDecoracion"></span></p>
-            <p>Producto: <span id="productoNombreRetiroDecoracion"></span></p>
-            <p>Unidades Disponibles: <span id="unidadesDisponiblesRetiroDecoracion"></span></p>
-            <form id="retiroDecoracionForm">
-                <div class="form-group">
-                    <label for="unidadesRetirarDecoracion" class="required">Unidades a retirar:</label>
-                    <input type="number" id="unidadesRetirar" class="form-control" min="1" required>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">
+                <span><ion-icon name="bag-check-outline"></ion-icon></span>
+                Retirar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!--Comentarios-->
+      <div id="modalComentarioDecoracion" class="modal-overlay">
+        <div class="modal-content-A">
+          <div class="modal-header">
+            <h2>Agregar Comentario</h2>
+            <span class="close-btn" onclick="cerrarModalComentario()"
+              >&times;</span
+            >
+          </div>
+          <p>
+            ID de Decoracion: <span id="comentarioProductoIdDecoracion"></span>
+          </p>
+          <p>Producto: <span id="comentarioProductoNombreDecoracion"></span></p>
+          <form id="comentarioDecoracionForm">
+            <div class="form-group">
+              <label for="comentarioTextoDecoracion">Comentario *:</label>
+              <textarea
+                id="comentarioTextoDecoracion"
+                rows="4"
+                class="form-control"
+                required
+              ></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">
+                Guardar Comentario
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <!-- Modal de Notificaciones de Comentarios -->
+<div id="modalNotificacion-Comentario" class="modal-overlay">
+    <div class="modal-content-NotificacionesComentarios">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <ion-icon name="chatbubble-ellipses-outline"></ion-icon> Mis Notificaciones de Comentarios
+            </h2>
+            <button class="btn-warning" onclick="cargarNotificacionesDeComentariosDecoracion()">
+                <ion-icon name="refresh-outline"></ion-icon> Recargar
+            </button>
+            <button class="close-btn" onclick="cerrarModalNotificacionComentario()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="tab-buttons-container">
+                <button class="tab-button active" data-tab="pendientes-comentarios">Pendientes</button>
+                <button class="tab-button" data-tab="leidas-comentarios">Leídas</button>
+            </div>
+
+            <!-- Pestaña de Pendientes -->
+            <div id="pendientes-comentarios" class="tab-content active">
+                <div class="table-container-notificaciones">
+                    <table class="notifications-table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Tu Comentario</th>
+                                <th>Respuesta del Admin</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificacionesPendientesBody"></tbody>
+                    </table>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">
-                         <span><ion-icon name="bag-check-outline"></ion-icon></span> Retirar</button>
+            </div>
+
+            <!-- Pestaña de Leídas -->
+            <div id="leidas-comentarios" class="tab-content">
+                <div class="table-container-notificaciones">
+                    <table class="notifications-table">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Tu Comentario</th>
+                                <th>Respuesta</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="notificacionesLeidasBody"></tbody>
+                    </table>
                 </div>
-            </form>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <p class="footer-info">Aquí puedes ver las respuestas a tus comentarios.</p>
         </div>
     </div>
-
-    <!--Comentarios-->
-    <div id="modalComentarioDecoracion" class="modal-overlay">
-            <div class="modal-content-A">
-                <div class="modal-header">
-                    <h2>Agregar Comentario</h2>
-                    <span class="close-btn" onclick="cerrarModalComentario()">&times;</span>
-                </div>
-                <p>ID de Decoracion: <span id="comentarioProductoIdDecoracion"></span></p>
-                <p>Producto: <span id="comentarioProductoNombreDecoracion"></span></p>
-                <form id="comentarioDecoracionForm">
-                    <div class="form-group">
-                        <label for="comentarioTextoDecoracion">Comentario *:</label>
-                        <textarea id="comentarioTextoDecoracion" rows="4" class="form-control" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Guardar Comentario</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-<div id="modalNotificacion-Comentario-Decoracion" class="modal-overlay">
-  <div class="modal-content-NotificacionesComentarios">
-    <div class="modal-header">
-      <h2 class="modal-title">
-        <ino-icon name="chatbubble-ellipses-outline"></ino-icon> Comentarios
-      </h2>
-      <div class="modal-header-actions"></div>  
-      <button class="btn-warning" onclick="loadNotificaciones()">
-        <ion-icon name="refresh-circle-outline"></ion-icon> Cargar Nuevas
-      </button>
-      <button class="close-btn" onclick="cerrarModalNotificaciones()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="comentariosTabs" class="tab-buttons-container">
-        <button class="tab-button active" data-tab="pendientes" onclick="mostrarTab('pendientes', this)">Pendientes</button>
-        <button class="tab-button" data-tab="leidas" onclick="mostrarTab('leidas', this)">Leidas</button>
-      </div>
-      <div id="pendientesBody" class="tab-content active">
-        <h4>Comentarios Pendientes</h4>
-        <table id="tablaComentariosPendientes">
-          <thead>
-            <tr>
-              <th>Id</th>
-              <th>Producto</th>
-              <th>Fecha</th>
-              <th>Comentario</th>
-              <th>Usuario</th>
-            </tr>
-          </thead>
-          <tbody id="tablaComentariosPendientesBody"></tbody>
-        </table>
-      </div>
-      <div id="leidasBody" class="tab-content">
-        <h4>Comentarios Leidas</h4>
-        <table id="tablaComentariosLeidas">
-          <thead>
-            <tr>
-              <th>Id</th>
-              <th>Producto</th>
-              <th>Fecha</th>
-              <th>Comentario</th>
-              <th>Usuario</th>
-            </tr>
-          </thead>
-          <tbody id="tablaComentariosLeidasBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-      <div id="paginationNotificaciones" class="pagination-controls"> 
-        <button id="btnAnteriorNotif" class="page-btn" onclick="paginaAnteriorNotificaciones()">Anterior</button>
-        <span id="infoPaginaNotificaciones" class="page-info">Página 1 de 1</span>
-        <button id="btnSiguienteNotif" class="page-btn" onclick="paginaSiguienteNotificaciones()">Siguiente</button>
-      </div>
-      <div class="modal-footer"> 
-        <button class="btn btn-danger" onclick="deactivateSelectedNotifications()">
-          <ion-icon name="close-circle-outline"></ion-icon> Dar de Baja Seleccionados
-        </button>
-        <button class="btn btn-secondary" onclick="limpiarNotificaciones()">
-          <ion-icon name="trash-outline"></ion-icon> Limpiar Notificaciones
-        </button>
-      </div>
-    </div>
-  </div> 
 </div>
+    </div>
 
-
-<div id="mensajeConfirmacionDecoracion" class="mensaje-confirmacion" style="display:none;">
-    <span></span>
-    <button onclick="cerrarMensaje()">Cerrar</button>
+    <div
+      id="mensajeConfirmacionDecoracion"
+      class="mensaje-confirmacion"
+      style="display: none"
+    >
+      <span></span>
+      <button onclick="cerrarMensaje()">Cerrar</button>
+    </div>
 </div>
-
-<?!= include("View/Js/Js_Generico.html"); ?>
-<?!= include("View/Js/Js_Decoracion.html"); ?>
-<?!= include("View/Js/Js_Notifications.html"); ?>
-
+</div>
+    <?!= include("View/Js/Js_Generico.html"); ?>
+    <?!= include("View/Js/Js_Decoracion.html"); ?>
+    <?!= include("View/Js/Js_Notifications.html"); ?>
+  

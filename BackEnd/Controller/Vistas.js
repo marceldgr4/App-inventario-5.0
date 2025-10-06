@@ -5,35 +5,38 @@
 function _crearRespuestaHtml(template, pageTitle) {
   return template
     .evaluate()
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
-    .addMetaTag('mobile-web-app-capable', 'yes')
+    .addMetaTag("viewport", "width=device-width, initial-scale=1.0")
+    .addMetaTag("mobile-web-app-capable", "yes")
     .setTitle(pageTitle)
     .setFaviconUrl(URL_FAVICON)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function _mostrarPaginaError(titulo, mensaje, esCritico = false) {
-    let link = `<a href="${getScriptUrl()}?page=Index">Ir a la página de inicio</a>`;
-    if (esCritico) {
-        link = `<a href="${getScriptUrl()}?page=Login">Intentar iniciar sesión de nuevo</a>`;
-    }
-    const html = `<h1>${titulo}</h1><p>${mensaje}</p><p>${link}</p>`;
-    return HtmlService.createHtmlOutput(html)
-        .setTitle(titulo)
-        .setFaviconUrl(URL_FAVICON);
+  let link = `<a href="${getScriptUrl()}?page=Index">Ir a la página de inicio</a>`;
+  if (esCritico) {
+    link = `<a href="${getScriptUrl()}?page=Login">Intentar iniciar sesión de nuevo</a>`;
+  }
+  const html = `<h1>${titulo}</h1><p>${mensaje}</p><p>${link}</p>`;
+  return HtmlService.createHtmlOutput(html)
+    .setTitle(titulo)
+    .setFaviconUrl(URL_FAVICON);
 }
 
 function _redirigirA(pageName) {
-    return HtmlService.createHtmlOutput(
-        `<script>window.top.location.href = "${getScriptUrl()}?page=${pageName}";</script>`
-    );
+  return HtmlService.createHtmlOutput(
+    `<script>window.top.location.href = "${getScriptUrl()}?page=${pageName}";</script>`
+  );
 }
 
 function loadPage(nombrePagina, usuarioActivo, accessMessage = null) {
   try {
     if (!PAGES_PERMITIDAS.includes(nombrePagina)) {
       Logger.log(`Intento de cargar página no válida: "${nombrePagina}"`);
-      return _mostrarPaginaError('Página no encontrada', `La página '${nombrePagina}' no existe.`);
+      return _mostrarPaginaError(
+        "Página no encontrada",
+        `La página '${nombrePagina}' no existe.`
+      );
     }
 
     const filePath = `View/${nombrePagina}`;
@@ -43,18 +46,21 @@ function loadPage(nombrePagina, usuarioActivo, accessMessage = null) {
     plantilla.usuarioActivo = usuarioActivo;
     plantilla.paginasDisponiblesParaUsuario = [];
     if (usuarioActivo && usuarioActivo.rol) {
-      plantilla.paginasDisponiblesParaUsuario = PAGINAS_POR_ROL[usuarioActivo.rol] || [];
+      plantilla.paginasDisponiblesParaUsuario =
+        PAGINAS_POR_ROL[usuarioActivo.rol] || [];
     }
     plantilla.accessMessage = accessMessage;
 
     return _crearRespuestaHtml(plantilla, `Inventario - ${nombrePagina}`);
   } catch (error) {
-    Logger.log(`Error severo al cargar la página "${nombrePagina}": ${error.stack}`);
+    Logger.log(
+      `Error severo al cargar la página "${nombrePagina}": ${error.stack}`
+    );
     let errorMessage = `Ocurrió un error al cargar la página: ${nombrePagina}.`;
     if (usuarioActivo && usuarioActivo.rol === ROL_ADMIN) {
       errorMessage += ` Detalles: ${error.message}`;
     }
-    return _mostrarPaginaError('Error del Sistema', errorMessage, true);
+    return _mostrarPaginaError("Error del Sistema", errorMessage, true);
   }
 }
 
@@ -67,7 +73,9 @@ function loadPage(nombrePagina, usuarioActivo, accessMessage = null) {
 function loadContent(pageName) {
   const activeUser = getActiveUser();
   if (!activeUser) {
-    throw new Error('Sesión expirada. Por favor, recargue la página para iniciar sesión.');
+    throw new Error(
+      "Sesión expirada. Por favor, recargue la página para iniciar sesión."
+    );
   }
 
   if (!isPageAllowedForUser(pageName, activeUser.rol)) {
@@ -78,28 +86,12 @@ function loadContent(pageName) {
   // Por convención, el contenido de 'Home' está en 'Home_content.html'.
   let contentFile;
   if (
-<<<<<<< Updated upstream
-   
-    pageName === 'Articulos' ||
-    pageName === 'Categorias' ||
-    pageName === 'Usuarios' ||
-    pageName === 'Proveedores' ||
-    pageName === 'Clientes' ||
-    pageName === 'Ventas' ||
-    pageName === 'Compras' ||
-    pageName === 'Reportes'||
-    pageName === 'Historial' ||
-    pageName === 'Comida'||
-    pageName === 'Decoracion'||
-    pageName === 'Papeleria'
-
-  ){
-=======
     pageName === "Articulos" ||
+    pageName === "Acta" ||
     pageName === "Categorias" ||
-    pageName === "Usuarios" ||
-    pageName === "Dashboard" ||
-    pageName === "Clientes" ||
+    pageName === "Usuario" ||
+    pageName === "Registro" ||
+    pageName === "Perfil" ||
     pageName === "Ventas" ||
     pageName === "Compras" ||
     pageName === "Reportes" ||
@@ -107,12 +99,12 @@ function loadContent(pageName) {
     pageName === "Comida" ||
     pageName === "Decoracion" ||
     pageName === "Papeleria" ||
-    pageName === "Comentario"
+    pageName === "Comentario" ||
+    pageName === "Dashboard"
   ) {
->>>>>>> Stashed changes
-    contentFile = `View/Page/${pageName}`;
+    contentFile = `View/Page/${pageName}.html`;
   } else {
-    contentFile = `View/${pageName}_content`;
+    contentFile = `View/${pageName}_content.html`;
   }
 
   try {
@@ -120,13 +112,15 @@ function loadContent(pageName) {
     template.usuarioActivo = activeUser;
     return template.evaluate().getContent();
   } catch (e) {
-    Logger.log(`Error al cargar contenido para '${pageName}' desde '${contentFile}': ${e.toString()}`);
-    throw new Error(`No se pudo cargar el contenido para la página '${pageName}'. El archivo podría no existir.`);
+    Logger.log(
+      `Error al cargar contenido para '${pageName}' desde '${contentFile}': ${e.toString()}`
+    );
+    throw new Error(
+      `No se pudo cargar el contenido para la página '${pageName}'. El archivo podría no existir.`
+    );
   }
 }
 
-
 function include(filename) {
-  const cleanFilename = filename.replace('.html', '');
-  return HtmlService.createHtmlOutputFromFile(cleanFilename).getContent();
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }

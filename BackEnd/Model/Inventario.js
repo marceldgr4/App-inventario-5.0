@@ -61,13 +61,24 @@ function retirarProductoInventario(id, unidades) {
     const sheet = ss.getSheetByName(sheetName);
     const data = sheet.getDataRange().getValues();
     if (data && data.length > 0) {
-      const headers = data[0].map(h => String(h || '').trim().toLowerCase().replace(/\s/g,''));
-      const idIdx = headers.findIndex(h => h === 'id' || h === 'identificador');
+      const headers = data[0].map((h) =>
+        String(h || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\s/g, "")
+      );
+      const idIdx = headers.findIndex(
+        (h) => h === "id" || h === "identificador"
+      );
       // buscar nombres variantes:
-      const entregasIdx = headers.findIndex(h => h.replace(/\s/g, '').toLowerCase() === 'entregasfecha'); 
+      const entregasIdx = headers.findIndex(
+        (h) => h.replace(/\s/g, "").toLowerCase() === "entregasfecha"
+      );
 
       if (idIdx !== -1 && entregasIdx !== -1) {
-        const rowIndex = data.findIndex((r, idx) => idx > 0 && String(r[idIdx]) === String(id));
+        const rowIndex = data.findIndex(
+          (r, idx) => idx > 0 && String(r[idIdx]) === String(id)
+        );
         if (rowIndex !== -1) {
           sheet.getRange(rowIndex + 1, entregasIdx + 1).setValue(new Date());
         }
@@ -76,15 +87,18 @@ function retirarProductoInventario(id, unidades) {
 
     return JSON.stringify({ success: true, result: result });
   } catch (e) {
-    Logger.log('retirarProductoInventario error: ' + e);
+    Logger.log("retirarProductoInventario error: " + e);
     return JSON.stringify({ success: false, error: e.message });
   }
 }
 
-
 function agregarComentarioInventario(id, comentario) {
   try {
-    const result = agregarComentarioGenerico(getHojasConfig().ARTICULO.nombre, id, comentario);
+    const result = agregarComentarioGenerico(
+      getHojasConfig().ARTICULO.nombre,
+      id,
+      comentario
+    );
     return JSON.stringify({ success: true, result: result });
   } catch (e) {
     Logger.log("agregarComentarioInventario: Error " + e.message);
@@ -95,63 +109,69 @@ function agregarComentarioInventario(id, comentario) {
 // Archivo: Inventario.js
 function getArticulosViejos() {
   try {
-    const rawData = getProductosViejos(getHojasConfig().ARTICULO.nombre); // Esta función debería devolver los datos
-    
-    // Normalizar los datos: convertir las claves a minúsculas
-    const normalizedData = rawData.map(item => {
-      const newItem = {};
-      for (const key in item) {
-        // Convertir la clave a minúsculas y reemplazar espacios
-        const newKey = key.toLowerCase().replace(/ /g, ''); 
-        newItem[newKey] = item[key];
-      }
-      return newItem;
-    });
-
-    Logger.log("getArticulosViejos: Data returned after normalization: " + JSON.stringify(normalizedData));
-    return JSON.stringify(normalizedData);
-    // La función getProductosViejos ya devuelve un array de objetos con las claves correctas.
-    // No es necesario volver a procesarlo ni usar JSON.stringify.
     const productosViejos = getProductosViejos(getHojasConfig().ARTICULO.nombre);
-    Logger.log(`getArticulosViejos: Devolviendo ${productosViejos.length} artículos viejos.`);
-    return productosViejos;
+    Logger.log(
+      `getArticulosViejos: Devolviendo ${productosViejos.length} artículos viejos.`
+    );
+    return JSON.stringify(productosViejos);
   } catch (e) {
     Logger.log("getArticulosViejos: Error al obtener datos. " + e.message);
     return JSON.stringify([]);
-    return [];
   }
 }
 
 function deactivateProducts(ids) {
   try {
-    if (!ids || !Array.isArray(ids) || ids.length === 0) return JSON.stringify({ success:false, message: 'No hay ids' });
+    if (!ids || !Array.isArray(ids) || ids.length === 0)
+      return JSON.stringify({ success: false, message: "No hay ids" });
 
     const sheetName = getHojasConfig().ARTICULO.nombre;
     const ss = SpreadsheetApp.openById(ID_INVENTARIO);
     const sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return JSON.stringify({ success:false, message: 'Hoja no encontrada: ' + sheetName });
+    if (!sheet)
+      return JSON.stringify({
+        success: false,
+        message: "Hoja no encontrada: " + sheetName,
+      });
 
     const data = sheet.getDataRange().getValues();
-    const headers = data[0].map(h => String(h || '').trim().toLowerCase());
-    const idIdx = headers.findIndex(h => h === 'id' || h.indexOf('id') !== -1);
-    const estadoIdx = headers.findIndex(h => h === 'estado');
+    const headers = data[0].map((h) =>
+      String(h || "")
+        .trim()
+        .toLowerCase()
+    );
+    const idIdx = headers.findIndex(
+      (h) => h === "id" || h.indexOf("id") !== -1
+    );
+    const estadoIdx = headers.findIndex((h) => h === "estado");
 
-    if (idIdx === -1) return JSON.stringify({ success:false, message: 'Columna Id no encontrada.' });
-    if (estadoIdx === -1) return JSON.stringify({ success:false, message: 'Columna Estado no encontrada.' });
+    if (idIdx === -1)
+      return JSON.stringify({
+        success: false,
+        message: "Columna Id no encontrada.",
+      });
+    if (estadoIdx === -1)
+      return JSON.stringify({
+        success: false,
+        message: "Columna Estado no encontrada.",
+      });
 
     let updated = 0;
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const rowId = String(row[idIdx]);
       if (ids.map(String).indexOf(rowId) !== -1) {
-        sheet.getRange(i + 1, estadoIdx + 1).setValue('eliminado');
+        sheet.getRange(i + 1, estadoIdx + 1).setValue("eliminado");
         updated++;
       }
     }
 
-    return JSON.stringify({ success: true, message: `${updated} producto(s) dados de baja.` });
+    return JSON.stringify({
+      success: true,
+      message: `${updated} producto(s) dados de baja.`,
+    });
   } catch (e) {
-    Logger.log('deactivateProducts error: ' + e);
+    Logger.log("deactivateProducts error: " + e);
     return JSON.stringify({ success: false, message: e.message || String(e) });
   }
 }

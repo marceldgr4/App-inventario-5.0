@@ -5,25 +5,40 @@
  * @returns {object} Un objeto que contiene los datos procesados para cada sección del dashboard (inventario, comida, etc.).
  */
 function obtenerDatosDashboard() {
-  const ss = SpreadsheetApp.openById(ID_INVENTARIO);
-  if (!ss) {
-    Logger.log('Error: No se pudo abrir la hoja de cálculo con el ID: ' + ID_INVENTARIO);
+  try {
+    const cache = CacheService.getScriptCache();
+    const cacheKey = 'dashboard_data';
+    const cachedData = cache.get(cacheKey);
+
+    if (cachedData) {
+      Logger.log("Dashboard data loaded from cache.");
+      return JSON.parse(cachedData);
+    }
+
+    Logger.log("Dashboard data not in cache. Fetching from source.");
+
+    const ss = SpreadsheetApp.openById(ID_INVENTARIO);
+    if (!ss) {
+      throw new Error("No se pudo abrir la hoja de cálculo con el ID: " + ID_INVENTARIO);
+    }
+
+    const dashboardData = {
+      inventario: _getInventarioDataForDashboard(ss.getSheetByName(HOJA_ARTICULOS)),
+      comida: _getComidaDataForDashboardWithMonthlySpending(ss.getSheetByName(HOJA_COMIDA)),
+      decoracion: _getDecoracionDataForDashboardWithMonthlySpending(ss.getSheetByName(HOJA_DECORACION)),
+      papeleria: _getPapeleriaDataForDashboard(ss.getSheetByName(HOJA_PAPELERIA)),
+    };
+
+    // Cache the data for 15 minutes
+    cache.put(cacheKey, JSON.stringify(dashboardData), 900);
+
+    return dashboardData;
+  } catch (error) {
+    Logger.log("Error en obtenerDatosDashboard: " + error.toString());
     return {
-      error: 'No se pudo acceder a la hoja de cálculo. Revise los registros de secuencia de comandos para obtener más detalles.',
+      error: "Error del servidor: " + error.toString(),
     };
   }
-  return {
-    inventario: _getInventarioDataForDashboard(
-      ss.getSheetByName(HOJA_ARTICULOS)
-    ),
-    comida: _getComidaDataForDashboardWithMonthlySpending(
-      ss.getSheetByName(HOJA_COMIDA)
-    ),
-    decoracion: _getDecoracionDataForDashboardWithMonthlySpending(
-      ss.getSheetByName(HOJA_DECORACION)
-    ),
-    papeleria: _getPapeleriaDataForDashboard(ss.getSheetByName(HOJA_PAPELERIA)),
-  };
 }
 
 /**
@@ -36,10 +51,10 @@ function _getInventarioDataForDashboard(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
-  const idxPrograma = headers.indexOf('PROGRAMA');
-  const idxTiempoStorage = headers.indexOf('Tiempo en Storage');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
+  const idxPrograma = headers.indexOf("PROGRAMA");
+  const idxTiempoStorage = headers.indexOf("Tiempo en Storage");
 
   if (
     idxProducto === -1 ||
@@ -76,7 +91,7 @@ function _getInventarioDataForDashboard(sheet) {
           inventarioData.masDeOchoMeses++;
         }
         inventarioData.programas[programa] =
-          (inventarioData.programas[programa] || 0) + 1;
+          (inventarioData.programas[programa] || 0) + unidades;
       } else {
         inventarioData.unidadesAgotadas++;
         if (!(programa in inventarioData.programas)) {
@@ -92,7 +107,7 @@ function _getInventarioDataForDashboard(sheet) {
     }
   }
 
-  todosLosProgramas.forEach(programa => {
+  todosLosProgramas.forEach((programa) => {
     if (!(programa in inventarioData.programas)) {
       inventarioData.programas[programa] = 0;
     }
@@ -112,10 +127,10 @@ function _getComidaDataForDashboardWithMonthlySpending(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxPrecio = headers.indexOf('PRECIO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
-  const idxFechaIngreso = headers.indexOf('FECHA DE INGRESO');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxPrecio = headers.indexOf("PRECIO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
+  const idxFechaIngreso = headers.indexOf("FECHA DE INGRESO");
 
   if (
     idxProducto === -1 ||
@@ -148,7 +163,7 @@ function _getComidaDataForDashboardWithMonthlySpending(sheet) {
       if (fechaIngreso instanceof Date) {
         const ano = fechaIngreso.getFullYear();
         const mes = fechaIngreso.getMonth() + 1;
-        const anoMes = `${ano}-${mes < 10 ? '0' + mes : mes}`;
+        const anoMes = `${ano}-${mes < 10 ? "0" + mes : mes}`;
         comidaData.gastoMensual[anoMes] =
           (comidaData.gastoMensual[anoMes] || 0) + precio;
       }
@@ -167,11 +182,11 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxPrecio = headers.indexOf('PRECIO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
-  const idxCategoria = headers.indexOf('TIPO');
-  const idxFechaIngreso = headers.indexOf('FECHA DE INGRESO');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxPrecio = headers.indexOf("PRECIO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
+  const idxCategoria = headers.indexOf("TIPO");
+  const idxFechaIngreso = headers.indexOf("FECHA DE INGRESO");
 
   if (
     idxProducto === -1 ||
@@ -212,7 +227,7 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
       if (fechaIngreso instanceof Date) {
         const ano = fechaIngreso.getFullYear();
         const mes = fechaIngreso.getMonth() + 1;
-        const anoMes = `${ano}-${mes < 10 ? '0' + mes : mes}`;
+        const anoMes = `${ano}-${mes < 10 ? "0" + mes : mes}`;
         decoracionData.gastoMensual[anoMes] =
           (decoracionData.gastoMensual[anoMes] || 0) + precio;
       }
@@ -233,8 +248,8 @@ function _getPapeleriaDataForDashboard(sheet) {
   if (!sheet) return {};
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idxProducto = headers.indexOf('PRODUCTO');
-  const idxUnidades = headers.indexOf('Unidades disponibles');
+  const idxProducto = headers.indexOf("PRODUCTO");
+  const idxUnidades = headers.indexOf("Unidades disponibles");
 
   if (idxProducto === -1 || idxUnidades === -1) return {};
 
@@ -264,3 +279,7 @@ function _getPapeleriaDataForDashboard(sheet) {
 
   return papeleriaData;
 }
+
+//==============
+
+

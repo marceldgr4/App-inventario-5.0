@@ -1,25 +1,25 @@
 <style>
-/* =================================================================
+  /* =================================================================
     --- ESTILOS ESPECÍFICOS PARA COMIDA ---
 ================================================================= */
-#comidaContent .main-content p {
+  #comidaContent .main-content p {
     margin-bottom: 0.8rem;
     margin-left: 2rem;
     font-weight: 900;
     margin-top: 14px;
-}
-.tab-content {
+  }
+  .tab-content {
     display: none;
-}
-.tab-content.active {
+  }
+  .tab-content.active {
     display: block;
-}
-/* =================================================================
+  }
+  /* =================================================================
     --- ESTILOS ESPECÍFICOS PARA EL MODAL DE NOTIFICACIONES ---
 ================================================================= */
 
-/* Estilo para el contenedor del modal de vencimiento */
-.modal-content-vencimiento {
+  /* Estilo para el contenedor del modal de vencimiento */
+  .modal-content-vencimiento {
     background-color: var(--card-bg-color);
     border-radius: var(--border-radius-lg);
     box-shadow: var(--box-shadow);
@@ -27,30 +27,30 @@
     width: 95%;
     display: flex;
     flex-direction: column;
-}
+  }
 
-/* Limita la altura del cuerpo del modal y permite el scroll */
-.modal-content-vencimiento .modal-body {
+  /* Limita la altura del cuerpo del modal y permite el scroll */
+  .modal-content-vencimiento .modal-body {
     max-height: 70vh; /* O el valor que prefieras, por ejemplo, 600px */
     overflow-y: auto;
     padding: 20px;
-}
+  }
 
-/* Encabezado del modal de notificaciones */
-.modal-header-actions {
+  /* Encabezado del modal de notificaciones */
+  .modal-header-actions {
     display: flex;
     gap: 10px;
-}
+  }
 
-/* Pestañas del modal de vencimiento */
-.tab-buttons-container {
+  /* Pestañas del modal de vencimiento */
+  .tab-buttons-container {
     display: flex;
     justify-content: center;
     border-bottom: 2px solid var(--border-color);
     margin-bottom: 20px;
-}
+  }
 
-.tab-button {
+  .tab-button {
     background: none;
     border: none;
     padding: 10px 20px;
@@ -59,50 +59,55 @@
     color: var(--text-color-medium);
     cursor: pointer;
     transition: color 0.3s, border-bottom 0.3s;
-}
+  }
 
-.tab-button.active {
+  .tab-button.active {
     color: var(--accent-color-green);
     border-bottom: 2px solid var(--accent-color-green);
-}
+  }
 
-.tab-button:hover:not(.active) {
+  .tab-button:hover:not(.active) {
     color: var(--accent-color-green-hover);
-}
+  }
 
-/* Contenido de las pestañas */
-.tab-content {
+  /* Contenido de las pestañas */
+  .tab-content {
     display: none;
-}
+  }
 
-.tab-content.active {
+  .tab-content.active {
     display: block;
-}
+  }
 
-/* Estilos para las tablas dentro de las pestañas */
-.tab-content table {
+  /* Estilos para las tablas dentro de las pestañas */
+  .tab-content table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
-}
+  }
 
-.tab-content th, .tab-content td {
+  .tab-content th,
+  .tab-content td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-color);
-}
+  }
 
-.tab-content thead th {
+  .tab-content thead th {
     background-color: var(--khaki-green);
     color: var(--text-color-dark);
     font-weight: 700;
-}
+  }
 
-.tab-content tbody tr:nth-child(even) {
+  .tab-content tbody tr:nth-child(even) {
     background-color: var(--soft-grey);
-}
-.tab-content tbody tr:hover {
-    background-color: color-mix(in srgb, var(--secondary-color) 15%, transparent);
-}
+  }
+  .tab-content tbody tr:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--secondary-color) 15%,
+      transparent
+    );
+  }
 </style>
