@@ -204,6 +204,9 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
     categorias: {},
     productos: [],
     gastoMensual: {},
+    gastoTotal: 0,
+    danados: 0,
+    consumoMensual: {},
   };
 
   for (let i = 1; i < data.length; i++) {
@@ -215,6 +218,7 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
 
     if (producto) {
       decoracionData.totalProductos++;
+      decoracionData.gastoTotal += precio;
       if (unidades > 0) {
         decoracionData.unidadesDisponibles++;
       } else {
@@ -281,5 +285,4 @@ function _getPapeleriaDataForDashboard(sheet) {
 }
 
 //==============
-
 

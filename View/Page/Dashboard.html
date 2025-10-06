@@ -1,1 +1,217 @@
-<h1>Hola Mundo</h1>
+<?!= include("View/Css/Css_Generico.html"); ?>
+<?!= include("View/Css/Css_Dashboard.html"); ?>
+
+
+
+<div class="dashboard-container">
+  
+  <!-- Header -->
+  <div class="header-section">
+    <h1>📊 Dashboard de Inventario</h1>
+    <p>Visualización de métricas clave del inventario en tiempo real</p>
+  </div>
+
+  <!-- Métricas Generales Globales -->
+  <div class="metrics-section">
+    <h2>📈 Resumen General</h2>
+    <div class="main-metrics">
+      <div class="metric-card">
+        <div class="metric-icon">📦</div>
+        <h4>Total Productos</h4>
+        <p id="global-total-productos" class="metric-value">0</p>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">✅</div>
+        <h4>Unidades Disponibles</h4>
+        <p id="global-unidades-disponibles" class="metric-value">0</p>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">❌</div>
+        <h4>Unidades Agotadas</h4>
+        <p id="global-unidades-agotadas" class="metric-value">0</p>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">💰</div>
+        <h4>Gasto Total</h4>
+        <p id="global-gasto-total" class="metric-value">$0</p>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">⏰</div>
+        <h4>Larga Estancia</h4>
+        <p id="global-larga-estancia" class="metric-value">0</p>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon">⚠️</div>
+        <h4>Productos Dañados</h4>
+        <p id="global-danados" class="metric-value">0</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Artículos -->
+  <div class="section-container">
+    <h2>🎯 Artículos de Campaña</h2>
+    <div class="section-metrics">
+      <div class="mini-metric">
+        <span>Total Productos:</span>
+        <strong id="inv-total-productos">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Disponibles:</span>
+        <strong id="inv-unidades-disponibles">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Agotadas:</span>
+        <strong id="inv-unidades-agotadas">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Larga Estancia:</span>
+        <strong id="inv-stock-mas-8meses">0</strong>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <h3>Distribución por Programa</h3>
+        <canvas id="inv-pie-chart"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Consumo por Programa</h3>
+        <canvas id="inv-consumo-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Comida -->
+  <div class="section-container">
+    <h2>🍔 Comida</h2>
+    <div class="section-metrics">
+      <div class="mini-metric">
+        <span>Total Productos:</span>
+        <strong id="com-total-productos">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Disponibles:</span>
+        <strong id="com-unidades-disponibles">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Agotadas:</span>
+        <strong id="com-unidades-agotadas">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Gasto Total:</span>
+        <strong id="com-gasto-total">$0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Dañados:</span>
+        <strong id="com-danados">0</strong>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label for="filtroAnoComida">📅 Filtrar por Año:</label>
+      <select id="filtroAnoComida" class="form-control">
+        <option value="">Todos los años</option>
+      </select>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container chart-large">
+        <h3>Gasto Mensual</h3>
+        <canvas id="gastoComidaPorMes"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <h3>Consumo Mensual</h3>
+        <canvas id="consumoComidaPorMes"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Decoración -->
+  <div class="section-container">
+    <h2>🎨 Decoración</h2>
+    <div class="section-metrics">
+      <div class="mini-metric">
+        <span>Total Productos:</span>
+        <strong id="dec-total-productos">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Disponibles:</span>
+        <strong id="dec-unidades-disponibles">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Agotadas:</span>
+        <strong id="dec-unidades-agotadas">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Gasto Total:</span>
+        <strong id="dec-gasto-total">$0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Dañados:</span>
+        <strong id="dec-danados">0</strong>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label for="filtroAnoDecoracion">📅 Filtrar por Año:</label>
+      <select id="filtroAnoDecoracion" class="form-control">
+        <option value="">Todos los años</option>
+      </select>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container chart-large">
+        <h3>Gasto Mensual</h3>
+        <canvas id="gastoDecoracionPorMes"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <h3>Consumo Mensual</h3>
+        <canvas id="consumoDecoracionPorMes"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Papelería -->
+  <div class="section-container">
+    <h2>📝 Papelería</h2>
+    <div class="section-metrics">
+      <div class="mini-metric">
+        <span>Total Productos:</span>
+        <strong id="pap-total-productos">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Disponibles:</span>
+        <strong id="pap-unidades-disponibles">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Agotadas:</span>
+        <strong id="pap-unidades-agotadas">0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Gasto Total:</span>
+        <strong id="pap-gasto-total">$0</strong>
+      </div>
+      <div class="mini-metric">
+        <span>Dañados:</span>
+        <strong id="pap-danados">0</strong>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container chart-large">
+        <h3>Top 10 Productos por Unidades</h3>
+        <canvas id="pap-bar-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <h3>Consumo Mensual</h3>
+        <canvas id="consumoPapeleriaPorMes"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<?!= include("View/Js/Js_Generico.html"); ?>
+<?!= include("View/Js/Js_Dashboard.html"); ?>

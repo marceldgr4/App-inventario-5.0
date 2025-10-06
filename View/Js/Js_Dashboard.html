@@ -1,209 +1,92 @@
-<!-- Js_Dashboard.html -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-
 <script>
-/* =========================
-   Variables globales
-   ========================= */
-let cacheData = null; // aquí guardamos los datos que llegan del servidor
-let graficoGastoComida = null;
-let graficoGastoDecoracion = null;
+/* ============================================
+   DASHBOARD DE INVENTARIO - VERSIÓN MEJORADA (SIMPLIFICADA PARA DEPURACIÓN)
+   ============================================ */
 
-/* =========================
-   Helpers
-   ========================= */
+// Variables globales
+let chartInstances = {};
+let timeoutId = null;
+let dataReceived = false;
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
+
 function showLoading() {
-  const o = document.getElementById('loading-overlay');
-  if (o) o.style.display = 'flex';
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'flex';
 }
+
 function hideLoading() {
-  const o = document.getElementById('loading-overlay');
-  if (o) o.style.display = 'none';
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.style.display = 'none';
+  dataReceived = true;
 }
 
-function setTextById(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value != null ? value : '';
-}
+/* ============================================
+   FUNCIÓN DE ACTUALIZACIÓN SIMPLIFICADA
+   ============================================ */
 
-function formatNumber(n) {
-  try { return Number(n).toLocaleString(); } catch(e){ return String(n); }
-}
+function updateDashboard(data) {
+  console.log('1. updateDashboard SE HA EJECUTADO.');
+  console.log('Datos recibidos (no se procesarán):', JSON.stringify(data, null, 2));
+  
+  console.log('2. Llamando a hideLoading().');
+  hideLoading();
+  console.log('3. hideLoading() llamado. La pantalla de carga debería desaparecer ahora.');
 
-function destroyChartIfExists(canvasId) {
-  const chart = Chart.getChart(canvasId);
-  if (chart) chart.destroy();
-}
-
-/* =========================
-   Render de gráficos
-   ========================= */
-function renderPieChart(canvasId, labels, data, title) {
-  destroyChartIfExists(canvasId);
-  const ctx = document.getElementById(canvasId)?.getContext('2d');
-  if (!ctx) return;
-  new Chart(ctx, {
-    type: 'pie',
-    data: { labels, datasets: [{ data, backgroundColor: ['#4a90e2','#e94e77','#2ecc71','#f39c12','#9b59b6'] }] },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'right' },
-        title: { display: !!title, text: title }
-      }
-    }
-  });
-}
-
-function renderBarChart(canvasId, labels, data, title) {
-  destroyChartIfExists(canvasId);
-  const ctx = document.getElementById(canvasId)?.getContext('2d');
-  if (!ctx) return;
-  new Chart(ctx, {
-    type: 'bar',
-    data: { labels, datasets: [{ label: title, data, backgroundColor: '#4a90e2' }] },
-    options: {
-      responsive: true,
-      plugins: { title: { display: !!title, text: title } },
-      scales: { y: { beginAtZero: true } }
-    }
-  });
-}
-
-function renderLineChart(canvasId, labels, data, title) {
-  destroyChartIfExists(canvasId);
-  const ctx = document.getElementById(canvasId)?.getContext('2d');
-  if (!ctx) return;
-  new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label: title, data, fill: true, borderColor: '#4a90e2', tension: 0.2 }] },
-    options: {
-      responsive: true,
-      plugins: { title: { display: !!title, text: title } },
-      scales: { y: { beginAtZero: true } }
-    }
-  });
-}
-
-/* =========================
-   Filtros con listener único
-   ========================= */
-function llenarFiltroAno(selectId, datos, callback) {
-  const filtro = document.getElementById(selectId);
-  if (!filtro) return;
-  filtro.innerHTML = '<option value="">Todos los años</option>';
-  const anos = [...new Set(Object.keys(datos || {}).map(k => k.split('-')[0]))].sort();
-  anos.forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a; opt.textContent = a;
-    filtro.appendChild(opt);
-  });
-  filtro.onchange = callback;
-}
-
-/* =========================
-   Gráfico de gastos con resalte
-   ========================= */
-function actualizarGraficoGasto(canvasId, datos, filtroId, titulo) {
-  const anoSel = document.getElementById(filtroId)?.value || '';
-  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const valores = [];
-  const etiquetas = [];
-
-  for (let i=1;i<=12;i++) {
-    const mm = i.toString().padStart(2,'0');
-    let val = 0;
-    if (!anoSel) {
-      for (const k of Object.keys(datos||{})) {
-        if (k.endsWith('-'+mm)) val += datos[k];
-      }
-    } else {
-      val = datos[`${anoSel}-${mm}`] || 0;
-    }
-    if (anoSel || val > 0) {
-      etiquetas.push(meses[i-1]);
-      valores.push(val);
-    }
+  // Limpiar el contenido del dashboard para evitar errores con elementos que no se renderizarán
+  const container = document.querySelector('.dashboard-container');
+  if (container) {
+    container.innerHTML = '<h1>Prueba de carga completada</h1><p>El dashboard ha sido deshabilitado temporalmente para depuración. Si ves este mensaje, la comunicación con el servidor funciona.</p>';
   }
 
-  // resaltar mayor
-  const maxVal = Math.max(...valores,0);
-  const bgColors = valores.map(v => v===maxVal ? '#e94e77' : '#4a90e2');
-
-  destroyChartIfExists(canvasId);
-  const ctx = document.getElementById(canvasId)?.getContext('2d');
-  if (!ctx) return;
-  if (canvasId==='gastoComidaPorMes') { if (graficoGastoComida) graficoGastoComida.destroy(); }
-  if (canvasId==='gastoDecoracionPorMes') { if (graficoGastoDecoracion) graficoGastoDecoracion.destroy(); }
-
-  const chart = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: etiquetas, datasets: [{ label: titulo, data: valores, backgroundColor: bgColors }] },
-    options: {
-      responsive: true,
-      plugins: { title: { display: true, text: titulo } },
-      scales: { y: { beginAtZero: true } }
-    }
-  });
-
-  if (canvasId==='gastoComidaPorMes') graficoGastoComida = chart;
-  if (canvasId==='gastoDecoracionPorMes') graficoGastoDecoracion = chart;
+  alert('¡Prueba completada! La función de carga se ejecutó. Si la pantalla de carga desapareció, el problema está en el renderizado de los gráficos.');
 }
 
-/* =========================
-   Función principal
-   ========================= */
-function updateDashboard(data) {
-  hideLoading();
-  if (!data) return;
-  cacheData = data; // 🔑 guardar datos en memoria
 
-  // Inventario
-  const inv = data.inventario || {};
-  setTextById('inv-total-productos', inv.totalProductos || 0);
-  setTextById('inv-unidades-disponibles', inv.unidadesDisponibles || 0);
-  setTextById('inv-unidades-agotadas', inv.unidadesAgotadas || 0);
-  setTextById('inv-total-programas', Object.keys(inv.programas||{}).length);
-  setTextById('inv-stock-mas-8meses', inv.masDeOchoMeses || 0);
-  renderPieChart('inv-pie-chart', Object.keys(inv.programas||{}), Object.values(inv.programas||{}), 'Inventario');
+/* ============================================
+   INICIALIZACIÓN
+   ============================================ */
 
-  // Comida
-  const com = data.comida || {};
-  setTextById('com-total-productos', com.totalProductos || 0);
-  setTextById('com-unidades-disponibles', com.unidadesDisponibles || 0);
-  setTextById('com-unidades-agotadas', com.unidadesAgotadas || 0);
-  llenarFiltroAno('filtroAnoComida', com.gastoMensual, () => {
-    actualizarGraficoGasto('gastoComidaPorMes', com.gastoMensual, 'filtroAnoComida', 'Gasto Comida');
-  });
-  actualizarGraficoGasto('gastoComidaPorMes', com.gastoMensual, 'filtroAnoComida', 'Gasto Comida');
-
-  // Decoración
-  const dec = data.decoracion || {};
-  setTextById('dec-total-productos', dec.totalProductos || 0);
-  setTextById('dec-unidades-disponibles', dec.unidadesDisponibles || 0);
-  setTextById('dec-unidades-agotadas', dec.unidadesAgotadas || 0);
-  llenarFiltroAno('filtroAnoDecoracion', dec.gastoMensual, () => {
-    actualizarGraficoGasto('gastoDecoracionPorMes', dec.gastoMensual, 'filtroAnoDecoracion', 'Gasto Decoración');
-  });
-  actualizarGraficoGasto('gastoDecoracionPorMes', dec.gastoMensual, 'filtroAnoDecoracion', 'Gasto Decoración');
-
-  // Papelería
-  const pap = data.papeleria || {};
-  setTextById('pap-total-productos', pap.totalProductos || 0);
-  setTextById('pap-unidades-disponibles', pap.unidadesDisponibles || 0);
-  setTextById('pap-unidades-agotadas', pap.unidadesAgotadas || 0);
-  renderBarChart('pap-bar-chart', (pap.productos||[]).slice(0,7).map(p=>p.producto), (pap.productos||[]).slice(0,7).map(p=>p.unidades), 'Top Papelería');
-}
-
-/* =========================
-   Inicialización
-   ========================= */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Iniciando carga del dashboard (versión de depuración)...');
+  
   showLoading();
-  google.script.run.withSuccessHandler(updateDashboard).withFailureHandler(err => {
+  dataReceived = false;
+
+  // Timeout de seguridad
+  timeoutId = setTimeout(() => {
+    if (!dataReceived) {
+      console.warn('Timeout: Los datos no se recibieron en 20 segundos');
+      hideLoading();
+      alert('La carga del dashboard está tardando más de lo esperado. Por favor, recargue la página.');
+    }
+  }, 20000);
+
+  // Llamada al servidor
+  try {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        if (timeoutId) clearTimeout(timeoutId);
+        updateDashboard(data);
+      })
+      .withFailureHandler(function(error) {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.error('Error en withFailureHandler:', error);
+        hideLoading();
+        alert('Error en la llamada al servidor: ' + JSON.stringify(error));
+      })
+      .obtenerDatosDashboard();
+  } catch (error) {
+    console.error('Error al iniciar la llamada al servidor:', error);
     hideLoading();
-    console.error('Error al cargar datos', err);
-  }).obtenerDatosDashboard();
+    alert('Error al conectar con el servidor. Por favor, recargue la página.');
+  }
+});
+
+// Limpieza al cerrar/salir de la página
+window.addEventListener('beforeunload', function() {
+  if (timeoutId) clearTimeout(timeoutId);
 });
 </script>
