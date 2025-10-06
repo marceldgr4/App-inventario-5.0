@@ -1,418 +1,417 @@
 <script>
-        // Variables globales
-        let fullActaData = [];
-        let currentActaPage = 1;
-        let actaItemsPerPage = 10;
-        let productoComentarioSeleccionadoActa = null;
-        let fechaOrdenAscendenteActa = false;
+  (function () {
+    // =================================================
+    // --- VARIABLES DE ESTADO DE LA PÁGINA
+    // =================================================
+    const pageState = {
+      fullData: [],
+      datosMostrados: [],
+      currentPage: 1,
+      itemsPerPage: 10,
+      fechaOrdenAscendente: false,
+      productoComentarioSeleccionado: null,
+    };
 
-        // Funciones de utilidad
-        function escapeHtml(unsafe) {
-            if (typeof unsafe !== 'string') return '';
-            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-                         .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
+    // =======================================
+    // --- 1. CARGA DE DATOS
+    // =======================================
+    function loadActa() {
+      loadDataGenerico({
+        endpoint: "getActaData",
+        tbodyId: "tablaActaBody",
+        noDataId: "noDataActa",
+        containerId: "actaContent",
+        onSuccess: function (data) {
+          pageState.fullData = data;
+          pageState.currentPage = 1;
+          aplicarFiltrosYOrdenarActa();
+          if (pageState.fullData.length === 0) {
+            document.getElementById("noDataActa").style.display = "block";
+          } else {
+            document.getElementById("noDataActa").style.display = "none";
+            document.getElementById("actaContent").style.display = "block";
+          }
+          cargarNotificacionesDeComentariosActa();
+        },
+      });
+    }
 
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return '';
-            return date.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
-        }
+    // ===========================================
+    // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN
+    // ===========================================
+    function renderPaginatedTableActa() {
+      renderPaginatedTableGeneric({
+        data: pageState.datosMostrados,
+        currentPage: pageState.currentPage,
+        itemsPerPage: pageState.itemsPerPage,
+        tbodyId: "tablaActaBody",
+        paginationContainerId: "actaPagination",
+        noDataMessage: "No hay actas que coincidan con los filtros.",
+        onRowCreated: (row, item) => {
+          row.dataset.id = item["Id"] || "";
+          row.dataset.producto = item["Producto"] || "";
+          row.dataset.programa = item["Programa"] || "";
+        },
+        renderRow: (item) => {
+          const pdfUrl = item['Link'] || item['Link Del PDF'] || '';
+          const nombreCompleto = item['Nombre Completo'] || item['Nombre Compelto'] || '';
+          const productoEscape = escapeHtml(item['Producto'] || '');
+          const programaEscape = escapeHtml(item['Programa'] || '');
+          const fechaEntrega = formatDate(item['Fecha de entrega']);
+          const fechaCarga = formatDate(item['fecha de carga']);
 
-        function showLoadingActa() {
-            document.getElementById('loadingOverlayActa').style.display = 'flex';
-        }
+          const pdfCell = pdfUrl ? `
+              <a href="${pdfUrl}" target="_blank" style="margin-right:10px;color:#007bff;">
+                  <ion-icon name="eye-outline" style="font-size:22px;"></ion-icon>
+              </a>
+              <a href="${pdfUrl}" download style="color:#28a745;">
+                  <ion-icon name="download-outline" style="font-size:22px;"></ion-icon>
+              </a>
+          ` : 'No disponible';
 
-        function hideLoadingActa() {
-            document.getElementById('loadingOverlayActa').style.display = 'none';
-        }
-
-        function mostrarMensajeActa(mensaje) {
-            const div = document.getElementById('mensajeConfirmacion');
-            div.querySelector('span').textContent = mensaje;
-            div.style.display = 'block';
-            setTimeout(() => div.style.display = 'none', 5000);
-        }
-
-        function cerrarMensajeActa() {
-            document.getElementById('mensajeConfirmacion').style.display = 'none';
-        }
-
-        // Modales
-        function abrirModalAgregarActa() {
-            document.getElementById('modalAgregarActa').classList.add('is-active');
-        }
-
-        function cerrarModalAgregarActa() {
-            document.getElementById('modalAgregarActa').classList.remove('is-active');
-            document.getElementById('formActaAgregar').reset();
-        }
-
-        function abrirModalComentarioActa(id, producto, programa) {
-            productoComentarioSeleccionadoActa = { id, producto, programa, sheetName: 'Acta' };
-            document.getElementById('modalComentarioActa').classList.add('is-active');
-            document.getElementById('comentarioProductoIdActa').textContent = id;
-            document.getElementById('comentarioProductoNombreActa').textContent = producto;
-            document.getElementById('comentarioProductoProgramaActa').textContent = programa;
-        }
-
-        function cerrarModalComentarioActa() {
-            document.getElementById('modalComentarioActa').classList.remove('is-active');
-            document.getElementById('comentarioActaForm').reset();
-        }
-
-        function abrirModalNotificacionComentarioActa() {
-            document.getElementById('modalNotificacion-ComentarioActa').classList.add('is-active');
-            cargarNotificacionesDeComentariosActa();
-        }
-
-        function cerrarModalNotificacionComentarioActa() {
-            document.getElementById('modalNotificacion-ComentarioActa').classList.remove('is-active');
-        }
-
-        // Carga de datos
-        function loadActa() {
-            showLoadingActa();
-            google.script.run
-                .withSuccessHandler(response => {
-                    const data = JSON.parse(response);
-                    fullActaData = data.data || [];
-                    fullActaData.sort((a, b) => new Date(b['Fecha de entrega']) - new Date(a['Fecha de entrega']));
-                    currentActaPage = 1;
-                    renderActaPaginatedTable(fullActaData);
-                    hideLoadingActa();
-                })
-                .withFailureHandler(error => {
-                    console.error('Error:', error);
-                    hideLoadingActa();
-                })
-                .getActaData();
-        }
-
-        // Renderizado
-        function renderActaPaginatedTable(data) {
-            const start = (currentActaPage - 1) * actaItemsPerPage;
-            const items = data.slice(start, start + actaItemsPerPage);
-            generateActaTable(items);
-            renderActaPaginationControls(data.length);
-        }
-
-        function generateActaTable(items) {
-            const tbody = document.getElementById('tablaBody');
-            tbody.innerHTML = '';
+          return `
+              <td>${item['Id'] || ''}</td>
+              <td>${item["Id_Usuario"]||""}</td>
+              <td>${item["Usuario"]||""}</td>
+              <td>${fechaEntrega}</td>
+              <td>${productoEscape}</td>
+              <td>${programaEscape}</td>
+              <td>${item['Cantidad'] || ''}</td>
             
-            if (items.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='11' style='text-align:center;'>No hay actas para mostrar</td></tr>";
-                return;
-            }
+              <td>${item['Ciudad'] || ''}</td>
+              <td>${nombreCompleto}</td>
+              <td>${fechaCarga}</td>
+              <td>${pdfCell}</td>
+              <td>
+                  <button class="btn-comentario"><ion-icon name="chatbubble-outline"></ion-icon></button>
+              </td>
+          `;
+        },
+        onPageChange: (page) => {
+          pageState.currentPage = page;
+          renderPaginatedTableActa();
+        },
+      });
+    }
 
-            items.forEach(item => {
-                const row = tbody.insertRow();
-                const pdfUrl = item['Link'] || item['Link Del PDF'] || '';
-                const pdfCell = pdfUrl ? `
-                    <a href="${pdfUrl}" target="_blank" style="margin-right:10px;color:#007bff;">
-                        <ion-icon name="eye-outline" style="font-size:22px;"></ion-icon>
-                    </a>
-                    <a href="${pdfUrl}" download style="color:#28a745;">
-                        <ion-icon name="download-outline" style="font-size:22px;"></ion-icon>
-                    </a>
-                ` : 'No disponible';
+    document.getElementById("tablaActaBody")?.addEventListener("click", (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
+      const id = row.dataset.id;
+      const producto = row.dataset.producto;
+      const programa = row.dataset.programa;
 
-                row.innerHTML = `
-                    <td>${item['Id'] || ''}</td>
-                    <td>${formatDate(item['Fecha de entrega'])}</td>
-                    <td>${item['Programa'] || ''}</td>
-                    <td>${item['Producto'] || ''}</td>
-                    <td>${item['Cantidad'] || ''}</td>
-                    <td>${item['Nombre Compelto'] || item['Nombre Completo'] || ''}</td>
-                    <td>${item['Ciudad'] || ''}</td>
-                    <td>${item['Usuario'] || ''}</td>
-                    <td>${formatDate(item['fecha de carga'])}</td>
-                    <td>${pdfCell}</td>
-                    <td>
-                        <button class="btn-comentario" onclick="abrirModalComentarioActa('${item['Id']}', '${escapeHtml(item['Producto'] || '')}', '${escapeHtml(item['Programa'] || '')}')">
-                            <ion-icon name="chatbubble-outline"></ion-icon>
-                        </button>
-                    </td>
-                `;
-            });
-        }
+      if (e.target.closest(".btn-comentario")) {
+        abrirModalComentarioActa(id, producto, programa);
+      }
+    });
 
-        function renderActaPaginationControls(total) {
-            const div = document.getElementById('pagination');
-            const totalPages = Math.ceil(total / actaItemsPerPage) || 1;
-            if (totalPages <= 1) { div.innerHTML = ''; return; }
+    // =================================================
+    // --- 4. FILTROS Y ORDENAMIENTO
+    // =================================================
+    function aplicarFiltrosYOrdenarActa() {
+      aplicarFiltrosYOrdenarGenerico({
+        dataSource: pageState.fullData,
+        setResultados: (val) => {
+          pageState.datosMostrados = val;
+          pageState.currentPage = 1;
+        },
+        fechaOrdenAsc: pageState.fechaOrdenAscendente,
+        campoFecha: 'Fecha de entrega',
+        renderFn: renderPaginatedTableActa,
+        filters: [
+          { id: "buscarProducto", fields: ["Producto", "Programa", "Nombre Completo", "Nombre Compelto"], type: "text" },
+        ],
+      });
+    }
 
-            let html = `<button onclick="changeActaPage(${Math.max(1, currentActaPage - 1)})" ${currentActaPage === 1 ? 'disabled' : ''}>Anterior</button>`;
-            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
-                html += `<button class="${i === currentActaPage ? 'active' : ''}" onclick="changeActaPage(${i})">${i}</button>`;
-            }
-            html += `<button onclick="changeActaPage(${Math.min(totalPages, currentActaPage + 1)})" ${currentActaPage === totalPages ? 'disabled' : ''}>Siguiente</button>`;
-            div.innerHTML = html;
-        }
+    // ===================================
+    // --- 5. MANEJO DE MODALES
+    // ===================================
+    function abrirModalAgregarActa() {
+      abrirModal("modalAgregarActa");
+      document.getElementById("formActaAgregar").reset();
+    }
+    function cerrarModalAgregarActa() {
+      cerrarModal("modalAgregarActa");
+    }
 
-        function changeActaPage(page) {
-            currentActaPage = page;
-            renderActaPaginatedTable(fullActaData);
-        }
+    function abrirModalComentarioActa(id, producto, programa) {
+      pageState.productoComentarioSeleccionado = { id, producto, programa };
+      abrirModal("modalComentarioActa");
+      document.getElementById("comentarioProductoIdActa").textContent = id;
+      document.getElementById("comentarioProductoNombreActa").textContent = producto;
+      document.getElementById("comentarioProductoProgramaActa").textContent = programa;
+      document.getElementById("comentarioTextoActa").value = "";
+    }
+    function cerrarModalComentarioActa() {
+      cerrarModal("modalComentarioActa");
+      pageState.productoComentarioSeleccionado = null;
+    }
+    
+    function abrirModalNotificacionComentarioActa() {
+      abrirModal("modalNotificacion-ComentarioActa");
+      cargarNotificacionesDeComentariosActa();
+    }
+    function cerrarModalNotificacionComentarioActa() {
+      cerrarModal("modalNotificacion-ComentarioActa");
+    }
 
-        // Búsqueda
-        function buscarPorNombre() {
-            const query = document.getElementById('buscarProducto').value.toLowerCase();
-            const resultado = query ? fullActaData.filter(item =>
-                (item['Producto'] || '').toLowerCase().includes(query) ||
-                (item['Programa'] || '').toLowerCase().includes(query) ||
-                (item['Nombre Completo'] || item['Nombre Compelto'] || '').toLowerCase().includes(query)
-            ) : fullActaData;
-            currentActaPage = 1;
-            renderActaPaginatedTable(resultado);
-        }
+    // =========================================
+    // --- 6. MANEJADORES DE ENVÍO DE FORMULARIOS
+    // =========================================
+    document.getElementById('formActaAgregar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const archivo = document.getElementById('pdfArchivoAgregar').files[0];
+        if (!archivo) { mostrarMensaje('Seleccione un PDF', 'error'); return; }
 
-        // Ordenamiento
-        function ordenarPorFechaActa(e) {
-            e.stopPropagation();
-            document.getElementById('sortOptions').classList.toggle('show');
-        }
-
-        function ordenarAscendenteActa() {
-            fullActaData.sort((a, b) => new Date(a['Fecha de entrega']) - new Date(b['Fecha de entrega']));
-            currentActaPage = 1;
-            renderActaPaginatedTable(fullActaData);
-            document.getElementById('sortOptions').classList.remove('show');
-        }
-
-        function ordenarDescendenteActa() {
-            fullActaData.sort((a, b) => new Date(b['Fecha de entrega']) - new Date(a['Fecha de entrega']));
-            currentActaPage = 1;
-            renderActaPaginatedTable(fullActaData);
-            document.getElementById('sortOptions').classList.remove('show');
-        }
-
-        // Formularios
-        document.getElementById('formActaAgregar').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const archivo = document.getElementById('pdfArchivoAgregar').files[0];
-            if (!archivo) { alert('Seleccione un PDF'); return; }
-
-            showLoadingActa();
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                const data = {
-                    base64PDF: event.target.result.split(',')[1],
-                    nombreArchivo: archivo.name,
-                    fechaEntregaAgregar: document.getElementById('fechaEntregaAgregar').value,
-                    productoAgregar: document.getElementById('productoAgregar').value,
-                    programaAgregar: document.getElementById('programaAgregar').value,
-                    cantidadAgregar: document.getElementById('cantidadAgregar').value,
-                    nombreCompletoAgregar: document.getElementById('nombreCompletoAgregar').value,
-                    ciudadAgregar: document.getElementById('ciudadAgregar').value,
-                    nombreUsuarioAgregar: document.getElementById('nombreUsuarioAgregar').value,
-                    fechaCargaPDFAgregar: new Date().toISOString()
-                };
-
-                google.script.run
-                    .withSuccessHandler(response => {
-                        hideLoadingActa();
-                        mostrarMensajeActa('Acta guardada exitosamente');
-                        cerrarModalAgregarActa();
-                        loadActa();
-                    })
-                    .withFailureHandler(error => {
-                        hideLoadingActa();
-                        alert('Error: ' + error.message);
-                    })
-                    .subirActaConPDF(data);
+        showLoading(true, 'loadingOverlayActa');
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const data = {
+                base64PDF: event.target.result.split(',')[1],
+                nombreArchivo: archivo.name,
+                fechaEntregaAgregar: document.getElementById('fechaEntregaAgregar').value,
+                productoAgregar: document.getElementById('productoAgregar').value,
+                programaAgregar: document.getElementById('programaAgregar').value,
+                cantidadAgregar: document.getElementById('cantidadAgregar').value,
+                nombreCompletoAgregar: document.getElementById('nombreCompletoAgregar').value,
+                ciudadAgregar: document.getElementById('ciudadAgregar').value,
+                nombreUsuarioAgregar: document.getElementById('nombreUsuarioAgregar').value,
+                fechaCargaPDFAgregar: new Date().toISOString()
             };
-            reader.readAsDataURL(archivo);
-        });
 
-        document.getElementById('comentarioActaForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            if (!productoComentarioSeleccionadoActa) return;
-
-            const comentario = document.getElementById('comentarioTextoActa').value.trim();
-            if (!comentario) return;
-
-            showLoadingActa();
             google.script.run
                 .withSuccessHandler(response => {
-                    hideLoadingActa();
-                    const res = JSON.parse(response);
-                    mostrarMensajeActa(res.success ? 'Comentario guardado' : 'Error');
-                    cerrarModalComentarioActa();
-                    cargarNotificacionesDeComentariosActa();
+                    hideLoading('loadingOverlayActa');
+                    mostrarMensaje('Acta guardada exitosamente', 'success');
+                    cerrarModalAgregarActa();
+                    loadActa();
                 })
                 .withFailureHandler(error => {
-                    hideLoadingActa();
-                    alert('Error: ' + error.message);
+                    hideLoading('loadingOverlayActa');
+                    mostrarMensaje('Error: ' + error.message, 'error');
                 })
-                .registrarNuevoComentario({
-                    sheetName: 'Acta',
-                    productoId: productoComentarioSeleccionadoActa.id,
-                    producto: productoComentarioSeleccionadoActa.producto,
-                    comentario: comentario
-                });
-        });
-
-        // Notificaciones de Comentarios
-        function cargarNotificacionesDeComentariosActa() {
-            showLoadingActa();
-            const origen = 'Acta';
-
-            Promise.all([
-                new Promise((resolve, reject) => {
-                    google.script.run
-                        .withSuccessHandler(response => resolve(JSON.parse(response)))
-                        .withFailureHandler(reject)
-                        .getNotificacionesPendientesUsuario(origen);
-                }),
-                new Promise((resolve, reject) => {
-                    google.script.run
-                        .withSuccessHandler(response => resolve(JSON.parse(response)))
-                        .withFailureHandler(reject)
-                        .getNotificacionesLeidasUsuario(origen);
-                })
-            ]).then(([pendientes, leidas]) => {
-                hideLoadingActa();
-                renderNotificacionesPendientesActa(pendientes.data || []);
-                renderNotificacionesLeidasActa(leidas.data || []);
-                
-                const count = (pendientes.data || []).length;
-                const badge = document.getElementById('notificacionCantidadComentariosActa');
-                if (badge) {
-                    badge.textContent = count;
-                    badge.style.display = count > 0 ? 'inline-block' : 'none';
-                }
-            }).catch(error => {
-                hideLoadingActa();
-                console.error('Error cargando notificaciones:', error);
-            });
-        }
-
-        function renderNotificacionesPendientesActa(data) {
-            const tbody = document.getElementById('notificacionesPendientesBodyActa');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No tienes respuestas pendientes</td></tr>';
-                return;
-            }
-
-            data.forEach(item => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${escapeHtml(item.Producto)}</td>
-                    <td>${escapeHtml(item.Comentario)}</td>
-                    <td>${escapeHtml(item.Respuesta)}</td>
-                    <td>
-                        <button class="btn btn-primary" onclick="confirmarLecturaNotificacionActa(${item.Id})">
-                            <ion-icon name="checkmark-done-outline"></ion-icon> Confirmar
-                        </button>
-                    </td>
-                `;
-            });
-        }
-
-        function renderNotificacionesLeidasActa(data) {
-            const tbody = document.getElementById('notificacionesLeidasBodyActa');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No tienes notificaciones leídas</td></tr>';
-                return;
-            }
-
-            data.forEach(item => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${escapeHtml(item.Producto)}</td>
-                    <td>${escapeHtml(item.Comentario)}</td>
-                    <td>${escapeHtml(item.Respuesta)}</td>
-                    <td>
-                        <button class="btn btn-secondary" onclick="borrarNotificacionUsuarioActa(${item.Id})">
-                            <ion-icon name="trash-outline"></ion-icon> Borrar
-                        </button>
-                    </td>
-                `;
-            });
-        }
-
-        function confirmarLecturaNotificacionActa(id) {
-            showLoadingActa();
-            google.script.run
-                .withSuccessHandler(response => {
-                    const res = JSON.parse(response);
-                    hideLoadingActa();
-                    if (res.success) {
-                        mostrarMensajeActa('Notificación movida a leídas');
-                        cargarNotificacionesDeComentariosActa();
-                    }
-                })
-                .withFailureHandler(error => {
-                    hideLoadingActa();
-                    alert('Error: ' + error.message);
-                })
-                .confirmarRespuesta(id);
-        }
-
-        function borrarNotificacionUsuarioActa(id) {
-            if (!confirm('¿Seguro que deseas borrar esta notificación?')) return;
-            
-            showLoadingActa();
-            google.script.run
-                .withSuccessHandler(response => {
-                    const res = JSON.parse(response);
-                    hideLoadingActa();
-                    if (res.success) {
-                        mostrarMensajeActa('Notificación borrada');
-                        cargarNotificacionesDeComentariosActa();
-                    }
-                })
-                .withFailureHandler(error => {
-                    hideLoadingActa();
-                    alert('Error: ' + error.message);
-                })
-                .marcarComentarioBorradoUsuario(id);
-        }
-
-        function mostrarTab(tabId, btn) {
-            const container = btn.closest('.tab-buttons-container');
-            if (!container) return;
-            
-            container.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const modalBody = container.closest('.modal-body');
-            modalBody.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
-            const selected = modalBody.querySelector(`#${tabId}`);
-            if (selected) selected.classList.add('active');
-        }
-
-        // Cerrar menús al hacer clic fuera
-        window.onclick = function(e) {
-            if (!e.target.matches('.sort-menu-icon')) {
-                document.querySelectorAll('.sort-options').forEach(el => {
-                    if (el.classList.contains('show')) el.classList.remove('show');
-                });
-            }
+                .subirActaConPDF(data);
         };
+        reader.readAsDataURL(archivo);
+    });
 
-        // Cerrar modales con ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                cerrarModalAgregarActa();
-                cerrarModalComentarioActa();
-                cerrarModalNotificacionComentarioActa();
+    document.getElementById('comentarioActaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const comentario = document.getElementById("comentarioTextoActa").value.trim();
+        if (!comentario) return mostrarMensaje("El comentario no puede estar vacío.", "error");
+
+        const { id, producto } = pageState.productoComentarioSeleccionado;
+        const usuario = currentUser ? currentUser.name : "Desconocido";
+
+        registrarComentarioGenerico({
+            sheetName: "Acta",
+            productoId: id,
+            producto: producto,
+            comentario: comentario,
+            usuario: usuario,
+            reloadFn: cargarNotificacionesDeComentariosActa,
+        });
+        cerrarModalComentarioActa();
+    });
+
+    // =================================================
+    // --- 8. LÓGICA DE NOTIFICACIONES DE COMENTARIOS
+    // =================================================
+    function cargarNotificacionesDeComentariosActa() {
+        showLoading(true, 'loadingOverlayActa');
+        const origen = "Acta";
+
+        Promise.all([
+            new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(response => resolve(JSON.parse(response)))
+                    .withFailureHandler(reject)
+                    .getNotificacionesPendientesUsuario(origen);
+            }),
+            new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(response => resolve(JSON.parse(response)))
+                    .withFailureHandler(reject)
+                    .getNotificacionesLeidasUsuario(origen);
+            })
+        ]).then(([pendientesResult, leidasResult]) => {
+            hideLoading('loadingOverlayActa');
+            if (pendientesResult.error || leidasResult.error) {
+                mostrarMensaje("Error al cargar notificaciones: " + (pendientesResult.error || leidasResult.error), "error");
+                return;
+            }
+            renderNotificacionesPendientesActa(pendientesResult.data || []);
+            renderNotificacionesLeidasActa(leidasResult.data || []);
+            
+            const count = (pendientesResult.data || []).length;
+            const notifCountEl = document.getElementById('notificacionCantidadComentariosActa');
+            if (notifCountEl) {
+                notifCountEl.textContent = count;
+                notifCountEl.style.display = count > 0 ? 'inline-block' : 'none';
+            }
+
+        }).catch(error => {
+            hideLoading('loadingOverlayActa');
+            console.error("Error fatal al cargar notificaciones de comentarios:", error);
+            mostrarMensaje("Error de conexión al cargar notificaciones.", "error");
+        });
+    }
+
+    function renderNotificacionesPendientesActa(data) {
+        const tbody = document.getElementById('notificacionesPendientesBodyActa');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No tienes respuestas pendientes.</td></tr>';
+            return;
+        }
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${escapeHtml(item.Producto)}</td>
+                <td>${escapeHtml(item.Comentario)}</td>
+                <td>${escapeHtml(item.Respuesta)}</td>
+                <td>
+                    <button class="btn-confirmar" onclick="confirmarLecturaNotificacionActa(${item.Id})">
+                        <ion-icon name="checkmark-done-outline"></ion-icon> Confirmar
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    function renderNotificacionesLeidasActa(data) {
+        const tbody = document.getElementById('notificacionesLeidasBodyActa');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No tienes notificaciones leídas.</td></tr>';
+            return;
+        }
+        data.forEach(item => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${escapeHtml(item.Producto)}</td>
+                <td>${escapeHtml(item.Comentario)}</td>
+                <td>${escapeHtml(item.Respuesta)}</td>
+                <td>
+                    <button class="btn-eliminar" onclick="borrarNotificacionUsuarioActa(${item.Id})">
+                        <ion-icon name="trash-outline"></ion-icon> Borrar
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    function confirmarLecturaNotificacionActa(comentarioId) {
+        showLoading(true, 'loadingOverlayActa');
+        google.script.run
+            .withSuccessHandler(response => {
+                const result = JSON.parse(response);
+                hideLoading('loadingOverlayActa');
+                if (result.success) {
+                    mostrarMensaje("Notificación movida a leídas.", "success");
+                    cargarNotificacionesDeComentariosActa();
+                } else {
+                    mostrarMensaje("Error: " + result.message, "error");
+                }
+            })
+            .withFailureHandler(handleServerError)
+            .confirmarRespuesta(comentarioId);
+    }
+
+    function borrarNotificacionUsuarioActa(comentarioId) {
+        if (!confirm("¿Estás seguro de que quieres borrar esta notificación? No podrás verla de nuevo.")) {
+            return;
+        }
+        showLoading(true, 'loadingOverlayActa');
+        google.script.run
+            .withSuccessHandler(response => {
+                const result = JSON.parse(response);
+                hideLoading('loadingOverlayActa');
+                if (result.success) {
+                    mostrarMensaje("Notificación borrada.", "success");
+                    cargarNotificacionesDeComentariosActa();
+                } else {
+                    mostrarMensaje("Error: " + result.message, "error");
+                }
+            })
+            .withFailureHandler(handleServerError)
+            .marcarComentarioBorradoUsuario(comentarioId);
+    }
+    
+    function setupNotificacionTabsActa() {
+        const tabContainer = document.querySelector('#modalNotificacion-ComentarioActa .tab-buttons-container');
+        if (!tabContainer) return;
+
+        if (tabContainer.dataset.listenerAttached) return;
+        tabContainer.dataset.listenerAttached = 'true';
+
+        tabContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.tab-button');
+            if (button) {
+                const tabId = button.dataset.tab;
+                
+                document.querySelectorAll('#modalNotificacion-ComentarioActa .tab-content').forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+
+                document.querySelectorAll('#modalNotificacion-ComentarioActa .tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                const activeContent = document.getElementById(tabId);
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                    activeContent.style.display = 'block';
+                }
+                button.classList.add('active');
             }
         });
+    }
 
-        // Inicialización
-        window.addEventListener('load', function() {
-            loadActa();
-            cargarNotificacionesDeComentariosActa();
-        });
-    </script>
+    // ===============================================
+    // --- 9. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL
+    // ===============================================
+    function inicializarPaginaActa() {
+      document.getElementById("buscarProducto")?.addEventListener("input", aplicarFiltrosYOrdenarActa);
+      setupNotificacionTabsActa();
+      loadActa();
+    }
+
+    registrarEscapeCierraModales([
+      cerrarModalAgregarActa,
+      cerrarModalComentarioActa,
+      cerrarModalNotificacionComentarioActa,
+    ]);
+
+    Object.assign(window, {
+      abrirModalAgregarActa,
+      cerrarModalAgregarActa,
+      abrirModalComentarioActa,
+      cerrarModalComentarioActa,
+      abrirModalNotificacionComentarioActa,
+      cerrarModalNotificacionComentarioActa,
+      ordenarPorFecha: (e) => ordenarPorFechaGenerico(e, "sortOptions"),
+      ordenarAscendente: () =>
+        ordenarAscendenteGenerico(
+          aplicarFiltrosYOrdenarActa,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+      ordenarDescendente: () =>
+        ordenarDescendenteGenerico(
+          aplicarFiltrosYOrdenarActa,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+      confirmarLecturaNotificacionActa,
+      borrarNotificacionUsuarioActa,
+    });
+
+    inicializarPaginaActa();
+  })();
+</script>

@@ -87,6 +87,7 @@ function loadContent(pageName) {
   let contentFile;
   if (
     pageName === "Articulos" ||
+    pageName === "Acta" ||
     pageName === "Categorias" ||
     pageName === "Usuario" ||
     pageName === "Registro" ||
