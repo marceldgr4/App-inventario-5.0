@@ -87,10 +87,11 @@ function loadContent(pageName) {
   let contentFile;
   if (
     pageName === "Articulos" ||
+    pageName === "Acta" ||
     pageName === "Categorias" ||
-    pageName === "Usuarios" ||
-    pageName === "Proveedores" ||
-    pageName === "Clientes" ||
+    pageName === "Usuario" ||
+    pageName === "Registro" ||
+    pageName === "Perfil" ||
     pageName === "Ventas" ||
     pageName === "Compras" ||
     pageName === "Reportes" ||
@@ -98,11 +99,12 @@ function loadContent(pageName) {
     pageName === "Comida" ||
     pageName === "Decoracion" ||
     pageName === "Papeleria" ||
-    pageName === "Comentario"
+    pageName === "Comentario" ||
+    pageName === "Dashboard"
   ) {
-    contentFile = `View/Page/${pageName}`;
+    contentFile = `View/Page/${pageName}.html`;
   } else {
-    contentFile = `View/${pageName}_content`;
+    contentFile = `View/${pageName}_content.html`;
   }
 
   try {
@@ -120,6 +122,5 @@ function loadContent(pageName) {
 }
 
 function include(filename) {
-  const cleanFilename = filename.replace(".html", "");
-  return HtmlService.createHtmlOutputFromFile(cleanFilename).getContent();
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
