@@ -193,6 +193,9 @@ function _getDecoracionDataForDashboardWithMonthlySpending(sheet) {
     categorias: {},
     productos: [],
     gastoMensual: {},
+    gastoTotal: 0,
+    danados: 0,
+    consumoMensual: {},
   };
 
   for (let i = 1; i < data.length; i++) {
