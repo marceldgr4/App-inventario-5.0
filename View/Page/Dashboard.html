@@ -1,217 +1,64 @@
-<?!= include("View/Css/Css_Generico.html"); ?>
-<?!= include("View/Css/Css_Dashboard.html"); ?>
-
-
-
-<div class="dashboard-container">
-  
-  <!-- Header -->
-  <div class="header-section">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <?!= include('View/Css/Css_Dashboard'); ?>
+</head>
+<body>
+   <div class="dashboard-container">
     <h1>📊 Dashboard de Inventario</h1>
-    <p>Visualización de métricas clave del inventario en tiempo real</p>
+
+    <!-- ========== INVENTARIO ========== -->
+    <section id="inventario-section" class="dashboard-section">
+      <h2>Inventario General</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-inventario">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-inventario">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-inventario">--</p></div>
+        <div class="stat-card"><h3>+8 Meses en Storage</h3><p id="mas-ocho-meses">--</p></div>
+      </div>
+      <canvas id="chartInventario" height="120"></canvas>
+    </section>
+
+    <!-- ========== COMIDA ========== -->
+    <section id="comida-section" class="dashboard-section">
+      <h2>Sección de Comida</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-comida">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-comida">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-comida">--</p></div>
+      </div>
+      <canvas id="chartGastoComida" height="150"></canvas>
+    </section>
+
+    <!-- ========== DECORACIÓN ========== -->
+    <section id="decoracion-section" class="dashboard-section">
+      <h2>Sección de Decoración</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-decoracion">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-decoracion">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-decoracion">--</p></div>
+      </div>
+      <canvas id="chartCategoriasDecoracion" height="120"></canvas>
+      <canvas id="chartGastoDecoracion" height="150"></canvas>
+    </section>
+
+    <!-- ========== PAPELERÍA ========== -->
+    <section id="papeleria-section" class="dashboard-section">
+      <h2>Sección de Papelería</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-papeleria">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-papeleria">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-papeleria">--</p></div>
+      </div>
+      <canvas id="chartPapeleria" height="100"></canvas>
+    </section>
   </div>
 
-  <!-- Métricas Generales Globales -->
-  <div class="metrics-section">
-    <h2>📈 Resumen General</h2>
-    <div class="main-metrics">
-      <div class="metric-card">
-        <div class="metric-icon">📦</div>
-        <h4>Total Productos</h4>
-        <p id="global-total-productos" class="metric-value">0</p>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">✅</div>
-        <h4>Unidades Disponibles</h4>
-        <p id="global-unidades-disponibles" class="metric-value">0</p>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">❌</div>
-        <h4>Unidades Agotadas</h4>
-        <p id="global-unidades-agotadas" class="metric-value">0</p>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">💰</div>
-        <h4>Gasto Total</h4>
-        <p id="global-gasto-total" class="metric-value">$0</p>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">⏰</div>
-        <h4>Larga Estancia</h4>
-        <p id="global-larga-estancia" class="metric-value">0</p>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">⚠️</div>
-        <h4>Productos Dañados</h4>
-        <p id="global-danados" class="metric-value">0</p>
-      </div>
-    </div>
-  </div>
 
-  <!-- Sección de Artículos -->
-  <div class="section-container">
-    <h2>🎯 Artículos de Campaña</h2>
-    <div class="section-metrics">
-      <div class="mini-metric">
-        <span>Total Productos:</span>
-        <strong id="inv-total-productos">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Disponibles:</span>
-        <strong id="inv-unidades-disponibles">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Agotadas:</span>
-        <strong id="inv-unidades-agotadas">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Larga Estancia:</span>
-        <strong id="inv-stock-mas-8meses">0</strong>
-      </div>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container">
-        <h3>Distribución por Programa</h3>
-        <canvas id="inv-pie-chart"></canvas>
-      </div>
-      <div class="chart-container">
-        <h3>Consumo por Programa</h3>
-        <canvas id="inv-consumo-chart"></canvas>
-      </div>
-    </div>
-  </div>
+    <?!= include('View/Js/Js_Dashboard'); ?>
+</body>
+</html>
 
-  <!-- Sección de Comida -->
-  <div class="section-container">
-    <h2>🍔 Comida</h2>
-    <div class="section-metrics">
-      <div class="mini-metric">
-        <span>Total Productos:</span>
-        <strong id="com-total-productos">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Disponibles:</span>
-        <strong id="com-unidades-disponibles">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Agotadas:</span>
-        <strong id="com-unidades-agotadas">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Gasto Total:</span>
-        <strong id="com-gasto-total">$0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Dañados:</span>
-        <strong id="com-danados">0</strong>
-      </div>
-    </div>
-    <div class="filter-group">
-      <label for="filtroAnoComida">📅 Filtrar por Año:</label>
-      <select id="filtroAnoComida" class="form-control">
-        <option value="">Todos los años</option>
-      </select>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container chart-large">
-        <h3>Gasto Mensual</h3>
-        <canvas id="gastoComidaPorMes"></canvas>
-      </div>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container">
-        <h3>Consumo Mensual</h3>
-        <canvas id="consumoComidaPorMes"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sección de Decoración -->
-  <div class="section-container">
-    <h2>🎨 Decoración</h2>
-    <div class="section-metrics">
-      <div class="mini-metric">
-        <span>Total Productos:</span>
-        <strong id="dec-total-productos">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Disponibles:</span>
-        <strong id="dec-unidades-disponibles">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Agotadas:</span>
-        <strong id="dec-unidades-agotadas">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Gasto Total:</span>
-        <strong id="dec-gasto-total">$0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Dañados:</span>
-        <strong id="dec-danados">0</strong>
-      </div>
-    </div>
-    <div class="filter-group">
-      <label for="filtroAnoDecoracion">📅 Filtrar por Año:</label>
-      <select id="filtroAnoDecoracion" class="form-control">
-        <option value="">Todos los años</option>
-      </select>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container chart-large">
-        <h3>Gasto Mensual</h3>
-        <canvas id="gastoDecoracionPorMes"></canvas>
-      </div>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container">
-        <h3>Consumo Mensual</h3>
-        <canvas id="consumoDecoracionPorMes"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sección de Papelería -->
-  <div class="section-container">
-    <h2>📝 Papelería</h2>
-    <div class="section-metrics">
-      <div class="mini-metric">
-        <span>Total Productos:</span>
-        <strong id="pap-total-productos">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Disponibles:</span>
-        <strong id="pap-unidades-disponibles">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Agotadas:</span>
-        <strong id="pap-unidades-agotadas">0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Gasto Total:</span>
-        <strong id="pap-gasto-total">$0</strong>
-      </div>
-      <div class="mini-metric">
-        <span>Dañados:</span>
-        <strong id="pap-danados">0</strong>
-      </div>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container chart-large">
-        <h3>Top 10 Productos por Unidades</h3>
-        <canvas id="pap-bar-chart"></canvas>
-      </div>
-    </div>
-    <div class="chart-row">
-      <div class="chart-container">
-        <h3>Consumo Mensual</h3>
-        <canvas id="consumoPapeleriaPorMes"></canvas>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<?!= include("View/Js/Js_Generico.html"); ?>
-<?!= include("View/Js/Js_Dashboard.html"); ?>
