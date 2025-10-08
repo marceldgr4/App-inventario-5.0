@@ -12,7 +12,7 @@
 
       state: {
         currentPage: "Home",
-        pageCache: {}, // Cache para el contenido HTML de las páginas
+        pageCache: {},
       },
 
       init() {
@@ -39,12 +39,14 @@
 
         window.addEventListener("popstate", (e) => {
           const page = e.state?.page || "Home";
-          this.loadPageContent(page, false); // No pushear al historial en popstate
+          this.loadPageContent(page, false);
         });
       },
 
       showLoading(show) {
+        if (!this.elements.loadingOverlay) return;
         this.elements.loadingOverlay.style.display = show ? "flex" : "none";
+        this.elements.loadingOverlay.style.opacity = show ? "1" : "0";
       },
 
       buildMenu() {
@@ -67,6 +69,7 @@
           Historial: "time-outline",
           Registro: "clipboard-outline",
         };
+
         const baseUrl = "<?= getScriptUrl() ?>";
 
         paginas.forEach((page) => {
@@ -79,9 +82,9 @@
 
           const iconName = iconos[page] || "document-outline";
           menuItem.innerHTML = `
-          <span class="icon"><ion-icon name="${iconName}"></ion-icon></span>
-          <span class="title">${page}</span>
-        `;
+            <span class="icon"><ion-icon name="${iconName}"></ion-icon></span>
+            <span class="title">${page}</span>
+          `;
 
           menuItem.addEventListener("click", (e) => {
             e.preventDefault();
@@ -102,31 +105,31 @@
       loadPageContent(pageName, pushState = true) {
         this.state.currentPage = pageName;
         this.updateActiveMenuItem(pageName);
-        this.showLoading(true); // Mostrar el loader al iniciar la carga
+        this.showLoading(true);
 
         const renderPage = (html) => {
           this.elements.mainContent.innerHTML = html;
-          // Re-ejecutar los scripts. Estos scripts son responsables de llamar a hideLoading()
-          // una vez que sus datos internos se han cargado.
-          Array.from(
-            this.elements.mainContent.querySelectorAll("script")
-          ).forEach((oldScript) => {
+
+          // Re-ejecutar scripts internos
+          Array.from(this.elements.mainContent.querySelectorAll("script")).forEach((oldScript) => {
             const newScript = document.createElement("script");
             Array.from(oldScript.attributes).forEach((attr) =>
               newScript.setAttribute(attr.name, attr.value)
             );
             newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-            document.body
-              .appendChild(newScript)
-              .parentNode.removeChild(newScript);
+            document.body.appendChild(newScript).parentNode.removeChild(newScript);
           });
 
-          // Si la página cargada es simple (sin carga de datos propia),
-          // ocultamos el loader aquí, ya que su script no lo hará.
+          // --- CONTROL DE LOADER ---
           const simplePages = ["Home", "Perfil"];
           if (simplePages.includes(pageName)) {
-            // Pequeño retraso para que el DOM se actualice visualmente.
-            setTimeout(() => this.showLoading(false), 50);
+            setTimeout(() => this.showLoading(false), 100);
+          } else {
+            // 🔹 Oculta automáticamente si el dashboard no lo hace por sí mismo
+            setTimeout(() => {
+              this.showLoading(false);
+              console.log(`✅ Loader ocultado automáticamente tras cargar '${pageName}'.`);
+            }, 1000);
           }
         };
 
@@ -137,12 +140,15 @@
           console.log(`Cargando '${pageName}' desde el servidor.`);
           google.script.run
             .withSuccessHandler((htmlContent) => {
-              this.state.pageCache[pageName] = htmlContent; // Almacenar en caché
+              this.state.pageCache[pageName] = htmlContent;
               renderPage(htmlContent);
             })
             .withFailureHandler((err) => {
-              this.elements.mainContent.innerHTML = `<div style="padding:20px; color:red;"><h2>Error al Cargar</h2><p>${err.message}</p></div>`;
-              this.showLoading(false); // Ocultar loader en caso de error
+              this.elements.mainContent.innerHTML = `
+                <div style="padding:20px; color:red;">
+                  <h2>Error al Cargar</h2><p>${err.message}</p>
+                </div>`;
+              this.showLoading(false);
             })
             .loadContent(pageName);
         }
@@ -157,16 +163,24 @@
       updateActiveMenuItem(pageName) {
         const menuItems = this.elements.menu.querySelectorAll(".menu-item");
         menuItems.forEach((item) => {
-          if (item.dataset.page === pageName) {
-            item.classList.add("active");
-          } else {
-            item.classList.remove("active");
-          }
+          item.classList.toggle("active", item.dataset.page === pageName);
         });
       },
     };
 
     App.init();
+
+    // 🔔 Escucha mensajes de subpáginas (como Dashboard) para ocultar loader sin error CORS
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "HIDE_LOADER") {
+        const loader = document.getElementById("loadingOverlay");
+        if (loader) {
+          loader.style.transition = "opacity 0.5s ease";
+          loader.style.opacity = "0";
+          setTimeout(() => (loader.style.display = "none"), 500);
+          console.log("✅ Loader ocultado tras mensaje del Dashboard.");
+        }
+      }
+    });
   });
 </script>
->
