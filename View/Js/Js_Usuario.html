@@ -1,0 +1,379 @@
+<script>
+  // Js_Usuario.html - Versión Refactorizada v2.0
+  // Patrón consistente con Js_Articulos.html
+  (function () {
+    // =================================================
+    // --- VARIABLES DE ESTADO DE LA PÁGINA
+    // =================================================
+    const pageState = {
+      fullData: [],
+      datosMostrados: [],
+      currentPage: 1,
+      itemsPerPage: 10,
+      usuarioAEditarId: null,
+      fechaOrdenAscendente: false,
+    };
+
+    // =================================================
+    // --- 1. CARGA DE DATOS Y MANEJO DE RESPUESTAS ---
+    // =================================================
+    
+    /**
+     * Normaliza la respuesta del servidor a un formato consistente
+     */
+    function normalizeServerResponse(response) {
+      // Si es null o undefined, retornar array vacío
+      if (!response) return [];
+      
+      // Si ya es un array, retornarlo directamente
+      if (Array.isArray(response)) return response;
+      
+      // Si es un string, intentar parsearlo como JSON
+      if (typeof response === 'string') {
+        try {
+          const parsed = JSON.parse(response);
+          return normalizeServerResponse(parsed);
+        } catch (e) {
+          console.error('[Usuario] Error al parsear respuesta JSON:', e);
+          return [];
+        }
+      }
+      
+      // Si es un objeto con propiedad 'data'
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      // Si es un objeto con propiedad 'success' y 'data'
+      if (response.success && response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      // Si no coincide con ningún formato esperado, retornar array vacío
+      console.warn('[Usuario] Formato de respuesta no reconocido:', response);
+      return [];
+    }
+
+    function loadUsuarios() {
+      showLoading(true);
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          
+          console.log('[Usuario] Respuesta raw de getUsuarios:', response);
+          
+          // Normalizar la respuesta
+          const data = normalizeServerResponse(response);
+          
+          console.log('[Usuario] Datos normalizados:', data);
+          
+          pageState.fullData = data;
+          pageState.currentPage = 1;
+          aplicarFiltrosYOrdenar();
+          
+          // Manejo seguro del DOM
+          const noDataEl = document.getElementById("noDataUsuarios");
+          const containerEl = document.getElementById("tableContainer");
+          
+          if (pageState.fullData.length === 0) {
+            if (noDataEl) noDataEl.style.display = "block";
+            if (containerEl) containerEl.style.display = "none";
+          } else {
+            if (noDataEl) noDataEl.style.display = "none";
+            if (containerEl) containerEl.style.display = "block";
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          console.error('[Usuario] Error al cargar usuarios:', error);
+          mostrarMensaje('Error al cargar usuarios: ' + (error.message || error), 'error');
+        })
+        .getUsuarios();
+    }
+
+    // ============================================
+    // --- 2. RENDERIZADO DE TABLA Y PAGINACIÓN ---
+    // ============================================
+    function renderPaginatedTable() {
+      renderPaginatedTableGeneric({
+        data: pageState.datosMostrados,
+        currentPage: pageState.currentPage,
+        itemsPerPage: pageState.itemsPerPage,
+        tbodyId: "tablaUsuarioBody",
+        paginationContainerId: "usuarioPagination",
+        noDataMessage: "No hay usuarios que coincidan con los filtros.",
+        onRowCreated: (row, item) => {
+          row.dataset.id = item["Id"] || item["ID"] || "";
+          row.dataset.nombre = item["Nombre Completo"] || item["NombreCompleto"] || "";
+          row.dataset.usuario = item["Usuario"] || item["userName"] || "";
+        },
+        renderRow: (item) => {
+          const id = item["Id"] || item["ID"] || "";
+          const nombre = item["Nombre Completo"] || item["NombreCompleto"] || "";
+          const usuario = item["Usuario"] || item["userName"] || "";
+          const cde = item["CDE"] || "";
+          const email = item["Email"] || "";
+          const estado = item["Estado Usuario"] || item["Estado_User"] || item["Estado"] || "";
+          const rol = item["Rol"] || "";
+          const fecha = item["Fecha Registro"] || item["Fecha de Registro"] || item["FechaRegistro"] || "";
+
+          return `
+            <td>${escapeHtml(id)}</td>
+            <td>${escapeHtml(nombre)}</td>
+            <td>${escapeHtml(usuario)}</td>
+            <td>******</td>
+            <td>${escapeHtml(cde)}</td>
+            <td>${escapeHtml(email)}</td>
+            <td>${escapeHtml(estado)}</td>
+            <td>${escapeHtml(rol)}</td>
+            <td>${formatDate(fecha)}</td>
+            <td>
+              <button class="btn-modificar" title="Editar usuario">
+                <ion-icon name="create-outline"></ion-icon>
+              </button>
+              <button class="btn-eliminar" title="Eliminar usuario">
+                <ion-icon name="trash-bin-outline"></ion-icon>
+              </button>
+            </td>
+          `;
+        },
+        onPageChange: (page) => {
+          pageState.currentPage = page;
+          renderPaginatedTable();
+        },
+      });
+    }
+
+    // Delegación de eventos para los botones de acciones
+    document.getElementById("tablaUsuarioBody")?.addEventListener("click", (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
+
+      const id = row.dataset.id;
+      const nombre = row.dataset.nombre;
+
+      if (e.target.closest(".btn-modificar")) abrirModalEditar(id);
+      if (e.target.closest(".btn-eliminar")) confirmarEliminar(id, nombre);
+    });
+
+    // =================================================
+    // --- 3. FILTROS Y ORDENAMIENTO ---
+    // =================================================
+    function aplicarFiltrosYOrdenarUsuarios() {
+      const buscarTerm = (document.getElementById("buscarUsuario")?.value || "").toLowerCase().trim();
+      
+      let resultados = [...pageState.fullData];
+      
+      // Aplicar filtro de búsqueda si existe
+      if (buscarTerm) {
+        resultados = resultados.filter(item => {
+          const nombre = (item["Nombre Completo"] || item["NombreCompleto"] || "").toString().toLowerCase();
+          const usuario = (item["Usuario"] || item["userName"] || "").toString().toLowerCase();
+          const email = (item["Email"] || "").toString().toLowerCase();
+          
+          return nombre.includes(buscarTerm) || 
+                 usuario.includes(buscarTerm) || 
+                 email.includes(buscarTerm);
+        });
+      }
+      
+      // Aplicar ordenamiento por fecha
+      resultados.sort((a, b) => {
+        const fechaA = new Date(a["Fecha Registro"] || a["Fecha de Registro"] || a["FechaRegistro"] || 0);
+        const fechaB = new Date(b["Fecha Registro"] || b["Fecha de Registro"] || b["FechaRegistro"] || 0);
+        return pageState.fechaOrdenAscendente ? fechaA - fechaB : fechaB - fechaA;
+      });
+      
+      pageState.datosMostrados = resultados;
+      pageState.currentPage = 1;
+      renderPaginatedTable();
+    }
+    
+    const aplicarFiltrosYOrdenar = aplicarFiltrosYOrdenarUsuarios;
+
+    function aplicarBusquedaUsuarios() {
+      aplicarFiltrosYOrdenar();
+    }
+
+    // ===================================
+    // --- 4. MANEJO DE MODALES ---
+    // ===================================
+    function abrirModalAgregarUsuario() {
+      abrirModal("modalAgregarUsuario");
+      document.getElementById("agregarUsuarioForm").reset();
+    }
+
+    function cerrarModalAgregarUsuario() {
+      cerrarModal("modalAgregarUsuario");
+    }
+
+    function abrirModalEditar(id) {
+      pageState.usuarioAEditarId = id;
+      const usuario = pageState.fullData.find(
+        (item) => String(item.Id || item.ID) === String(id)
+      );
+
+      if (usuario) {
+        abrirModal("modalEditarUsuario");
+        document.getElementById("usuarioIdEditarUsuario").textContent = id;
+        document.getElementById("nombreCompletoEditarUsuario").value = 
+          usuario["Nombre Completo"] || usuario["NombreCompleto"] || "";
+        document.getElementById("userNameEditarUsuario").value = 
+          usuario["Usuario"] || usuario["userName"] || "";
+        document.getElementById("passwordEditarUsuario").value = "";
+        document.getElementById("cdeEditarUsuario").value = usuario["CDE"] || "";
+        document.getElementById("emailEditarUsuario").value = usuario["Email"] || "";
+        document.getElementById("rolEditarUsuario").value = usuario["Rol"] || "Usuario";
+        document.getElementById("estadoEditarUsuario").value = 
+          usuario["Estado Usuario"] || usuario["Estado_User"] || usuario["Estado"] || "Activo";
+      } else {
+        mostrarMensaje("Error: No se pudo encontrar el usuario para editar.", "error");
+      }
+    }
+
+    function cerrarModalEditarUsuario() {
+      cerrarModal("modalEditarUsuario");
+      pageState.usuarioAEditarId = null;
+    }
+
+    // =========================================
+    // --- 5. MANEJADORES DE ENVÍO DE FORMULARIOS ---
+    // =========================================
+    (function () {
+      // ===========================
+      // FORMULARIO: AGREGAR USUARIO
+      // ===========================
+      document
+        .getElementById("agregarUsuarioForm")
+        ?.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const payload = {
+            nombreCompleto: document.getElementById("nombreCompletoAgregarUsuario").value.trim(),
+            userName: document.getElementById("userNameAgregarUsuario").value.trim(),
+            password: document.getElementById("passwordAgregarUsuario").value,
+            cde: document.getElementById("cdeAgregarUsuario").value.trim(),
+            email: document.getElementById("emailAgregarUsuario").value.trim(),
+            rol: document.getElementById("rolAgregarUsuario").value,
+            estado: document.getElementById("estadoAgregarUsuario").value,
+          };
+
+          if (!payload.nombreCompleto || !payload.userName || !payload.password || 
+              !payload.cde || !payload.email) {
+            mostrarMensaje("Complete todos los campos obligatorios.", "error");
+            return;
+          }
+
+          showLoading(true);
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, cerrarModalAgregarUsuario, loadUsuarios)
+            )
+            .withFailureHandler(handleServerError)
+            .agregarUsuario(payload);
+        });
+
+      // ===========================
+      // FORMULARIO: EDITAR USUARIO
+      // ===========================
+      document
+        .getElementById("editarUsuarioForm")
+        ?.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const payload = {
+            id: pageState.usuarioAEditarId,
+            nombreCompleto: document.getElementById("nombreCompletoEditarUsuario").value.trim(),
+            userName: document.getElementById("userNameEditarUsuario").value.trim(),
+            password: document.getElementById("passwordEditarUsuario").value,
+            cde: document.getElementById("cdeEditarUsuario").value.trim(),
+            email: document.getElementById("emailEditarUsuario").value.trim(),
+            rol: document.getElementById("rolEditarUsuario").value,
+            estado: document.getElementById("estadoEditarUsuario").value,
+          };
+
+          if (!payload.nombreCompleto || !payload.userName || !payload.cde || !payload.email) {
+            mostrarMensaje("Complete todos los campos obligatorios.", "error");
+            return;
+          }
+
+          showLoading(true);
+          google.script.run
+            .withSuccessHandler((res) =>
+              handleServerResponse(res, cerrarModalEditarUsuario, loadUsuarios)
+            )
+            .withFailureHandler(handleServerError)
+            .editarUsuario(payload);
+        });
+    })();
+
+    // =================================================
+    // --- 6. FUNCIONES DE UTILIDAD (HELPERS) ---
+    // =================================================
+    function confirmarEliminar(id, nombreUsuario) {
+      if (confirm(`¿Seguro que deseas desactivar al usuario "${nombreUsuario}"?`)) {
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler((res) =>
+            handleServerResponse(res, null, loadUsuarios)
+          )
+          .withFailureHandler(handleServerError)
+          .eliminarUsuario(id);
+      }
+    }
+
+    function cerrarMensajeUsuario() {
+      const mensaje = document.getElementById("mensajeConfirmacionUsuario");
+      if (mensaje) mensaje.style.display = "none";
+    }
+
+    // ===============================================
+    // --- 7. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
+    // ===============================================
+    function inicializarPaginaUsuarios() {
+      // Configurar listeners de búsqueda
+      const setupListener = (id, event, handler) =>
+        document.getElementById(id)?.addEventListener(event, handler);
+      
+      setupListener("buscarUsuario", "input", aplicarBusquedaUsuarios);
+
+      // Cargar datos iniciales
+      loadUsuarios();
+    }
+
+    // Registrar tecla ESC para cerrar modales
+    registrarEscapeCierraModales([
+      cerrarModalAgregarUsuario,
+      cerrarModalEditarUsuario,
+    ]);
+
+    // Exponer funciones al scope global
+    Object.assign(window, {
+      abrirModalAgregarUsuario,
+      cerrarModalAgregarUsuario,
+      abrirModalEditar,
+      cerrarModalEditarUsuario,
+      confirmarEliminar,
+      cerrarMensajeUsuario,
+      aplicarBusquedaUsuarios,
+      buscarPorNombreUsuario: aplicarBusquedaUsuarios, // Alias para compatibilidad
+      ordenarPorFechaUsuario: (e) => ordenarPorFechaGenerico(e, "sortOptions"),
+      ordenarAscendenteUsuario: () =>
+        ordenarAscendenteGenerico(
+          aplicarFiltrosYOrdenar,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+      ordenarDescendenteUsuario: () =>
+        ordenarDescendenteGenerico(
+          aplicarFiltrosYOrdenar,
+          "sortOptions",
+          (val) => (pageState.fechaOrdenAscendente = val)
+        ),
+    });
+
+    // Inicializar la aplicación
+    inicializarPaginaUsuarios();
+  })();
+</script>

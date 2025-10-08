@@ -1,0 +1,79 @@
+<style>
+    /* =================================================================
+    --- ESTILOS ESPECÍFICOS DEL PERFIL ---
+================================================================= */
+
+.container_perfil {
+  /* Establece un ancho máximo para centrar el formulario */
+  max-width: 500px;
+  margin: 50px auto;
+  padding: 30px;
+  /* Ya tiene las propiedades de fondo, sombra y radio por la clase .container */
+}
+
+.container_perfil h2 {
+  margin-bottom: 25px;
+  font-size: 1.8em;
+  font-weight: 600;
+  color: var(--royal-purple); /* Usar un color fuerte para el título */
+}
+
+body.dark-mode .container_perfil h2 {
+  color: var(--emerald-green);
+}
+
+/* Estilo para cada grupo de formulario */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 0.95em;
+  color: var(--text-color);
+}
+
+/* Nota de contraseña */
+.password-note {
+  margin-top: 5px;
+  font-size: 0.85em;
+  color: #777;
+}
+
+body.dark-mode .password-note {
+  color: #a0a0a0;
+}
+
+
+/* Mensajes de Feedback (coordinado con JS) */
+.feedback-message {
+  padding: 12px;
+  border-radius: var(--border-radius-sm);
+  margin-top: 20px;
+  font-weight: 600;
+  display: none; /* Controlado por JavaScript */
+  border-left: 5px solid;
+}
+
+.feedback-message.success {
+  background-color: color-mix(in srgb, var(--success-color) 15%, var(--card-bg-color));
+  color: var(--khaki-green);
+  border-color: var(--success-color);
+}
+
+.feedback-message.error {
+  background-color: color-mix(in srgb, var(--danger-color) 15%, var(--card-bg-color));
+  color: var(--maple-red);
+  border-color: var(--danger-color);
+}
+
+/* Estilo para el botón de perfil (usamos btn-primary) */
+.container_perfil .btn-primary {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 1.1em;
+  margin-top: 10px;
+}
+    </style>
