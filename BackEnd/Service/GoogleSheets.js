@@ -37,23 +37,33 @@ function _formatearFecha(fecha) {
  * @param {string} userEmail El email del usuario que realiza la carga.
  * @returns {number} El ID del nuevo registro.
  */
-function _registrarActaEnHoja(hoja, data, fileUrl, userEmail) {
+/**
+ * Registra la información de un acta en la hoja de cálculo correspondiente.
+ * @param {Sheet} hoja La hoja de cálculo donde se registrará el acta.
+ * @param {object} data Los datos del acta a registrar.
+ * @param {string} fileUrl La URL del archivo PDF del acta en Drive.
+ * @param {string} userId El ID del usuario activo (para la columna Id_Usuario).
+ * @returns {number} El ID del nuevo registro.
+ */
+function _registrarActaEnHoja(hoja, data, fileUrl, userId) {
   const nuevoId = _obtenerSiguienteId(hoja);
   const fechaEntrega = _formatearFecha(data.fechaEntregaAgregar);
   const fechaCarga = _formatearFecha(data.fechaCargaPDFAgregar);
 
+  // 🛑 ORDEN CORREGIDO según la lista de columnas:
+  // [Id, Id_Usuario, Usuario, Fecha de entrega, Producto, Programa, Cantidad, Link, Ciudad, Nombre Compelto, fecha de carga]
   hoja.appendRow([
-    nuevoId,
-    fechaEntrega,
-    data.programaAgregar,
-    data.productoAgregar,
-    data.cantidadAgregar,
-    data.nombreCompletoAgregar,
-    data.ciudadAgregar,
-    data.nombreUsuarioAgregar,
-    fechaCarga,
-    fileUrl,
-    userEmail,
+    nuevoId,                           // 1. Id
+    userId || "",                      // 2. Id_Usuario (ID del usuario activo)
+    data.nombreUsuarioAgregar,         // 3. Usuario
+    fechaEntrega,                      // 4. Fecha de entrega
+    data.productoAgregar,              // 5. Producto
+    data.programaAgregar,              // 6. Programa
+    data.cantidadAgregar,              // 7. Cantidad
+    fileUrl,                           // 8. Link
+    data.ciudadAgregar,                // 9. Ciudad
+    data.nombreCompletoAgregar,        // 10. Nombre Compelto
+    fechaCarga,                        // 11. fecha de carga
   ]);
 
   return nuevoId;
@@ -79,9 +89,8 @@ function subirActaConPDF(data) {
   if (!hoja) {
     throw new Error(`La hoja "${HOJA_ACTA}" no existe.`);
   }
-
   const nuevoId = _registrarActaEnHoja(hoja, data, fileUrl, activeUser.email);
-
+ 
   _registrarHistorialModificacion(
     nuevoId,
     `Acta: ${data.nombreArchivo}`,
@@ -101,6 +110,27 @@ function subirActaConPDF(data) {
   });
 }
 
+function _subirArchivoADrive(folderId, fileData) {
+  if (!folderId) {
+    throw new Error("El ID de la carpeta de Drive no puede ser nulo.");
+  }
+  
+  const folder = DriveApp.getFolderById(folderId);
+  if (!folder) {
+    throw new Error(`Carpeta de Drive no encontrada con ID: ${folderId}`);
+  }
+
+  // 1. Decodificar el contenido Base64 a bytes
+  const bytes = Utilities.base64Decode(fileData.base64);
+
+  // 2. Crear un Blob (objeto de datos binarios grandes)
+  const blob = Utilities.newBlob(bytes, fileData.type, fileData.name);
+
+  // 3. Subir el Blob a la carpeta
+  const file = folder.createFile(blob);
+  
+  return file;
+}
 /**
  * Obtiene la hoja de Historial. Si no existe, la crea con los encabezados correctos.
  * @returns {Sheet|null} El objeto de la hoja de cálculo o null si hay un error.
