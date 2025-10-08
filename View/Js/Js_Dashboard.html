@@ -1,92 +1,112 @@
+
 <script>
-/* ============================================
-   DASHBOARD DE INVENTARIO - VERSIÓN MEJORADA (SIMPLIFICADA PARA DEPURACIÓN)
-   ============================================ */
+(() => {
+  console.log("📊 Iniciando carga del dashboard...");
 
-// Variables globales
-let chartInstances = {};
-let timeoutId = null;
-let dataReceived = false;
+  google.script.run
+    .withSuccessHandler(updateDashboard)
+    .withFailureHandler((err) => {
+      console.error("❌ Error al obtener datos:", err);
+      alert("Error al cargar datos del dashboard");
+    })
+    .obtenerDatosDashboard();
 
-/* ============================================
-   UTILIDADES
-   ============================================ */
+  function updateDashboard(data) {
+    console.log("✅ Datos recibidos:", data);
+    if (data.error) return showError(data.error);
 
-function showLoading() {
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.style.display = 'flex';
-}
+    // --- INVENTARIO ---
+    const inv = data.inventario;
+    document.getElementById("total-productos-inventario").textContent = inv.totalProductos;
+    document.getElementById("unidades-disponibles-inventario").textContent = inv.unidadesDisponibles;
+    document.getElementById("unidades-agotadas-inventario").textContent = inv.unidadesAgotadas;
+    document.getElementById("mas-ocho-meses").textContent = inv.masDeOchoMeses;
+    createBarChart("chartInventario", Object.keys(inv.programas), Object.values(inv.programas), "Productos por Programa");
 
-function hideLoading() {
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.style.display = 'none';
-  dataReceived = true;
-}
+    // --- COMIDA ---
+    const com = data.comida;
+    document.getElementById("total-productos-comida").textContent = com.totalProductos;
+    document.getElementById("unidades-disponibles-comida").textContent = com.unidadesDisponibles;
+    document.getElementById("unidades-agotadas-comida").textContent = com.unidadesAgotadas;
+    createLineChart("chartGastoComida", Object.keys(com.gastoMensual), Object.values(com.gastoMensual), "Gasto Mensual en Comida ($)");
 
-/* ============================================
-   FUNCIÓN DE ACTUALIZACIÓN SIMPLIFICADA
-   ============================================ */
+    // --- DECORACIÓN ---
+    const dec = data.decoracion;
+    document.getElementById("total-productos-decoracion").textContent = dec.totalProductos;
+    document.getElementById("unidades-disponibles-decoracion").textContent = dec.unidadesDisponibles;
+    document.getElementById("unidades-agotadas-decoracion").textContent = dec.unidadesAgotadas;
+    createBarChart("chartCategoriasDecoracion", Object.keys(dec.categorias), Object.values(dec.categorias), "Unidades por Categoría");
+    createLineChart("chartGastoDecoracion", Object.keys(dec.gastoMensual), Object.values(dec.gastoMensual), "Gasto Mensual Decoración ($)");
 
-function updateDashboard(data) {
-  console.log('1. updateDashboard SE HA EJECUTADO.');
-  console.log('Datos recibidos (no se procesarán):', JSON.stringify(data, null, 2));
-  
-  console.log('2. Llamando a hideLoading().');
-  hideLoading();
-  console.log('3. hideLoading() llamado. La pantalla de carga debería desaparecer ahora.');
+    // --- PAPELERÍA ---
+    const pap = data.papeleria;
+    document.getElementById("total-productos-papeleria").textContent = pap.totalProductos;
+    document.getElementById("unidades-disponibles-papeleria").textContent = pap.unidadesDisponibles;
+    document.getElementById("unidades-agotadas-papeleria").textContent = pap.unidadesAgotadas;
+    createDoughnutChart("chartPapeleria", ["Disponibles", "Agotadas"], [pap.unidadesDisponibles, pap.unidadesAgotadas], "Estado de Papelería");
 
-  // Limpiar el contenido del dashboard para evitar errores con elementos que no se renderizarán
-  const container = document.querySelector('.dashboard-container');
-  if (container) {
-    container.innerHTML = '<h1>Prueba de carga completada</h1><p>El dashboard ha sido deshabilitado temporalmente para depuración. Si ves este mensaje, la comunicación con el servidor funciona.</p>';
+    // Ocultar el loader al final
+    hideGlobalLoader();
   }
 
-  alert('¡Prueba completada! La función de carga se ejecutó. Si la pantalla de carga desapareció, el problema está en el renderizado de los gráficos.');
-}
+  // ===== FUNCIONES DE GRAFICADO =====
+  function createBarChart(id, labels, data, label) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets: [{ label, data }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+  }
 
+  function createLineChart(id, labels, data, label) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets: [{ label, data, fill: false, tension: 0.3 }] },
+      options: { responsive: true, plugins: { legend: { display: true } } }
+    });
+  }
 
-/* ============================================
-   INICIALIZACIÓN
-   ============================================ */
+  function createDoughnutChart(id, labels, data, label) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: "doughnut",
+      data: { labels, datasets: [{ label, data }] },
+      options: { responsive: true, cutout: "60%" }
+    });
+  }
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Iniciando carga del dashboard (versión de depuración)...');
-  
-  showLoading();
-  dataReceived = false;
-
-  // Timeout de seguridad
-  timeoutId = setTimeout(() => {
-    if (!dataReceived) {
-      console.warn('Timeout: Los datos no se recibieron en 20 segundos');
-      hideLoading();
-      alert('La carga del dashboard está tardando más de lo esperado. Por favor, recargue la página.');
-    }
-  }, 20000);
-
-  // Llamada al servidor
+  // --- Ocultar loader ---
+  function hideGlobalLoader() {
   try {
-    google.script.run
-      .withSuccessHandler(function(data) {
-        if (timeoutId) clearTimeout(timeoutId);
-        updateDashboard(data);
-      })
-      .withFailureHandler(function(error) {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.error('Error en withFailureHandler:', error);
-        hideLoading();
-        alert('Error en la llamada al servidor: ' + JSON.stringify(error));
-      })
-      .obtenerDatosDashboard();
-  } catch (error) {
-    console.error('Error al iniciar la llamada al servidor:', error);
-    hideLoading();
-    alert('Error al conectar con el servidor. Por favor, recargue la página.');
-  }
-});
+    // Intentar ocultar el loader local si existe
+    const localLoader = document.getElementById("loadingOverlay");
+    if (localLoader) {
+      localLoader.style.transition = "opacity 0.5s ease";
+      localLoader.style.opacity = "0";
+      setTimeout(() => (localLoader.style.display = "none"), 500);
+      console.log("✅ Loader ocultado en el documento actual.");
+      return;
+    }
 
-// Limpieza al cerrar/salir de la página
-window.addEventListener('beforeunload', function() {
-  if (timeoutId) clearTimeout(timeoutId);
-});
+    // Si no existe en este documento, emitir evento para que App.html lo oculte
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "HIDE_LOADER" }, "*");
+      console.log("📩 Evento enviado al padre para ocultar el loader.");
+    }
+  } catch (e) {
+    console.warn("⚠️ No se pudo ocultar el loader:", e);
+  }
+}
+
+
+  function showError(err) {
+    console.error("⚠️ Error en dashboard:", err);
+    alert("No se pudieron cargar los datos del dashboard.");
+  }
+})();
 </script>
