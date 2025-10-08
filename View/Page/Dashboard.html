@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <?!= include('View/Css/Css_Dashboard'); ?>
+</head>
+<body>
+   <div class="dashboard-container">
+    <h1>📊 Dashboard de Inventario</h1>
+
+    <!-- ========== INVENTARIO ========== -->
+    <section id="inventario-section" class="dashboard-section">
+      <h2>Inventario General</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-inventario">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-inventario">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-inventario">--</p></div>
+        <div class="stat-card"><h3>+8 Meses en Storage</h3><p id="mas-ocho-meses">--</p></div>
+      </div>
+      <canvas id="chartInventario" height="120"></canvas>
+    </section>
+
+    <!-- ========== COMIDA ========== -->
+    <section id="comida-section" class="dashboard-section">
+      <h2>Sección de Comida</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-comida">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-comida">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-comida">--</p></div>
+      </div>
+      <canvas id="chartGastoComida" height="150"></canvas>
+    </section>
+
+    <!-- ========== DECORACIÓN ========== -->
+    <section id="decoracion-section" class="dashboard-section">
+      <h2>Sección de Decoración</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-decoracion">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-decoracion">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-decoracion">--</p></div>
+      </div>
+      <canvas id="chartCategoriasDecoracion" height="120"></canvas>
+      <canvas id="chartGastoDecoracion" height="150"></canvas>
+    </section>
+
+    <!-- ========== PAPELERÍA ========== -->
+    <section id="papeleria-section" class="dashboard-section">
+      <h2>Sección de Papelería</h2>
+      <div class="stats-container">
+        <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-papeleria">--</p></div>
+        <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-papeleria">--</p></div>
+        <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-papeleria">--</p></div>
+      </div>
+      <canvas id="chartPapeleria" height="100"></canvas>
+    </section>
+  </div>
+
+
+    <?!= include('View/Js/Js_Dashboard'); ?>
+</body>
+</html>
+

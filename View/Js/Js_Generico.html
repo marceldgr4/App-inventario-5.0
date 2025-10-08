@@ -33,6 +33,15 @@
     showLoading(false, overlayId);
   }
 
+  // Wrappers convenientes para overlays específicos (ej: Perfil)
+  function showLoadingPerfil() {
+    showLoading(true, 'loadingOverlayPerfil');
+  }
+
+  function hideLoadingPerfil() {
+    hideLoading('loadingOverlayPerfil');
+  }
+
   function escapeHtml(unsafe) {
     if (typeof unsafe !== "string") return "";
     return unsafe
