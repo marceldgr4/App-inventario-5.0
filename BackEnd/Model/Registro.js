@@ -6,9 +6,9 @@
  */
 function getRegistroSheet() {
   var ss = getSpreadsheet();
-  var sheet = ss.getSheetByName(getHojasConfig().REGISTRO);
+  var sheet = ss.getSheetByName(getHojasConfig().REGISTRO.nombre);
   if (!sheet) {
-    sheet = ss.insertSheet(getHojasConfig().REGISTRO);
+    sheet = ss.insertSheet(getHojasConfig().REGISTRO.nombre);
     sheet.appendRow(["Id", "Fecha", "User Name", "Registro"]);
   }
   return sheet;
@@ -20,15 +20,16 @@ function getRegistroSheet() {
 function getRegistroData() {
   var sheet = getRegistroSheet();
   var data = sheet.getDataRange().getValues();
-  var headers = data[0];
-  var items = [];
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    var item = {};
-    for (var j = 0; j < headers.length; j++) {
-      item[headers[j]] = row[j];
-    }
-    items.push(item);
+  var headers = data.shift(); // Extraer encabezados
+  if (!headers || headers.length === 0) {
+    return JSON.stringify({ data: [] });
   }
-  return JSON.stringify({ data: items });
+  var items = data.map(function(row) {
+    var item = {};
+    headers.forEach(function(header, index) {
+      item[header] = row[index];
+    });
+    return item;
+  });
+  return JSON.stringify({ data: items }); // Devolver el array de objetos directamente
 }

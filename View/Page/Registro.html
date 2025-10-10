@@ -1,14 +1,21 @@
-<div class="content">
-    <button id="toggleSidebarBtn">
-      <ion-icon name="menu-outline"></ion-icon>
-    </button>
+<?!= include('View/Css/Css_Generico.html'); ?>
+<?!= include('View/Css/Css_Tablas.html'); ?>
+<?!= include('View/Css/Css_Filtros.html'); ?>
+<?!= include('View/Css/Css_Modal.html'); ?>
+<?!= include('View/Css/Css_Notifications.html'); ?>
+<?!= include('View/Css/Css_Comentarios.html'); ?>
+<?!= include('View/Css/Css_Comida.html'); ?>
+
+
+
+
   <h2>Registro</h2>
   
   <div>
     <input type="text" id="buscarRegistro" onkeyup="buscarPorNombreRegistro()" placeholder="Buscar Registro...">
   </div>
   <div id="sortContainer">
-    <img class="calendario" src="https://i.ibb.co/4gWJ1s4c/Intouch-Icons-Calendar.png" alt="Intouch-Icons-Calendar" border="0">
+   
     <i class="fas fa-sort sort-menu-icon" onclick="ordenarPorFechaRegistro(event)"></i>
     <div id="sortOptions" class="sort-options">
       <a href="#" onclick="ordenarAscendenteRegistro(); return false;">Ascendente</a>
@@ -16,16 +23,7 @@
     </div>
   </div>
    
-
-
-  <div id="loadingOverlayRegistro"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 20px;">
-      Cargando... <i class="fas fa-spinner fa-spin"></i>
-    </div>
-  </div>
-
-  <table id="RegistroTable">
+  <table id="RegistroTable" class="inventory-table">
     <thead>
       <tr>
         <th>Id</th>
@@ -45,3 +43,5 @@
     <button onclick="cerrarMensajeRegistro()">Cerrar</button>
   </div>
   </div>
+  <?!= include('View/Js/Js_Generico.html'); ?>
+  <?!= include('View/Js/Js_Registro.html'); ?>

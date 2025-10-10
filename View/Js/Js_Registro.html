@@ -1,0 +1,116 @@
+<script>
+(function () {
+  // =================================================
+  // --- VARIABLES DE ESTADO DE LA PÁGINA DE REGISTRO ---
+  // =================================================
+  const pageState = {
+    fullData: [],
+    datosMostrados: [],
+    currentPage: 1,
+    itemsPerPage: 10,
+    fechaOrdenAscendente: false,
+  };
+
+  // =================================================
+  // --- CARGA DE DATOS ---
+  // =================================================
+  function loadRegistro() {
+    loadDataGenerico({
+      endpoint: "getRegistroData",
+      onSuccess: (data) => {
+        pageState.fullData = data;
+        pageState.currentPage = 1;
+        aplicarFiltrosYOrdenar();
+      },
+      tbodyId: "tablaRegistroBody",
+    });
+  }
+
+  // ============================================
+  // --- RENDERIZADO DE TABLA Y PAGINACIÓN ---
+  // ============================================
+  function renderPaginatedTable() {
+    renderPaginatedTableGeneric({
+      data: pageState.datosMostrados,
+      currentPage: pageState.currentPage,
+      itemsPerPage: pageState.itemsPerPage,
+      tbodyId: "tablaRegistroBody",
+      paginationContainerId: "registroPagination",
+      noDataMessage: "No hay registros.",
+      onRowCreated: (row, item) => {
+          row.dataset.id = item["Id"] || "";
+        },
+      renderRow: (item) => {
+        const id = item["Id"] || "";
+        const fecha = item["Fecha"] || "";
+        const userName = item["User Name"] || "";
+        const registro = item["Registro"] || "";
+
+        return `
+          <td>${escapeHtml(String(id))}</td>
+          <td>${formatDate(fecha)}</td>
+          <td>${escapeHtml(userName)}</td>
+          <td>${escapeHtml(registro)}</td>
+        `;
+      },
+      onPageChange: (page) => {
+        pageState.currentPage = page;
+        renderPaginatedTable();
+      },
+    });
+  }
+
+  // =================================================
+  // --- FILTROS Y ORDENAMIENTO ---
+  // =================================================
+  function aplicarFiltrosYOrdenar() {
+    const filters = [
+      {
+        id: "buscarRegistro",
+        fields: ["User Name", "Registro"],
+        type: "text",
+      },
+    ];
+
+    aplicarFiltrosYOrdenarGenerico({
+      dataSource: pageState.fullData,
+      setResultados: (resultados) => (pageState.datosMostrados = resultados),
+      filters: filters,
+      fechaOrdenAsc: pageState.fechaOrdenAscendente,
+      campoFecha: "Fecha",
+      renderFn: renderPaginatedTable,
+    });
+  }
+
+  // ===============================================
+  // --- INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
+  // ===============================================
+  function inicializarPaginaRegistro() {
+    const buscarInput = document.getElementById("buscarRegistro");
+    if (buscarInput) {
+      buscarInput.addEventListener("input", aplicarFiltrosYOrdenar);
+    }
+    
+    loadRegistro();
+  }
+
+  // Exponer funciones al scope global para los `onclick` del HTML
+  window.ordenarPorFechaRegistro = (e) => ordenarPorFechaGenerico(e, "sortOptions");
+  window.ordenarAscendenteRegistro = () =>
+    ordenarAscendenteGenerico(
+      aplicarFiltrosYOrdenar,
+      "sortOptions",
+      (val) => (pageState.fechaOrdenAscendente = val)
+    );
+  window.ordenarDescendenteRegistro = () =>
+    ordenarDescendenteGenerico(
+      aplicarFiltrosYOrdenar,
+      "sortOptions",
+      (val) => (pageState.fechaOrdenAscendente = val)
+    );
+  window.buscarPorNombreRegistro = aplicarFiltrosYOrdenar;
+
+  // Inicializar la página
+  inicializarPaginaRegistro();
+})();
+</script>

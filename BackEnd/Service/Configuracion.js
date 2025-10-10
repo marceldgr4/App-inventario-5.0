@@ -15,10 +15,10 @@ const ID_DECORACION_IMG = "1mxaXcJuKdbSOD-NW9yugZf-iGrhc0jed";
 //Nombres exactos de las hojas (pestañas) dentro del Google Sheet.
 const HOJA_USUARIO = "Usuario";
 const HOJA_ARTICULOS = "Inventario";
-const HOJA_HISTORIAL = "Historial_Modificaciones";
+const HOJA_HISTORIAL = "Historial";
 const HOJA_COMENTARIOS = "Comentarios";
-const HOJA_DECORACION = "Inventario decoracion";
-const HOJA_COMIDA = "Inventario comida";
+const HOJA_DECORACION = "Decoracion";
+const HOJA_COMIDA = "Comida";
 const HOJA_PAPELERIA = "Papeleria";
 const HOJA_REGISTRO_USUARIO = "Registro de Inicio de Sesion";
 const HOJA_ACTA = "Acta";
