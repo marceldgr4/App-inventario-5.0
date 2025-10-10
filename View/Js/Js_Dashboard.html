@@ -17,36 +17,83 @@
 
     // --- INVENTARIO ---
     const inv = data.inventario;
-    document.getElementById("total-productos-inventario").textContent = inv.totalProductos;
-    document.getElementById("unidades-disponibles-inventario").textContent = inv.unidadesDisponibles;
-    document.getElementById("unidades-agotadas-inventario").textContent = inv.unidadesAgotadas;
-    document.getElementById("mas-ocho-meses").textContent = inv.masDeOchoMeses;
-    createBarChart("chartInventario", Object.keys(inv.programas), Object.values(inv.programas), "Productos por Programa");
+    if (inv) {
+        document.getElementById("total-productos-inventario").textContent = inv.totalProductos || 0;
+        document.getElementById("unidades-disponibles-inventario").textContent = inv.unidadesDisponibles || 0;
+        document.getElementById("unidades-agotadas-inventario").textContent = inv.unidadesAgotadas || 0;
+        document.getElementById("mas-ocho-meses").textContent = inv.masDeOchoMeses || 0;
+        createDoughnutChart("chartInventarioEstado", ["Disponibles", "Agotadas"], [inv.unidadesDisponibles, inv.unidadesAgotadas], "Estado del Inventario");
+        createPieChart("chartInventarioViejos", ["> 8 Meses", "< 8 Meses"], [inv.masDeOchoMeses, inv.totalProductos - inv.masDeOchoMeses], "Antigüedad de Productos");
+        if (inv.programas) {
+            createBarChart("chartInventarioUnidadesPrograma", Object.keys(inv.programas), Object.values(inv.programas), "Unidades por Programa");
+        }
+        if (inv.productosPorPrograma) {
+            const top5Inventario = getTopN(inv.productosPorPrograma, 'unidades', 5);
+            createBarChart("chartInventario", top5Inventario.map(p => p.producto), top5Inventario.map(p => p.unidades), "Top 5 Productos con más unidades");
+        }
+    }
 
     // --- COMIDA ---
     const com = data.comida;
-    document.getElementById("total-productos-comida").textContent = com.totalProductos;
-    document.getElementById("unidades-disponibles-comida").textContent = com.unidadesDisponibles;
-    document.getElementById("unidades-agotadas-comida").textContent = com.unidadesAgotadas;
-    createLineChart("chartGastoComida", Object.keys(com.gastoMensual), Object.values(com.gastoMensual), "Gasto Mensual en Comida ($)");
+    if (com) {
+        document.getElementById("total-productos-comida").textContent = com.totalProductos || 0;
+        document.getElementById("unidades-disponibles-comida").textContent = com.unidadesDisponibles || 0;
+        document.getElementById("unidades-agotadas-comida").textContent = com.unidadesAgotadas || 0;
+        if (com.gastoMensual) {
+            createLineChart("chartGastoComida", Object.keys(com.gastoMensual), Object.values(com.gastoMensual), "Gasto Mensual en Comida ($)");
+        }
+        createDoughnutChart("chartComidaEstado", ["Disponibles", "Agotadas"], [com.unidadesDisponibles, com.unidadesAgotadas], "Estado de la Comida");
+        if (com.productos) {
+            const top5Comida = getTopN(com.productos, 'unidades', 5);
+            createBarChart("chartComidaTop5", top5Comida.map(p => p.producto), top5Comida.map(p => p.unidades), "Top 5 Productos con más unidades");
+            const bottom5Comida = getBottomN(com.productos, 'unidades', 5);
+            createBarChart("chartComidaBottom5", bottom5Comida.map(p => p.producto), bottom5Comida.map(p => p.unidades), "Top 5 Productos con menos unidades");
+        }
+    }
 
     // --- DECORACIÓN ---
     const dec = data.decoracion;
-    document.getElementById("total-productos-decoracion").textContent = dec.totalProductos;
-    document.getElementById("unidades-disponibles-decoracion").textContent = dec.unidadesDisponibles;
-    document.getElementById("unidades-agotadas-decoracion").textContent = dec.unidadesAgotadas;
-    createBarChart("chartCategoriasDecoracion", Object.keys(dec.categorias), Object.values(dec.categorias), "Unidades por Categoría");
-    createLineChart("chartGastoDecoracion", Object.keys(dec.gastoMensual), Object.values(dec.gastoMensual), "Gasto Mensual Decoración ($)");
+    if (dec) {
+        document.getElementById("total-productos-decoracion").textContent = dec.totalProductos || 0;
+        document.getElementById("unidades-disponibles-decoracion").textContent = dec.unidadesDisponibles || 0;
+        document.getElementById("unidades-agotadas-decoracion").textContent = dec.unidadesAgotadas || 0;
+        if (dec.categorias) {
+            createBarChart("chartCategoriasDecoracion", Object.keys(dec.categorias), Object.values(dec.categorias), "Unidades por Categoría");
+        }
+        if (dec.gastoMensual) {
+            createLineChart("chartGastoDecoracion", Object.keys(dec.gastoMensual), Object.values(dec.gastoMensual), "Gasto Mensual Decoración ($)");
+        }
+        createDoughnutChart("chartDecoracionEstado", ["Disponibles", "Agotadas"], [dec.unidadesDisponibles, dec.unidadesAgotadas], "Estado de la Decoración");
+        if (dec.categorias) {
+            createPieChart("chartDecoracionCategoriasPie", Object.keys(dec.categorias), Object.values(dec.categorias), "Distribución de Productos por Categoría");
+        }
+    }
 
     // --- PAPELERÍA ---
     const pap = data.papeleria;
-    document.getElementById("total-productos-papeleria").textContent = pap.totalProductos;
-    document.getElementById("unidades-disponibles-papeleria").textContent = pap.unidadesDisponibles;
-    document.getElementById("unidades-agotadas-papeleria").textContent = pap.unidadesAgotadas;
-    createDoughnutChart("chartPapeleria", ["Disponibles", "Agotadas"], [pap.unidadesDisponibles, pap.unidadesAgotadas], "Estado de Papelería");
+    if (pap) {
+        document.getElementById("total-productos-papeleria").textContent = pap.totalProductos || 0;
+        document.getElementById("unidades-disponibles-papeleria").textContent = pap.unidadesDisponibles || 0;
+        document.getElementById("unidades-agotadas-papeleria").textContent = pap.unidadesAgotadas || 0;
+        createDoughnutChart("chartPapeleria", ["Disponibles", "Agotadas"], [pap.unidadesDisponibles, pap.unidadesAgotadas], "Estado de Papelería");
+        if (pap.productos) {
+            const top5Papeleria = getTopN(pap.productos, 'unidades', 5);
+            createBarChart("chartPapeleriaTop5", top5Papeleria.map(p => p.producto), top5Papeleria.map(p => p.unidades), "Top 5 Productos con más unidades");
+            const bottom5Papeleria = getBottomN(pap.productos, 'unidades', 5);
+            createBarChart("chartPapeleriaBottom5", bottom5Papeleria.map(p => p.producto), bottom5Papeleria.map(p => p.unidades), "Top 5 Productos con menos unidades");
+        }
+    }
 
     // Ocultar el loader al final
     hideGlobalLoader();
+  }
+
+  function getTopN(arr, prop, n) {
+    return arr.slice().sort((a, b) => b[prop] - a[prop]).slice(0, n);
+  }
+
+  function getBottomN(arr, prop, n) {
+    return arr.slice().sort((a, b) => a[prop] - b[prop]).slice(0, n);
   }
 
   // ===== FUNCIONES DE GRAFICADO =====
@@ -56,7 +103,7 @@
     new Chart(ctx, {
       type: "bar",
       data: { labels, datasets: [{ label, data }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      options: { responsive: true, scales: { y: { beginAtZero: true } } },
     });
   }
 
@@ -66,7 +113,7 @@
     new Chart(ctx, {
       type: "line",
       data: { labels, datasets: [{ label, data, fill: false, tension: 0.3 }] },
-      options: { responsive: true, plugins: { legend: { display: true } } }
+      options: { responsive: true, plugins: { legend: { display: true } } },
     });
   }
 
@@ -76,7 +123,17 @@
     new Chart(ctx, {
       type: "doughnut",
       data: { labels, datasets: [{ label, data }] },
-      options: { responsive: true, cutout: "60%" }
+      options: { responsive: true, cutout: "60%" },
+    });
+  }
+
+  function createPieChart(id, labels, data, label) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    new Chart(ctx, {
+      type: "pie",
+      data: { labels, datasets: [{ label, data }] },
+      options: { responsive: true },
     });
   }
 

@@ -12,14 +12,19 @@
 
     <!-- ========== INVENTARIO ========== -->
     <section id="inventario-section" class="dashboard-section">
-      <h2>Inventario General</h2>
+      <h2>Sección Articulos</h2>
       <div class="stats-container">
         <div class="stat-card"><h3>Total Productos</h3><p id="total-productos-inventario">--</p></div>
         <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-inventario">--</p></div>
         <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-inventario">--</p></div>
         <div class="stat-card"><h3>+8 Meses en Storage</h3><p id="mas-ocho-meses">--</p></div>
       </div>
-      <canvas id="chartInventario" height="120"></canvas>
+      <div class="chart-grid">
+        <canvas id="chartInventario" height="120"></canvas>
+        <canvas id="chartInventarioEstado" height="120"></canvas>
+        <canvas id="chartInventarioViejos" height="120"></canvas>
+        <canvas id="chartInventarioUnidadesPrograma" height="120"></canvas>
+      </div>
     </section>
 
     <!-- ========== COMIDA ========== -->
@@ -30,7 +35,12 @@
         <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-comida">--</p></div>
         <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-comida">--</p></div>
       </div>
-      <canvas id="chartGastoComida" height="150"></canvas>
+      <div class="chart-grid">
+        <canvas id="chartGastoComida" height="150"></canvas>
+        <canvas id="chartComidaEstado" height="150"></canvas>
+        <canvas id="chartComidaTop5" height="150"></canvas>
+        <canvas id="chartComidaBottom5" height="150"></canvas>
+      </div>
     </section>
 
     <!-- ========== DECORACIÓN ========== -->
@@ -41,8 +51,12 @@
         <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-decoracion">--</p></div>
         <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-decoracion">--</p></div>
       </div>
-      <canvas id="chartCategoriasDecoracion" height="120"></canvas>
-      <canvas id="chartGastoDecoracion" height="150"></canvas>
+      <div class="chart-grid">
+        <canvas id="chartCategoriasDecoracion" height="120"></canvas>
+        <canvas id="chartGastoDecoracion" height="150"></canvas>
+        <canvas id="chartDecoracionEstado" height="120"></canvas>
+        <canvas id="chartDecoracionCategoriasPie" height="120"></canvas>
+      </div>
     </section>
 
     <!-- ========== PAPELERÍA ========== -->
@@ -53,7 +67,11 @@
         <div class="stat-card"><h3>Unidades Disponibles</h3><p id="unidades-disponibles-papeleria">--</p></div>
         <div class="stat-card"><h3>Unidades Agotadas</h3><p id="unidades-agotadas-papeleria">--</p></div>
       </div>
-      <canvas id="chartPapeleria" height="100"></canvas>
+      <div class="chart-grid">
+        <canvas id="chartPapeleria" height="100"></canvas>
+        <canvas id="chartPapeleriaTop5" height="100"></canvas>
+        <canvas id="chartPapeleriaBottom5" height="100"></canvas>
+      </div>
     </section>
   </div>
 
