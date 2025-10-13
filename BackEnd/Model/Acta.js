@@ -106,7 +106,8 @@ function subirActaConPDF(data) {
     `Subida de acta: ${data.nombreArchivo}`,
     activeUser.name || activeUser.email,
     new Date(data.fechaEntregaAgregar),
-    data.cantidadAgregar
+    data.cantidadAgregar,
+    HOJA_ACTA
   );
   
   return JSON.stringify({

@@ -58,20 +58,36 @@ function isPageAllowedForUser(pageName, userRole) {
 }
 
 function getActiveUser() {
-  const userProperties = PropertiesService.getUserProperties();
-  const userJson = userProperties.getProperty(CLAVE_PROPIEDAD_USUARIO);
-
-  if (!userJson) {
-    return null;
-  }
-
   try {
-    return JSON.parse(userJson);
+    Logger.log('Iniciando getActiveUser...');
+    const userProperties = PropertiesService.getUserProperties();
+    const userJson = userProperties.getProperty(CLAVE_PROPIEDAD_USUARIO);
+    
+    Logger.log('Usuario en PropertiesService: ' + (userJson ? 'encontrado' : 'no encontrado'));
+
+    if (!userJson) {
+      Logger.log('No hay usuario activo en la sesión');
+      return null;
+    }
+
+    const user = JSON.parse(userJson);
+    
+    // Validar que el objeto de usuario tenga la estructura correcta
+    if (!user || !user.rol) {
+      Logger.log('Objeto de usuario inválido o sin rol definido: ' + JSON.stringify(user));
+      userProperties.deleteProperty(CLAVE_PROPIEDAD_USUARIO);
+      return null;
+    }
+
+    Logger.log('Usuario activo recuperado: ' + JSON.stringify({ ...user, password: '[REDACTED]' }));
+    return user;
   } catch (e) {
-    Logger.log(
-      `Error al parsear JSON de usuario activo: ${e}. Datos: ${userJson}`
-    );
+    Logger.log('Error en getActiveUser: ' + e.message);
+    Logger.log('Stack trace: ' + e.stack);
+    Logger.log('Datos en PropertiesService: ' + userJson);
+    
     // Si el JSON está corrupto, lo eliminamos para evitar errores futuros.
+    const userProperties = PropertiesService.getUserProperties();
     userProperties.deleteProperty(CLAVE_PROPIEDAD_USUARIO);
     return null;
   }

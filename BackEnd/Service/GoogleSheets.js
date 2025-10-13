@@ -165,6 +165,7 @@ function getHistorialModificacionesSheet() {
         "Usuario",
         "Fecha de Entrega/Retiro",
         "Cantidad Entregada/Retirada",
+        "Origen",
       ]);
     } catch (e) {
       return null;
@@ -207,7 +208,8 @@ function _registrarHistorialModificacion(
   accionEstado,
   usuario,
   entregaFecha,
-  entregaCantidad
+  entregaCantidad,
+  origen
 ) {
   try {
     var historialSheet = getHistorialModificacionesSheet();
@@ -237,6 +239,7 @@ function _registrarHistorialModificacion(
       usuario || "Sistema", // Usuario que realiza la acción
       entregaFecha instanceof Date ? entregaFecha : null,
       entregaCantidad,
+      origen || "",
     ]);
   } catch (e) {
     Logger.log(

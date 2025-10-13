@@ -9,6 +9,7 @@
     currentPage: 1,
     itemsPerPage: 10,
     fechaOrdenAscendente: false,
+    activeCategory: 'Todos',
   };
 
   // =================================================
@@ -22,44 +23,64 @@
         pageState.currentPage = 1;
         aplicarFiltrosYOrdenar();
       },
-      tbodyId: "tablaHistorialBody",
+      tbodyId: "historial-list-container", // Updated to list container
     });
   }
 
   // ============================================
-  // --- RENDERIZADO DE TABLA Y PAGINACIÓN ---
+  // --- RENDERIZADO DE TARJETAS Y PAGINACIÓN ---
   // ============================================
-  function renderPaginatedTable() {
-    renderPaginatedTableGeneric({
-      data: pageState.datosMostrados,
-      currentPage: pageState.currentPage,
-      itemsPerPage: pageState.itemsPerPage,
-      tbodyId: "tablaHistorialBody",
-      paginationContainerId: "historialPagination",
-      noDataMessage: "No hay registros en el historial.",
-      onRowCreated: (row, item) => {
-        row.dataset.id = item["Id"] || "";
-        row.dataset.productoId = item["ProductoId"] || "";
-      },
-      renderRow: (item) => {
-        return `
-          <td>${escapeHtml(item["Id"] || "")}</td>
-          <td>${escapeHtml(item["ProductoId"] || "")}</td>
-          <td>${formatDate(item["Fecha"])}</td>
-          <td>${escapeHtml(item["Producto"] || "")}</td>
-          <td>${escapeHtml(item["Programa"] || "")}</td>
-          <td>${item["Unidades Anteriores"] == null ? "-" : escapeHtml(String(item["Unidades Anteriores"]))}</td>
-          <td>${item["Unidades Nuevas"] == null ? "-" : escapeHtml(String(item["Unidades Nuevas"]))}</td>
-          <td>${escapeHtml(item["Estado"] || "")}</td>
-          <td>${escapeHtml(item["Usuario"] || "")}</td>
-          <td>${formatDate(item["Fecha de Retiro"])}</td>
-          <td>${item["Cantidad"] == null ? "-" : escapeHtml(String(item["Cantidad"]))}</td>
-        `;
-      },
-      onPageChange: (page) => {
-        pageState.currentPage = page;
-        renderPaginatedTable();
-      },
+  function renderHistorialCards() {
+    const container = document.getElementById("historial-list-container");
+    if (!container) return;
+
+    // Limpiar contenedor
+    container.innerHTML = '';
+
+    if (pageState.datosMostrados.length === 0) {
+      container.innerHTML = '<p>No hay registros en el historial para la categoría seleccionada.</p>';
+      return;
+    }
+
+    const paginatedData = paginate(pageState.datosMostrados, pageState.currentPage, pageState.itemsPerPage);
+
+    paginatedData.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'historial-card';
+      
+      const estado = escapeHtml(item["Estado"] || "").toLowerCase();
+      let iconName = 'help-circle-outline';
+      if (estado === 'agregado') iconName = 'add-circle-outline';
+      if (estado === 'modificado') iconName = 'create-outline';
+      if (estado === 'retirado') iconName = 'arrow-down-circle-outline';
+      if (estado === 'eliminado') iconName = 'trash-outline';
+
+      card.innerHTML = `
+        <div class="historial-icon ${estado}">
+          <ion-icon name="${iconName}"></ion-icon>
+        </div>
+        <div class="historial-content">
+          <div class="historial-header">
+            <h3>${escapeHtml(item["Producto"] || "")}</h3>
+            <span class="estado ${estado}">${escapeHtml(item["Estado"] || "")}</span>
+          </div>
+          <div class="historial-details">
+            <p><strong>Usuario:</strong> ${escapeHtml(item["Usuario"] || "")}</p>
+            <p><strong>Fecha:</strong> ${formatDate(item["Fecha y Hora"])}</p>
+            <p><strong>Programa:</strong> ${escapeHtml(item["Programa"] || "")}</p>
+            ${item["Unidades Anteriores"] != null ? `<p><strong>Unidades Ant.:</strong> ${escapeHtml(String(item["Unidades Anteriores"]))}</p>` : ''}
+            ${item["Unidades Nuevas"] != null ? `<p><strong>Unidades Nuevas:</strong> ${escapeHtml(String(item["Unidades Nuevas"]))}</p>` : ''}
+            ${item["Cantidad"] != null ? `<p><strong>Cantidad:</strong> ${escapeHtml(String(item["Cantidad"]))}</p>` : ''}
+            ${item["Fecha de Retiro"] ? `<p><strong>Fecha Retiro:</strong> ${formatDate(item["Fecha de Retiro"])}</p>` : ''}
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    renderPagination('historialPagination', pageState.datosMostrados.length, pageState.itemsPerPage, pageState.currentPage, (page) => {
+      pageState.currentPage = page;
+      renderHistorialCards();
     });
   }
 
@@ -67,6 +88,13 @@
   // --- FILTROS Y ORDENAMIENTO ---
   // =================================================
   function aplicarFiltrosYOrdenar() {
+    let filteredData = pageState.fullData;
+
+    // Filtrar por categoría
+    if (pageState.activeCategory !== 'Todos') {
+      filteredData = filteredData.filter(item => item["Programa"] === pageState.activeCategory);
+    }
+
     const filters = [
       {
         id: "buscarHistorial",
@@ -74,32 +102,26 @@
         type: "text",
       },
       {
-        id: "filtroProgramaHistorial",
-        fields: ["Programa"],
-        type: "text",
-      },
-      {
-        id: "filtroEstadoHistorialInput",
+        id: "filtroEstadoHistorial",
         fields: ["Estado"],
-        type: "text",
+        type: "select",
       }
     ];
 
     aplicarFiltrosYOrdenarGenerico({
-      dataSource: pageState.fullData,
+      dataSource: filteredData, // Usar datos ya filtrados por categoría
       setResultados: (resultados) => (pageState.datosMostrados = resultados),
       filters: filters,
       fechaOrdenAsc: pageState.fechaOrdenAscendente,
-      campoFecha: "Fecha",
-      renderFn: renderPaginatedTable,
+      campoFecha: "Fecha y Hora",
+      renderFn: renderHistorialCards,
     });
   }
 
   function limpiarTodosLosFiltrosHistorial() {
     const inputs = [
       "buscarHistorial",
-      "filtroProgramaHistorial",
-      "filtroEstadoHistorialInput"
+      "filtroEstadoHistorial"
     ];
     
     inputs.forEach(id => {
@@ -109,7 +131,7 @@
     
     aplicarFiltrosYOrdenar();
   }
-
+  
   function toggleFiltrosAdicionalesHistorial() {
     const container = document.getElementById("filtrosAdicionalesHistorialContainer");
     if (container) {
@@ -117,16 +139,39 @@
     }
   }
 
+  function filtrarHistorialPorCategoria(categoria) {
+    pageState.activeCategory = categoria;
+    pageState.currentPage = 1;
+
+    // Actualizar estilo de pestañas
+    document.querySelectorAll('.tab-link').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-link').forEach(tab => {
+      const tabCategory = tab.getAttribute('data-category');
+      if (tabCategory === categoria) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+
+    aplicarFiltrosYOrdenar();
+  }
+
   // ===============================================
   // --- INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
   // ===============================================
   function inicializarPaginaHistorial() {
     // Configurar listeners de filtros
-    const inputIds = ["buscarHistorial", "filtroProgramaHistorial", "filtroEstadoHistorialInput"];
+    const inputIds = ["buscarHistorial", "filtroEstadoHistorial"];
     inputIds.forEach(id => {
       const input = document.getElementById(id);
       if (input) {
         input.addEventListener("input", aplicarFiltrosYOrdenar);
+        if(id === 'filtroEstadoHistorial') {
+          input.addEventListener("change", aplicarFiltrosYOrdenar);
+        }
       }
     });
 
@@ -154,12 +199,39 @@
       (val) => (pageState.fechaOrdenAscendente = val)
     );
   window.buscarPorNombreHistorial = aplicarFiltrosYOrdenar;
+  window.filtrarHistorialPorEstado = aplicarFiltrosYOrdenar;
   window.limpiarTodosLosFiltrosHistorial = limpiarTodosLosFiltrosHistorial;
+  window.filtrarHistorialPorCategoria = filtrarHistorialPorCategoria;
   window.cerrarMensajeHistorial = () => {
     const mensajeDiv = document.getElementById("mensajeConfirmacionHistorial");
     if (mensajeDiv) mensajeDiv.style.display = "none";
   };
 
+  // Helper function for pagination (assuming it exists in a generic script)
+  function paginate(array, page_number, page_size) {
+    return array.slice((page_number - 1) * page_size, page_number * page_size);
+  }
+
+  // Helper function for rendering pagination controls (assuming it exists in a generic script)
+  function renderPagination(containerId, totalItems, itemsPerPage, currentPage, onPageClick) {
+    const paginationContainer = document.getElementById(containerId);
+    if (!paginationContainer) return;
+    
+    paginationContainer.innerHTML = '';
+    const pageCount = Math.ceil(totalItems / itemsPerPage);
+
+    if (pageCount <= 1) return;
+
+    for (let i = 1; i <= pageCount; i++) {
+      const pageButton = document.createElement('button');
+      pageButton.innerText = i;
+      pageButton.className = 'page-btn' + (i === currentPage ? ' active' : '');
+      pageButton.addEventListener('click', () => onPageClick(i));
+      paginationContainer.appendChild(pageButton);
+    }
+  }
+
   // Inicializar la página
   inicializarPaginaHistorial();
-})();</script>
+})();
+</script>
