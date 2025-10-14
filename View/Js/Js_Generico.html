@@ -59,32 +59,30 @@
   }
 
   // --- Manejo de Respuestas del Servidor ---
-  function handleServerResponse(responseString, onSuccess, reloadFn) {
+  function handleServerResponse(responseFromServer, onSuccess, reloadFn) {
     hideLoading();
     let response;
-    try {
-      response = JSON.parse(responseString);
-    } catch (e) {
-      const type = responseString.toLowerCase().includes("error")
-        ? "error"
-        : "success";
-      mostrarMensaje(responseString, type);
-      if (type === "success" && typeof reloadFn === "function") reloadFn();
-      return;
+
+    if (typeof responseFromServer === 'string') {
+        try {
+            response = JSON.parse(responseFromServer);
+        } catch (e) {
+            const type = responseFromServer.toLowerCase().includes('error') ? 'error' : 'success';
+            mostrarMensaje(responseFromServer, type);
+            if (type === 'success' && typeof reloadFn === 'function') reloadFn();
+            return;
+        }
+    } else {
+        response = responseFromServer;
     }
 
-    if (response.success) {
-      mostrarMensaje(
-        response.message || "Operación completada exitosamente.",
-        "success"
-      );
-      if (typeof reloadFn === "function") reloadFn();
-      if (typeof onSuccess === "function") onSuccess();
+    if (response && response.success) {
+        mostrarMensaje(response.message || 'Operación completada exitosamente.', 'success');
+        if (typeof reloadFn === 'function') reloadFn();
+        if (typeof onSuccess === 'function') onSuccess();
     } else {
-      mostrarMensaje(
-        "Error: " + (response.message || "Ocurrió un error."),
-        "error"
-      );
+        const errorMessage = response ? response.message : 'Ocurrió un error desconocido.';
+        mostrarMensaje('Error: ' + errorMessage, 'error');
     }
   }
 

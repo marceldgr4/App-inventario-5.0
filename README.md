@@ -34,6 +34,110 @@ graph TD
     C -- Devuelve datos/vistas --> B
 ```
 
+## Modelo de Base de Datos
+
+La base de datos de la aplicación está implementada en **Google Sheets**. Este enfoque, aunque no es una base de datos SQL o NoSQL tradicional, funciona como un sistema de almacenamiento tabular donde cada hoja de cálculo (`Sheet`) actúa como una tabla. Las relaciones entre las tablas no se definen con claves foráneas (`foreign keys`) explícitas, sino de manera implícita a través de la lógica de la aplicación, principalmente uniendo datos por columnas de `Id`.
+
+A continuación, se presenta un diagrama de Entidad-Relación (ERD) que modela las principales "tablas" (hojas) y sus relaciones, inferido a partir del código fuente del backend.
+
+```mermaid
+erDiagram
+    USUARIO {
+        string Id "PK"
+        string NombreCompleto
+        string userName
+        string password
+        string CDE
+        string Email
+        string Estado_User
+        string Rol
+        date "Fecha de Registro"
+    }
+
+    PRODUCTO {
+        string Id "PK"
+        string PRODUCTO
+        string PROGRAMA
+        int Ingresos
+        int Salidas
+        int UnidadesDisponibles
+        string COMENTARIOS
+        string imagen
+        string estado
+    }
+
+    ACTA {
+        string Id "PK"
+        string Id_Usuario "FK"
+        string Usuario
+        datetime "Fecha de entrega"
+        string Producto
+        string Programa
+        int Cantidad
+        string Link
+        string Ciudad
+        string "Nombre Compelto"
+        datetime "fecha de carga"
+    }
+
+    COMENTARIO {
+        string Id "PK"
+        string ProductoId "FK"
+        string Producto
+        string Programa
+        datetime "Fecha del Comentario"
+        string Comentario
+        string Usuario
+        string Origen
+        bool Leido
+        string Respuesta
+        datetime "Fecha De Respuesta"
+        bool "Borrado por Usuario"
+        bool "Borrado por Admin"
+        bool RespuestaConfirmada
+    }
+
+    HISTORIAL {
+        string Id "PK"
+        string ProductoId "FK"
+        datetime "Fecha y Hora"
+        string Producto
+        string Programa
+        int "Unidades Anteriores"
+        int "Unidades Nuevas"
+        string Estado
+        string Usuario
+        datetime "Fecha de Retiro"
+        int Cantidad
+        string Origen
+    }
+
+    REGISTRO_USUARIO {
+        string Id "PK"
+        datetime Fecha
+        string "User Name"
+        string Registro
+    }
+
+    USUARIO ||--o{ ACTA : "registra"
+    USUARIO ||--o{ COMENTARIO : "escribe"
+    USUARIO ||--o{ HISTORIAL : "realiza"
+    PRODUCTO ||--o{ COMENTARIO : "tiene"
+    PRODUCTO ||--o{ HISTORIAL : "registra en"
+
+```
+
+### Descripción de las Entidades
+
+*   **USUARIO**: Almacena la información de los usuarios que pueden acceder al sistema, incluyendo sus credenciales y roles.
+*   **PRODUCTO**: Representa una tabla genérica para los artículos del inventario (Papelería, Comida, Decoración). Contiene información sobre el stock, nombre y estado.
+*   **ACTA**: Guarda un registro de las actas generadas, incluyendo un enlace al PDF almacenado en Google Drive y el usuario que la generó.
+*   **COMENTARIO**: Centraliza todos los comentarios realizados sobre los productos, con su estado y las respuestas correspondientes.
+*   **HISTORIAL**: Registra todos los movimientos y cambios que ocurren en el inventario, sirviendo como una bitácora de auditoría.
+*   **REGISTRO_USUARIO**: Lleva un registro de los inicios de sesión de los usuarios en el sistema.
+
+**Nota**: Las hojas `Inventario`, `Comida`, `Decoracion` y `Papeleria` comparten una estructura similar, que ha sido consolidada en la entidad `PRODUCTO` en este diagrama para simplificar.
+
 ## Flujo de Trabajo
 
 El flujo de trabajo general de la aplicación se centra en la interacción del usuario con la interfaz web, que a su vez desencadena funciones en el backend para manipular los datos.

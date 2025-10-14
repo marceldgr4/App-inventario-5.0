@@ -88,13 +88,9 @@ function loadContent(pageName) {
   if (
     pageName === "Articulos" ||
     pageName === "Acta" ||
-    pageName === "Categorias" ||
     pageName === "Usuario" ||
     pageName === "Registro" ||
     pageName === "Perfil" ||
-    pageName === "Ventas" ||
-    pageName === "Compras" ||
-    pageName === "Reportes" ||
     pageName === "Historial" ||
     pageName === "Comida" ||
     pageName === "Decoracion" ||
