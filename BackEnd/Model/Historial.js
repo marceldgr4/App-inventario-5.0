@@ -34,6 +34,7 @@ function getHistorialSheet() {
         "Usuario",
         "Fecha de Retiro",
         "Cantidad",
+        "Origen",
       ]);
       Logger.log('Nueva hoja creada con cabeceras');
     }

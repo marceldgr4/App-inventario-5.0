@@ -15,72 +15,42 @@
   // =================================================
   // --- CARGA DE DATOS ---
   // =================================================
+  function safeParseResponse(resp) {
+    try {
+      if (!resp) return [];
+      if (typeof resp === "string") {
+        const parsed = JSON.parse(resp);
+        return parsed && parsed.data ? parsed.data : parsed;
+      }
+      if (Array.isArray(resp)) return resp;
+      if (resp && Array.isArray(resp.data)) return resp.data;
+      return [];
+    } catch (err) {
+      console.error("Error al parsear respuesta del historial:", err, resp);
+      return [];
+    }
+  }
+
   function loadHistorial() {
     loadDataGenerico({
       endpoint: "getHistorialData",
       onSuccess: (data) => {
-        pageState.fullData = data;
+        const parsed = safeParseResponse(data);
+        console.log("✅ Datos cargados del historial:", parsed);
+
+        // Mostrar los orígenes únicos que llegan
+        const origenes = new Set();
+        parsed.forEach(i => {
+          const origen = (i["Origen"] || i["Programa"] || "").trim();
+          if (origen) origenes.add(origen);
+        });
+        console.log("📌 Orígenes detectados en fullData:", Array.from(origenes));
+
+        pageState.fullData = parsed;
         pageState.currentPage = 1;
         aplicarFiltrosYOrdenar();
       },
-      tbodyId: "historial-list-container", // Updated to list container
-    });
-  }
-
-  // ============================================
-  // --- RENDERIZADO DE TARJETAS Y PAGINACIÓN ---
-  // ============================================
-  function renderHistorialCards() {
-    const container = document.getElementById("historial-list-container");
-    if (!container) return;
-
-    // Limpiar contenedor
-    container.innerHTML = '';
-
-    if (pageState.datosMostrados.length === 0) {
-      container.innerHTML = '<p>No hay registros en el historial para la categoría seleccionada.</p>';
-      return;
-    }
-
-    const paginatedData = paginate(pageState.datosMostrados, pageState.currentPage, pageState.itemsPerPage);
-
-    paginatedData.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'historial-card';
-      
-      const estado = escapeHtml(item["Estado"] || "").toLowerCase();
-      let iconName = 'help-circle-outline';
-      if (estado === 'agregado') iconName = 'add-circle-outline';
-      if (estado === 'modificado') iconName = 'create-outline';
-      if (estado === 'retirado') iconName = 'arrow-down-circle-outline';
-      if (estado === 'eliminado') iconName = 'trash-outline';
-
-      card.innerHTML = `
-        <div class="historial-icon ${estado}">
-          <ion-icon name="${iconName}"></ion-icon>
-        </div>
-        <div class="historial-content">
-          <div class="historial-header">
-            <h3>${escapeHtml(item["Producto"] || "")}</h3>
-            <span class="estado ${estado}">${escapeHtml(item["Estado"] || "")}</span>
-          </div>
-          <div class="historial-details">
-            <p><strong>Usuario:</strong> ${escapeHtml(item["Usuario"] || "")}</p>
-            <p><strong>Fecha:</strong> ${formatDate(item["Fecha y Hora"])}</p>
-            <p><strong>Programa:</strong> ${escapeHtml(item["Programa"] || "")}</p>
-            ${item["Unidades Anteriores"] != null ? `<p><strong>Unidades Ant.:</strong> ${escapeHtml(String(item["Unidades Anteriores"]))}</p>` : ''}
-            ${item["Unidades Nuevas"] != null ? `<p><strong>Unidades Nuevas:</strong> ${escapeHtml(String(item["Unidades Nuevas"]))}</p>` : ''}
-            ${item["Cantidad"] != null ? `<p><strong>Cantidad:</strong> ${escapeHtml(String(item["Cantidad"]))}</p>` : ''}
-            ${item["Fecha de Retiro"] ? `<p><strong>Fecha Retiro:</strong> ${formatDate(item["Fecha de Retiro"])}</p>` : ''}
-          </div>
-        </div>
-      `;
-      container.appendChild(card);
-    });
-
-    renderPagination('historialPagination', pageState.datosMostrados.length, pageState.itemsPerPage, pageState.currentPage, (page) => {
-      pageState.currentPage = page;
-      renderHistorialCards();
+      tbodyId: "historial-list-container",
     });
   }
 
@@ -88,104 +58,221 @@
   // --- FILTROS Y ORDENAMIENTO ---
   // =================================================
   function aplicarFiltrosYOrdenar() {
-    let filteredData = pageState.fullData;
+    let filteredData = Array.isArray(pageState.fullData)
+      ? [...pageState.fullData]
+      : [];
 
-    // Filtrar por categoría
-    if (pageState.activeCategory !== 'Todos') {
-      filteredData = filteredData.filter(item => item["Programa"] === pageState.activeCategory);
-    }
+    // --- Filtrar por pestaña según la columna 'Origen' ---
+   // --- Filtrar por pestaña según la columna 'Origen' ---
+if (pageState.activeCategory && pageState.activeCategory !== "Todos") {
+  const categoriaActiva = pageState.activeCategory
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
+  const mapeoCategorias = {
+    articulos: "inventario",
+    inventario: "inventario",
+    comida: "comida",
+    papeleria: "papeleria",
+    decoracion: "decoracion",
+  };
+
+  const categoriaNormalizada =
+    mapeoCategorias[categoriaActiva] || categoriaActiva;
+
+  filteredData = filteredData.filter((item) => {
+    // Buscar una propiedad que contenga la palabra "origen" sin importar mayúsculas ni espacios
+    const origenKey = Object.keys(item).find(
+      (k) => k.toLowerCase().replace(/\s+/g, "") === "origen"
+    );
+    const rawOrigen = origenKey ? item[origenKey] : "";
+    const origen = (rawOrigen || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return origen === categoriaNormalizada;
+  });
+}
+
+    console.log(
+      `📊 Categoría activa: ${pageState.activeCategory} | Registros filtrados: ${filteredData.length}`
+    );
+
+    // --- Filtros adicionales (texto y estado) ---
     const filters = [
-      {
-        id: "buscarHistorial",
-        fields: ["Producto", "Usuario"],
-        type: "text",
-      },
-      {
-        id: "filtroEstadoHistorial",
-        fields: ["Estado"],
-        type: "select",
-      }
+      { id: "buscarHistorial", fields: ["Producto", "Usuario"], type: "text" },
+      { id: "filtroEstadoHistorial", fields: ["Estado"], type: "select" },
     ];
 
     aplicarFiltrosYOrdenarGenerico({
-      dataSource: filteredData, // Usar datos ya filtrados por categoría
+      dataSource: filteredData,
       setResultados: (resultados) => (pageState.datosMostrados = resultados),
       filters: filters,
       fechaOrdenAsc: pageState.fechaOrdenAscendente,
-      campoFecha: "Fecha y Hora",
+      campoFecha: "Fecha",
       renderFn: renderHistorialCards,
     });
   }
 
+  // =================================================
+  // --- RENDERIZADO DE TARJETAS Y PAGINACIÓN ---
+  // =================================================
+  function renderHistorialCards() {
+  const container = document.getElementById("historial-list-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (pageState.datosMostrados.length === 0) {
+    container.innerHTML =
+      '<p>No hay registros en el historial para la categoría seleccionada.</p>';
+    return;
+  }
+
+  const paginatedData = paginate(
+    pageState.datosMostrados,
+    pageState.currentPage,
+    pageState.itemsPerPage
+  );
+
+  paginatedData.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "historial-card";
+
+    const estado = (item["Estado"] || "").toLowerCase();
+    let iconName = "help-circle-outline";
+    if (estado === "agregado") iconName = "add-circle-outline";
+    if (estado === "modificado") iconName = "create-outline";
+    if (estado === "retirado") iconName = "arrow-down-circle-outline";
+    if (estado === "eliminado") iconName = "trash-outline";
+
+    // 🔍 Mostrar correctamente el campo 'Origen'
+    const origen =
+      item["Origen"] ||
+      item["origen"] ||
+      item["Origen "] ||
+      item["Programa"] ||
+      "";
+
+    card.innerHTML = `
+      <div class="historial-icon ${estado}">
+        <ion-icon name="${iconName}"></ion-icon>
+      </div>
+      <div class="historial-content">
+        <div class="historial-header">
+          <h3>${escapeHtml(item["Producto"] || "")}</h3>
+          <span class="estado ${estado}">${escapeHtml(item["Estado"] || "")}</span>
+        </div>
+        <div class="historial-details">
+          <p><strong>Usuario:</strong> ${escapeHtml(item["Usuario"] || "")}</p>
+          <p><strong>Fecha:</strong> ${formatDate(item["Fecha"])}</p>
+          <p><strong>Origen:</strong> ${escapeHtml(origen)}</p>
+          ${
+            item["Unidades Anteriores"] != null
+              ? `<p><strong>Unidades Ant.:</strong> ${escapeHtml(String(item["Unidades Anteriores"]))}</p>`
+              : ""
+          }
+          ${
+            item["Unidades Nuevas"] != null
+              ? `<p><strong>Unidades Nuevas:</strong> ${escapeHtml(String(item["Unidades Nuevas"]))}</p>`
+              : ""
+          }
+          ${
+            item["Cantidad"] != null
+              ? `<p><strong>Cantidad:</strong> ${escapeHtml(String(item["Cantidad"]))}</p>`
+              : ""
+          }
+          ${
+            item["Fecha de Retiro"]
+              ? `<p><strong>Fecha Retiro:</strong> ${formatDate(item["Fecha de Retiro"])}</p>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  renderPagination(
+    "historialPagination",
+    pageState.datosMostrados.length,
+    pageState.itemsPerPage,
+    pageState.currentPage,
+    (page) => {
+      pageState.currentPage = page;
+      renderHistorialCards();
+    }
+  );
+}
+
+  // =================================================
+  // --- FILTROS AUXILIARES ---
+  // =================================================
   function limpiarTodosLosFiltrosHistorial() {
-    const inputs = [
-      "buscarHistorial",
-      "filtroEstadoHistorial"
-    ];
-    
-    inputs.forEach(id => {
+    ["buscarHistorial", "filtroEstadoHistorial"].forEach((id) => {
       const input = document.getElementById(id);
       if (input) input.value = "";
     });
-    
     aplicarFiltrosYOrdenar();
   }
-  
+
   function toggleFiltrosAdicionalesHistorial() {
-    const container = document.getElementById("filtrosAdicionalesHistorialContainer");
-    if (container) {
+    const container = document.getElementById(
+      "filtrosAdicionalesHistorialContainer"
+    );
+    if (container)
       container.classList.toggle("filtros-adicionales-ocultos");
-    }
   }
 
   function filtrarHistorialPorCategoria(categoria) {
     pageState.activeCategory = categoria;
     pageState.currentPage = 1;
 
-    // Actualizar estilo de pestañas
-    document.querySelectorAll('.tab-link').forEach(tab => {
-      tab.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-link').forEach(tab => {
-      const tabCategory = tab.getAttribute('data-category');
-      if (tabCategory === categoria) {
-        tab.classList.add('active');
-      } else {
-        tab.classList.remove('active');
-      }
+    document.querySelectorAll(".tab-link").forEach((tab) => {
+      const tabCategory = tab.getAttribute("data-category");
+      tab.classList.toggle("active", tabCategory === categoria);
     });
 
     aplicarFiltrosYOrdenar();
   }
 
-  // ===============================================
-  // --- INICIALIZACIÓN Y EXPOSICIÓN GLOBAL ---
-  // ===============================================
+  // =================================================
+  // --- INICIALIZACIÓN ---
+  // =================================================
   function inicializarPaginaHistorial() {
-    // Configurar listeners de filtros
-    const inputIds = ["buscarHistorial", "filtroEstadoHistorial"];
-    inputIds.forEach(id => {
+    ["buscarHistorial", "filtroEstadoHistorial"].forEach((id) => {
       const input = document.getElementById(id);
       if (input) {
         input.addEventListener("input", aplicarFiltrosYOrdenar);
-        if(id === 'filtroEstadoHistorial') {
+        if (id === "filtroEstadoHistorial") {
           input.addEventListener("change", aplicarFiltrosYOrdenar);
         }
       }
     });
 
-    const toggleFiltrosBtnEl = document.getElementById("toggleFiltrosHistorialIconContainer");
+    const toggleFiltrosBtnEl = document.getElementById(
+      "toggleFiltrosHistorialIconContainer"
+    );
     if (toggleFiltrosBtnEl) {
-      toggleFiltrosBtnEl.addEventListener("click", toggleFiltrosAdicionalesHistorial);
+      toggleFiltrosBtnEl.addEventListener(
+        "click",
+        toggleFiltrosAdicionalesHistorial
+      );
     }
 
-    // Cargar datos iniciales
     loadHistorial();
   }
 
-  // Exponer funciones necesarias al scope global para los onclick del HTML
-  window.ordenarPorFechaHistorial = (e) => ordenarPorFechaGenerico(e, "sortOptions");
+  // =================================================
+  // --- FUNCIONES GLOBALES ---
+  // =================================================
+  window.ordenarPorFechaHistorial = (e) =>
+    ordenarPorFechaGenerico(e, "sortOptions");
   window.ordenarAscendenteHistorial = () =>
     ordenarAscendenteGenerico(
       aplicarFiltrosYOrdenar,
@@ -207,31 +294,37 @@
     if (mensajeDiv) mensajeDiv.style.display = "none";
   };
 
-  // Helper function for pagination (assuming it exists in a generic script)
+  // =================================================
+  // --- HELPERS ---
+  // =================================================
   function paginate(array, page_number, page_size) {
     return array.slice((page_number - 1) * page_size, page_number * page_size);
   }
 
-  // Helper function for rendering pagination controls (assuming it exists in a generic script)
-  function renderPagination(containerId, totalItems, itemsPerPage, currentPage, onPageClick) {
+  function renderPagination(
+    containerId,
+    totalItems,
+    itemsPerPage,
+    currentPage,
+    onPageClick
+  ) {
     const paginationContainer = document.getElementById(containerId);
     if (!paginationContainer) return;
-    
-    paginationContainer.innerHTML = '';
-    const pageCount = Math.ceil(totalItems / itemsPerPage);
 
+    paginationContainer.innerHTML = "";
+    const pageCount = Math.ceil(totalItems / itemsPerPage);
     if (pageCount <= 1) return;
 
     for (let i = 1; i <= pageCount; i++) {
-      const pageButton = document.createElement('button');
+      const pageButton = document.createElement("button");
       pageButton.innerText = i;
-      pageButton.className = 'page-btn' + (i === currentPage ? ' active' : '');
-      pageButton.addEventListener('click', () => onPageClick(i));
+      pageButton.className = "page-btn" + (i === currentPage ? " active" : "");
+      pageButton.addEventListener("click", () => onPageClick(i));
       paginationContainer.appendChild(pageButton);
     }
   }
 
-  // Inicializar la página
+  // --- Inicialización ---
   inicializarPaginaHistorial();
 })();
 </script>
