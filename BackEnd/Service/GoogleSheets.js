@@ -165,6 +165,7 @@ function getHistorialModificacionesSheet() {
         "Usuario",
         "Fecha de Entrega/Retiro",
         "Cantidad Entregada/Retirada",
+        "Origen",
       ]);
     } catch (e) {
       return null;
@@ -207,12 +208,26 @@ function _registrarHistorialModificacion(
   accionEstado,
   usuario,
   entregaFecha,
-  entregaCantidad
+  entregaCantidad,
+  origen // Este parámetro es en realidad el sheetName
 ) {
   try {
     var historialSheet = getHistorialModificacionesSheet();
     var nuevoIdHistorial = _obtenerUltimoIdHistorialMod() + 1;
     var now = new Date();
+
+    // --- SOLUCIÓN: Traducir el sheetName a la categoría correcta ---
+    const mapeoOrigen = {
+      [HOJA_ARTICULOS]: "inventario",
+      [HOJA_PAPELERIA]: "papeleria",
+      [HOJA_DECORACION]: "decoracion",
+      [HOJA_COMIDA]: "comida",
+      // Añade aquí otras hojas si es necesario
+    };
+
+    // Si el nombre de la hoja está en el mapa, usa la categoría correcta.
+    // Si no, usa el nombre original en minúsculas como fallback.
+    const origenCorrecto = mapeoOrigen[origen] || (origen ? origen.toString().toLowerCase() : "");
 
     // Asegura que los valores numéricos sean tratados como números, evitando errores.
     unidadesAnteriores = parseFloat(unidadesAnteriores);
@@ -237,6 +252,7 @@ function _registrarHistorialModificacion(
       usuario || "Sistema", // Usuario que realiza la acción
       entregaFecha instanceof Date ? entregaFecha : null,
       entregaCantidad,
+      origenCorrecto, // Se utiliza el origen corregido
     ]);
   } catch (e) {
     Logger.log(

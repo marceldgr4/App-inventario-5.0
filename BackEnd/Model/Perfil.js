@@ -167,7 +167,8 @@ function actualizarMiPerfil(data) {
       actionDetail,
       activeUserSession.name || activeUserSession.email,
       new Date(),
-      null
+      null,
+      HOJA_USUARIO
     );
 
   return { success: true, message: "Perfil actualizado exitosamente." };

@@ -224,7 +224,8 @@ function _ejecutarAgregarUsuario(data, sheetName) {
       `Usuario agregado: ${data.userNameAgregar}`,
       performingUser,
       new Date(),
-      null
+      null,
+      sheetName
     );
 
     return { success: true, message: `Usuario agregado exitosamente.`, id: newId };

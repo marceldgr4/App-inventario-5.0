@@ -1,406 +1,330 @@
 <script>
-// ===============================================
-// --- VARIABLES GLOBALES PARA LA PÁGINA DE HISTORIAL ---
-// ===============================================
-let fullHistorialData = []; // Almacena todos los registros de historial cargados del servidor.
-let datosMostradosHistorial = []; // Almacena los registros después de aplicar filtros y ordenamiento.
-let currentHistorialPage = 1; // Página actual de la tabla de historial.
-let historialItemsPerPage = 10; // Ítems a mostrar por página.
-let fechaOrdenAscendenteHistorial = false; // Controla la dirección del ordenamiento por fecha (descendente por defecto).
+(function () {
+  // =================================================
+  // --- VARIABLES DE ESTADO DE LA PÁGINA DE HISTORIAL ---
+  // =================================================
+  const pageState = {
+    fullData: [],
+    datosMostrados: [],
+    currentPage: 1,
+    itemsPerPage: 10,
+    fechaOrdenAscendente: false,
+    activeCategory: 'Todos',
+  };
 
-
-// ===================================
-// --- FUNCIONES DE FEEDBACK DE UI ---
-// ===================================
-
-/**
- * @summary Muestra un mensaje de feedback en la página de historial.
- * @param {string} mensaje - El texto a mostrar.
- */
-function mostrarMensajeHistorial(mensaje) {
-  const mensajeDiv = document.getElementById("mensajeConfirmacionHistorial");
-  if (mensajeDiv) {
-    const span = mensajeDiv.querySelector("span");
-    if (span) span.textContent = mensaje;
-    mensajeDiv.style.display = "block";
-  }
-}
-function cerrarMensajeHistorial() {
-  const mensajeDiv = document.getElementById("mensajeConfirmacionHistorial");
-  if (mensajeDiv) mensajeDiv.style.display = "none";
-}
-/**
- * @summary Muestra la superposición de carga para la sección de historial.
- */
-function showLoadingHistorial() {
-  const overlay = document.getElementById("loadingOverlayHistorial");
-  if (overlay) overlay.style.display = "block";
-}
-/**
- * @summary Oculta la superposición de carga de la sección de historial.
- */
-function hideLoadingHistorial() {
-  const overlay = document.getElementById("loadingOverlayHistorial");
-  if (overlay) overlay.style.display = "none";
-}
-
-// ===================================
-// --- CARGA DE DATOS ---
-// ===================================
-/**
- * @summary Carga todos los registros del historial desde el servidor.
- * @description Llama a la función `getData` del servidor, pidiendo los datos de la hoja 'Historial_Modificaciones'.
- * Al recibir los datos, los almacena y desencadena el primer renderizado de la tabla.
- */
-function loadHistorial() {
-  showLoadingHistorial();
-  google.script.run
-    .withSuccessHandler(function (jsonString) {
-      hideLoadingHistorial(); 
-      try {
-        const response = JSON.parse(jsonString); 
-        if (response && Array.isArray(response.data)) {
-          // --- INICIO DE LA LÓGICA DE RENDERIZADO CORREGIDA ---
-          fullHistorialData = response.data; // 1. Guarda los datos completos
-          aplicarFiltrosYOrdenarHistorial(); // 2. Aplica filtros y ordena, y esto llamará a renderHistorialPaginatedTable()
-        } else {
-          console.error("Frontend Error: Error cargando historial: respuesta inválida o los datos no son un array",
-            response);
-          mostrarMensajeHistorial("Error al cargar datos del historial.","error" ); // Usar mostrarMensajeHistorial
-          document.getElementById("tablaHistorialBody").innerHTML =
-            "<tr><td colspan='11'>Error al cargar los datos del historial.</td></tr>";
-        }
-      } catch (e) {
-        console.error("Frontend Error: Error parseando respuesta del historial:", e, jsonString  );
-        mostrarMensajeHistorial("Error al procesar datos del historial.","error" ); // Usar mostrarMensajeHistorial
-        document.getElementById("tablaHistorialBody").innerHTML ="<tr><td colspan='11'>Error al procesar los datos del historial.</td></tr>";
+  // =================================================
+  // --- CARGA DE DATOS ---
+  // =================================================
+  function safeParseResponse(resp) {
+    try {
+      if (!resp) return [];
+      if (typeof resp === "string") {
+        const parsed = JSON.parse(resp);
+        return parsed && parsed.data ? parsed.data : parsed;
       }
-    })
-    .withFailureHandler(function (error) {
-      hideLoadingHistorial(); // Usar hideLoadingHistorial
-      console.error("Error obteniendo datos del historial:", error);
-      mostrarMensajeHistorial("Error al cargar el historial: " + error.message,"error"  ); // Usar mostrarMensajeHistorial
-      document.getElementById("tablaHistorialBody").innerHTML ="<tr><td colspan='11'>Fallo al cargar el historial.</td></tr>";
-    })
-    .getData("Historial_Modificaciones");
-}
-// ==================================================
-// --- FILTRADO, ORDENAMIENTO Y RENDERIZADO DE TABLA ---
-// ==================================================
-/**
- * @summary Aplica todos los filtros y criterios de ordenación activos a la lista completa de registros del historial.
- * @description Lee los valores de los inputs de filtro, aplica cada filtro de forma secuencial, ordena el resultado
- * por fecha, y finalmente actualiza `datosMostradosHistorial` para que la tabla se renderice de nuevo.
- */
-function aplicarFiltrosYOrdenarHistorial() {
-  const filtroBusquedaGeneralInput = document.getElementById("buscarHistorial");
-  const filtroProgramaInput = document.getElementById("filtroProgramaHistorial" );
-  const filtroEstadoInputEl = document.getElementById("filtroEstadoHistorialInput" ); 
-  const busquedaGeneral = filtroBusquedaGeneralInput
-    ? filtroBusquedaGeneralInput.value.toLowerCase() : "";
-  const filtroPrograma = filtroProgramaInput
-    ? filtroProgramaInput.value.toLowerCase(): "";
-  const filtroEstado = filtroEstadoInputEl
-    ? filtroEstadoInputEl.value.toLowerCase(): ""; 
-
-  let resultados = [...fullHistorialData];
-
-  if (busquedaGeneral) {
-    resultados = resultados.filter(
-      (item) =>
-        (item["Producto"] &&
-          item["Producto"].toLowerCase().includes(busquedaGeneral)) ||
-        (item["Usuario"] &&
-          item["Usuario"].toLowerCase().includes(busquedaGeneral))
-    );
-  }
-  if (filtroPrograma) {
-    resultados = resultados.filter(
-      (item) =>
-        item["Programa"] &&
-        item["Programa"].toLowerCase().includes(filtroPrograma)
-    );
-  }
-  // CAMBIO: Lógica de filtro para el input de texto de Estado
-  if (filtroEstado) {
-    // Ya no se necesita && filtroEstado !== "" porque un string vacío no filtrará con .includes()
-    resultados = resultados.filter(
-      (item) =>
-        item["Estado"] && item["Estado"].toLowerCase().includes(filtroEstado)
-    );
-  }
-  resultados.sort((a, b) => {
-    const fechaA = new Date(a["Fecha"]);
-    const fechaB = new Date(b["Fecha"]);
-    if (isNaN(fechaA.getTime()) && isNaN(fechaB.getTime())) return 0;
-    if (isNaN(fechaA.getTime())) return 1;
-    if (isNaN(fechaB.getTime())) return -1;
-    return fechaOrdenAscendenteHistorial
-      ? fechaA.getTime() - fechaB.getTime()
-      : fechaB.getTime() - fechaA.getTime();
-  });
-
-  datosMostradosHistorial = resultados;
-  currentHistorialPage = 1;
-  renderHistorialPaginatedTable();
-}
-/**
- * @summary Resetea todos los campos de filtro a sus valores por defecto y vuelve a renderizar la tabla.
- */
-function limpiarTodosLosFiltrosHistorial() {
-  const buscarInput = document.getElementById("buscarHistorial");
-  if (buscarInput) buscarInput.value = "";
-  const programaInput = document.getElementById("filtroProgramaHistorial");
-  if (programaInput) programaInput.value = "";
-  const estadoInput = document.getElementById("filtroEstadoHistorialInput"); 
-  if (estadoInput) estadoInput.value = "";
-  aplicarFiltrosYOrdenarHistorial();
-}
-/**
- * @summary Muestra/oculta el menú desplegable de opciones de ordenamiento por fecha.
- * @param {Event} event - El objeto del evento de clic.
- */
-function toggleFiltrosAdicionalesHistorial() {
-  const container = document.getElementById(
-    "filtrosAdicionalesHistorialContainer"
-  );
-  if (container) {
-    container.classList.toggle("filtros-adicionales-ocultos");
-  }
-}
-
-function buscarPorNombreHistorial() {
-  aplicarFiltrosYOrdenarHistorial();
-}
-
-/**
- * @summary Muestra/oculta el menú desplegable de opciones de ordenamiento por fecha.
- * @param {Event} event - El objeto del evento de clic.
- */
-function ordenarPorFechaHistorial(event) {
-  event.stopPropagation();
-  const sortOptions = document.getElementById("sortOptions");
-  if (sortOptions) sortOptions.classList.toggle("show");
-}
-/**
- * @summary Establece el orden de fecha a ascendente y reaplica los filtros.
- */
-function ordenarAscendenteHistorial() {
-  fechaOrdenAscendenteHistorial = true;
-  aplicarFiltrosYOrdenarHistorial();
-  const sortOptions = document.getElementById("sortOptions");
-  if (sortOptions) sortOptions.classList.remove("show");
-}
-/**
- * @summary Establece el orden de fecha a descendente y reaplica los filtros.
- */
-function ordenarDescendenteHistorial() {
-  fechaOrdenAscendenteHistorial = false;
-  aplicarFiltrosYOrdenarHistorial();
-  const sortOptions = document.getElementById("sortOptions");
-  if (sortOptions) sortOptions.classList.remove("show");
-}
-/**
- * @summary Renderiza la porción de datos correspondiente a la página actual en la tabla de historial.
- */
-function renderHistorialPaginatedTable() {
-  const start = (currentHistorialPage - 1) * historialItemsPerPage;
-  const paginatedItems = datosMostradosHistorial.slice(
-    start,
-    start + historialItemsPerPage
-  );
-  generateHistorialTable(paginatedItems);
-  renderHistorialPaginationControls(datosMostradosHistorial.length);
-}
-/**
- * @summary Construye y muestra las filas de la tabla de historial en el DOM.
- * @param {Array<object>} items - Un arreglo de objetos de historial para mostrar en la página actual.
- */
-function generateHistorialTable(items) {
-  const tbody = document.getElementById("tablaHistorialBody");
-  if (!tbody) return;
-  tbody.innerHTML = "";
-  if (items.length === 0) {
-    tbody.innerHTML =
-      "<tr><td colspan='11'>No hay registros en el historial que coincidan con los filtros.</td></tr>";
-    return;
-  }
-  items.forEach((item) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-        <td>${item["Id"] || ""}</td>
-        <td>${item["ProductoId"] || ""}</td>
-        <td>${formatDate(item["Fecha"])}</td>
-        <td>${item["Producto"] || ""}</td>
-        <td>${item["Programa"] || ""}</td>
-        <td>${item["Unidades Anteriores"] == null? "-": item["Unidades Anteriores"]}</td>
-        <td>${item["Unidades Nuevas"] == null ? "-" : item["Unidades Nuevas"]}</td>
-        <td>${item["Estado"] || ""}</td>
-        <td>${item["Usuario"] || ""}</td>
-        <td>${formatDate(item["Fecha de Retiro"])}</td> 
-        <td>${item["Cantidad"] == null ? "-" : item["Cantidad"]}</td>
-      `;
-    tbody.appendChild(row);
-  });
-}
-/**
- * @summary Genera y muestra los controles de paginación para la tabla de historial.
- * @param {number} totalItems - El número total de ítems en `datosMostradosHistorial`.
- */
-function renderHistorialPaginationControls(totalItems) {
-  const paginationElement = document.getElementById("historialPagination");
-  if (!paginationElement) return;
-  const totalPages = Math.ceil(totalItems / historialItemsPerPage);
-  let controlsHTML = "";
-  const maxVisibleButtons = 5;
-  if (totalPages <= 1) {
-    paginationElement.innerHTML = "";
-    return;
-  }
-  controlsHTML += `<button onclick="changeHistorialPage(currentHistorialPage - 1)" ${
-    currentHistorialPage === 1 ? "disabled" : ""
-  }>Anterior</button>`;
-  let startPage, endPage;
-  if (totalPages <= maxVisibleButtons) {
-    startPage = 1;
-    endPage = totalPages;
-  } else {
-    const maxPagesBefore = Math.floor(maxVisibleButtons / 2);
-    const maxPagesAfter = Math.ceil(maxVisibleButtons / 2) - 1;
-    if (currentHistorialPage <= maxPagesBefore) {
-      startPage = 1;
-      endPage = maxVisibleButtons;
-    } else if (currentHistorialPage + maxPagesAfter >= totalPages) {
-      startPage = totalPages - maxVisibleButtons + 1;
-      endPage = totalPages;
-    } else {
-      startPage = currentHistorialPage - maxPagesBefore;
-      endPage = currentHistorialPage + maxPagesAfter;
-    }
-  }
-  if (startPage > 1) {
-    controlsHTML += `<button onclick="changeHistorialPage(1)">1</button>`;
-    if (startPage > 2)
-      controlsHTML += `<span class="pagination-dots">...</span>`;
-  }
-  for (let i = startPage; i <= endPage; i++) {
-    const activeClass = i === currentHistorialPage ? "active" : "";
-    controlsHTML += `<button class="${activeClass}" onclick="changeHistorialPage(${i})">${i}</button>`;
-  }
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1)
-      controlsHTML += `<span class="pagination-dots">...</span>`;
-    controlsHTML += `<button onclick="changeHistorialPage(${totalPages})">${totalPages}</button>`;
-  }
-  controlsHTML += `<button onclick="changeHistorialPage(currentHistorialPage + 1)" ${
-    currentHistorialPage === totalPages || totalPages === 0 ? "disabled" : ""
-  }>Siguiente</button>`;
-  paginationElement.innerHTML = controlsHTML;
-}
-/**
- * @summary Cambia la página actual de la tabla de historial y la vuelve a renderizar.
- * @param {number} page - El número de la página a la que se quiere navegar.
- */
-function changeHistorialPage(page) {
-  const totalPages = Math.ceil(
-    datosMostradosHistorial.length / historialItemsPerPage
-  );
-  if (page < 1) page = 1;
-  if (totalPages === 0) {
-    page = 1;
-  } else if (page > totalPages) {
-    page = totalPages;
-  }
-  currentHistorialPage = page;
-  renderHistorialPaginatedTable();
-}
-// ===================================
-// --- FUNCIONES DE UTILIDAD Y EVENTOS ---
-// ===================================
-
-/**
- * @summary Formatea una cadena de fecha a un formato localizado y legible (fecha y hora).
- * @description Maneja fechas nulas o inválidas devolviendo un guion o un mensaje de error.
- * @param {string} dateString - La fecha en formato ISO u otro formato interpretable por `new Date()`.
- * @returns {string} La fecha y hora formateadas.
- */
-function formatDate(dateString) {
-  
-  if (!dateString) {
-    return "-";
-  }
-  // 2. Intenta parsear la fecha directamente. Esto es rápido y funciona
-  //    para formatos estándar ISO 8601 (ej: '2025-06-12T17:21:00Z').
-  let date = new Date(dateString);
-  // 3. Si el parseo inicial falla, intenta un método manual más robusto.
-  //    Esto es clave para manejar formatos como 'YYYY-MM-DD' o 'YYYY/MM/DD'
-  //    de forma consistente, sin que la zona horaria del usuario afecte el día.
-  if (isNaN(date.getTime())) {
-    const parts = dateString.split(/[-T/:]/); // Divide por todos los delimitadores comunes
-
-    // Se asegura de que la estructura sea al menos 'YYYY-MM-DD'
-    if (parts.length >= 3 && parts[0].length === 4) {
-      // Usa Date.UTC para crear la fecha. Esto interpreta los valores como
-      // Tiempo Universal Coordinado, previniendo errores de un día de diferencia
-      // por la zona horaria. Esta es la funcionalidad más importante a preservar.
-      date = new Date(Date.UTC(
-        parts[0],
-        parts[1] - 1, // El mes en JavaScript es base 0 (0-11)
-        parts[2],
-        parts[3] || 0,
-        parts[4] || 0,
-        parts[5] || 0
-      ));
+      if (Array.isArray(resp)) return resp;
+      if (resp && Array.isArray(resp.data)) return resp.data;
+      return [];
+    } catch (err) {
+      console.error("Error al parsear respuesta del historial:", err, resp);
+      return [];
     }
   }
 
-  // 4. Después de todos los intentos, si la fecha sigue siendo inválida, informa al usuario.
-  if (isNaN(date.getTime())) {
-    return "Fecha inválida";
+  function loadHistorial() {
+    loadDataGenerico({
+      endpoint: "getHistorialData",
+      onSuccess: (data) => {
+        const parsed = safeParseResponse(data);
+        console.log("✅ Datos cargados del historial:", parsed);
+
+        // Mostrar los orígenes únicos que llegan
+        const origenes = new Set();
+        parsed.forEach(i => {
+          const origen = (i["Origen"] || i["Programa"] || "").trim();
+          if (origen) origenes.add(origen);
+        });
+        console.log("📌 Orígenes detectados en fullData:", Array.from(origenes));
+
+        pageState.fullData = parsed;
+        pageState.currentPage = 1;
+        aplicarFiltrosYOrdenar();
+      },
+      tbodyId: "historial-list-container",
+    });
   }
 
-  // 5. Formatea la fecha válida al formato deseado.
-  return date.toLocaleString("es-ES", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
+  // =================================================
+  // --- FILTROS Y ORDENAMIENTO ---
+  // =================================================
+  function aplicarFiltrosYOrdenar() {
+    let filteredData = Array.isArray(pageState.fullData)
+      ? [...pageState.fullData]
+      : [];
+
+    // --- Filtrar por pestaña según la columna 'Origen' ---
+   // --- Filtrar por pestaña según la columna 'Origen' ---
+if (pageState.activeCategory && pageState.activeCategory !== "Todos") {
+  const categoriaActiva = pageState.activeCategory
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const mapeoCategorias = {
+    articulos: "inventario",
+    inventario: "inventario",
+    comida: "comida",
+    papeleria: "papeleria",
+    decoracion: "decoracion",
+  };
+
+  const categoriaNormalizada =
+    mapeoCategorias[categoriaActiva] || categoriaActiva;
+
+  filteredData = filteredData.filter((item) => {
+    // Buscar una propiedad que contenga la palabra "origen" sin importar mayúsculas ni espacios
+    const origenKey = Object.keys(item).find(
+      (k) => k.toLowerCase().replace(/\s+/g, "") === "origen"
+    );
+    const rawOrigen = origenKey ? item[origenKey] : "";
+    const origen = (rawOrigen || "")
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return origen === categoriaNormalizada;
   });
 }
-/**
- * Se ejecuta cuando el contenido del DOM ha sido completamente cargado.
- * Configura los event listeners para los filtros y carga los datos iniciales.
- */
-document.addEventListener("DOMContentLoaded", () => {
-  const inputBuscarHistorialEl = document.getElementById("buscarHistorial");
-  if (inputBuscarHistorialEl)
-    inputBuscarHistorialEl.addEventListener("input",aplicarFiltrosYOrdenarHistorial );
 
-  const filtroProgramaInputEl = document.getElementById("filtroProgramaHistorial");
-  if (filtroProgramaInputEl)
-    filtroProgramaInputEl.addEventListener("input",aplicarFiltrosYOrdenarHistorial);
+    console.log(
+      `📊 Categoría activa: ${pageState.activeCategory} | Registros filtrados: ${filteredData.length}`
+    );
 
-  const filtroEstadoInputEl = document.getElementById("filtroEstadoHistorialInput" );
-  if (filtroEstadoInputEl)
-    filtroEstadoInputEl.addEventListener("input", aplicarFiltrosYOrdenarHistorial );
+    // --- Filtros adicionales (texto y estado) ---
+    const filters = [
+      { id: "buscarHistorial", fields: ["Producto", "Usuario"], type: "text" },
+      { id: "filtroEstadoHistorial", fields: ["Estado"], type: "select" },
+    ];
 
-  const toggleFiltrosBtnEl = document.getElementById("toggleFiltrosHistorialIconContainer");
-  if (toggleFiltrosBtnEl)
-    toggleFiltrosBtnEl.addEventListener("click", toggleFiltrosAdicionalesHistorial);
-
-  loadHistorial();
-});
-/**
- * Cierra el menú desplegable de ordenamiento si se hace clic fuera de él.
- */
-window.onclick = function (event) {
-  const sortOptions = document.getElementById("sortOptions");
-  if ( sortOptions && !event.target.matches(".sort-menu-icon") && !sortOptions.contains(event.target)) {
-    sortOptions.classList.remove("show");
+    aplicarFiltrosYOrdenarGenerico({
+      dataSource: filteredData,
+      setResultados: (resultados) => (pageState.datosMostrados = resultados),
+      filters: filters,
+      fechaOrdenAsc: pageState.fechaOrdenAscendente,
+      campoFecha: "Fecha",
+      renderFn: renderHistorialCards,
+    });
   }
-};
 
-  </script>
+  // =================================================
+  // --- RENDERIZADO DE TARJETAS Y PAGINACIÓN ---
+  // =================================================
+  function renderHistorialCards() {
+  const container = document.getElementById("historial-list-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (pageState.datosMostrados.length === 0) {
+    container.innerHTML =
+      '<p>No hay registros en el historial para la categoría seleccionada.</p>';
+    return;
+  }
+
+  const paginatedData = paginate(
+    pageState.datosMostrados,
+    pageState.currentPage,
+    pageState.itemsPerPage
+  );
+
+  paginatedData.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "historial-card";
+
+    const estado = (item["Estado"] || "").toLowerCase();
+    let iconName = "help-circle-outline";
+    if (estado === "agregado") iconName = "add-circle-outline";
+    if (estado === "modificado") iconName = "create-outline";
+    if (estado === "retirado") iconName = "arrow-down-circle-outline";
+    if (estado === "eliminado") iconName = "trash-outline";
+
+    // 🔍 Mostrar correctamente el campo 'Origen'
+    const origen =
+      item["Origen"] ||
+      item["origen"] ||
+      item["Origen "] ||
+      item["Programa"] ||
+      "";
+
+    card.innerHTML = `
+      <div class="historial-icon ${estado}">
+        <ion-icon name="${iconName}"></ion-icon>
+      </div>
+      <div class="historial-content">
+        <div class="historial-header">
+          <h3>${escapeHtml(item["Producto"] || "")}</h3>
+          <span class="estado ${estado}">${escapeHtml(item["Estado"] || "")}</span>
+        </div>
+        <div class="historial-details">
+          <p><strong>Usuario:</strong> ${escapeHtml(item["Usuario"] || "")}</p>
+          <p><strong>Fecha:</strong> ${formatDate(item["Fecha"])}</p>
+          <p><strong>Origen:</strong> ${escapeHtml(origen)}</p>
+          ${
+            item["Unidades Anteriores"] != null
+              ? `<p><strong>Unidades Ant.:</strong> ${escapeHtml(String(item["Unidades Anteriores"]))}</p>`
+              : ""
+          }
+          ${
+            item["Unidades Nuevas"] != null
+              ? `<p><strong>Unidades Nuevas:</strong> ${escapeHtml(String(item["Unidades Nuevas"]))}</p>`
+              : ""
+          }
+          ${
+            item["Cantidad"] != null
+              ? `<p><strong>Cantidad:</strong> ${escapeHtml(String(item["Cantidad"]))}</p>`
+              : ""
+          }
+          ${
+            item["Fecha de Retiro"]
+              ? `<p><strong>Fecha Retiro:</strong> ${formatDate(item["Fecha de Retiro"])}</p>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  renderPagination(
+    "historialPagination",
+    pageState.datosMostrados.length,
+    pageState.itemsPerPage,
+    pageState.currentPage,
+    (page) => {
+      pageState.currentPage = page;
+      renderHistorialCards();
+    }
+  );
+}
+
+  // =================================================
+  // --- FILTROS AUXILIARES ---
+  // =================================================
+  function limpiarTodosLosFiltrosHistorial() {
+    ["buscarHistorial", "filtroEstadoHistorial"].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) input.value = "";
+    });
+    aplicarFiltrosYOrdenar();
+  }
+
+  function toggleFiltrosAdicionalesHistorial() {
+    const container = document.getElementById(
+      "filtrosAdicionalesHistorialContainer"
+    );
+    if (container)
+      container.classList.toggle("filtros-adicionales-ocultos");
+  }
+
+  function filtrarHistorialPorCategoria(categoria) {
+    pageState.activeCategory = categoria;
+    pageState.currentPage = 1;
+
+    document.querySelectorAll(".tab-link").forEach((tab) => {
+      const tabCategory = tab.getAttribute("data-category");
+      tab.classList.toggle("active", tabCategory === categoria);
+    });
+
+    aplicarFiltrosYOrdenar();
+  }
+
+  // =================================================
+  // --- INICIALIZACIÓN ---
+  // =================================================
+  function inicializarPaginaHistorial() {
+    ["buscarHistorial", "filtroEstadoHistorial"].forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener("input", aplicarFiltrosYOrdenar);
+        if (id === "filtroEstadoHistorial") {
+          input.addEventListener("change", aplicarFiltrosYOrdenar);
+        }
+      }
+    });
+
+    const toggleFiltrosBtnEl = document.getElementById(
+      "toggleFiltrosHistorialIconContainer"
+    );
+    if (toggleFiltrosBtnEl) {
+      toggleFiltrosBtnEl.addEventListener(
+        "click",
+        toggleFiltrosAdicionalesHistorial
+      );
+    }
+
+    loadHistorial();
+  }
+
+  // =================================================
+  // --- FUNCIONES GLOBALES ---
+  // =================================================
+  window.ordenarPorFechaHistorial = (e) =>
+    ordenarPorFechaGenerico(e, "sortOptions");
+  window.ordenarAscendenteHistorial = () =>
+    ordenarAscendenteGenerico(
+      aplicarFiltrosYOrdenar,
+      "sortOptions",
+      (val) => (pageState.fechaOrdenAscendente = val)
+    );
+  window.ordenarDescendenteHistorial = () =>
+    ordenarDescendenteGenerico(
+      aplicarFiltrosYOrdenar,
+      "sortOptions",
+      (val) => (pageState.fechaOrdenAscendente = val)
+    );
+  window.buscarPorNombreHistorial = aplicarFiltrosYOrdenar;
+  window.filtrarHistorialPorEstado = aplicarFiltrosYOrdenar;
+  window.limpiarTodosLosFiltrosHistorial = limpiarTodosLosFiltrosHistorial;
+  window.filtrarHistorialPorCategoria = filtrarHistorialPorCategoria;
+  window.cerrarMensajeHistorial = () => {
+    const mensajeDiv = document.getElementById("mensajeConfirmacionHistorial");
+    if (mensajeDiv) mensajeDiv.style.display = "none";
+  };
+
+  // =================================================
+  // --- HELPERS ---
+  // =================================================
+  function paginate(array, page_number, page_size) {
+    return array.slice((page_number - 1) * page_size, page_number * page_size);
+  }
+
+  function renderPagination(
+    containerId,
+    totalItems,
+    itemsPerPage,
+    currentPage,
+    onPageClick
+  ) {
+    const paginationContainer = document.getElementById(containerId);
+    if (!paginationContainer) return;
+
+    paginationContainer.innerHTML = "";
+    const pageCount = Math.ceil(totalItems / itemsPerPage);
+    if (pageCount <= 1) return;
+
+    for (let i = 1; i <= pageCount; i++) {
+      const pageButton = document.createElement("button");
+      pageButton.innerText = i;
+      pageButton.className = "page-btn" + (i === currentPage ? " active" : "");
+      pageButton.addEventListener("click", () => onPageClick(i));
+      paginationContainer.appendChild(pageButton);
+    }
+  }
+
+  // --- Inicialización ---
+  inicializarPaginaHistorial();
+})();
+</script>

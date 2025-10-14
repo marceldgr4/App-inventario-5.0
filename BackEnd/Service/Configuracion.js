@@ -3,7 +3,7 @@
 // =================================================================
 
 const URL_FAVICON =
-  "https://www.intouchcx.com/wp-content/themes/intouchcx/assets/favicon/favicon-16x16.png";
+  "https://i.ibb.co/mVZK3QvL/icon.png";
 //ID de la pagina de la hoja de cálculo de Google Sheets que funciona como base de datos principal.
 const ID_INVENTARIO = "1lWsyJLZTOZDbIeAcagvj7wCPIp9vD_METhdkiHQBzEU";
 //ID la ubicacion Drive donde se almacenarán los archivos subidos.
@@ -14,11 +14,11 @@ const ID_DECORACION_IMG = "1mxaXcJuKdbSOD-NW9yugZf-iGrhc0jed";
 
 //Nombres exactos de las hojas (pestañas) dentro del Google Sheet.
 const HOJA_USUARIO = "Usuario";
-const HOJA_ARTICULOS = "Inventario";
-const HOJA_HISTORIAL = "Historial_Modificaciones";
+const HOJA_ARTICULOS = "Articulos";
+const HOJA_HISTORIAL = "Historial";
 const HOJA_COMENTARIOS = "Comentarios";
-const HOJA_DECORACION = "Inventario decoracion";
-const HOJA_COMIDA = "Inventario comida";
+const HOJA_DECORACION = "Decoracion";
+const HOJA_COMIDA = "Comida";
 const HOJA_PAPELERIA = "Papeleria";
 const HOJA_REGISTRO_USUARIO = "Registro de Inicio de Sesion";
 const HOJA_ACTA = "Acta";

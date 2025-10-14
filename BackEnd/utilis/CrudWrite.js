@@ -10,212 +10,177 @@
  * @returns {string} Una cadena JSON que indica el éxito o fracaso de la operación, incluyendo el nuevo ID si fue exitosa.
  */
 function agregarProductoGenerico(data, sheetName) {
-  const sheet = getSheetByName(sheetName);
-  if (!sheet) {
-    return JSON.stringify({
-      success: false,
-      message: `Hoja "${sheetName}" no encontrada.`,
-    });
-  }
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const lastDataRow = sheet.getLastRow();
-  const firstDataRowIndex = (sheet.getFrozenRows() || 0) + 1;
-
-  const idx = {};
-  [
-    "Id",
-    "PRODUCTO",
-    "FECHA DE INGRESO",
-    "Ingresos",
-    "Salidas",
-    "Estado",
-    "Unidades disponibles",
-    "PROGRAMA",
-    "Tiempo en Storage",
-    "Imagen",
-    "Entregas fecha",
-    "Entregas cantidad",
-    "TIPO",
-    "PRECIO",
-    "Comentarios",
-    "FECHA DE ACTUALIZACION",
-    "UBICACION",
-    "FECHA DE VENCIMIENTO",
-    "ESTADO DEL PRODUCTO",
-    "COMENTARIOS",
-    "NombreCompleto",
-    "UserName",
-    "Rol",
-    "Fecha de Registro",
-    "Comentario",
-    "Autor",
-    "Fecha",
-    "Password",
-    "CDE",
-    "Email",
-  ].forEach((col) => {
-    idx[col] = headers.indexOf(col);
-  });
-
-  let newId = 1;
-  if (idx["Id"] !== -1 && lastDataRow >= firstDataRowIndex) {
-    const ids = sheet
-      .getRange(
-        firstDataRowIndex,
-        idx["Id"] + 1,
-        lastDataRow - firstDataRowIndex + 1,
-        1
-      )
-      .getValues()
-      .flat()
-      .map(Number)
-      .filter((id) => !isNaN(id));
-    if (ids.length > 0) newId = Math.max(...ids) + 1;
-  }
-
-  const newRowData = Array(headers.length).fill("");
-  if (idx["Id"] !== -1) newRowData[idx["Id"]] = newId;
-  if (idx["PRODUCTO"] !== -1)
-    newRowData[idx["PRODUCTO"]] = data.productoAgregar;
-  if (idx["FECHA DE INGRESO"] !== -1)
-    newRowData[idx["FECHA DE INGRESO"]] = new Date();
-  if (idx["Ingresos"] !== -1)newRowData[idx["Ingresos"]] = parseFloat(data.ingresosAgregar) || 0;
-  if (idx["Salidas"] !== -1) newRowData[idx["Salidas"]] = 0;
-  if (idx["Estado"] !== -1) newRowData[idx["Estado"]] = "Activo";
-
-  if (idx["Unidades disponibles"] !== -1) {
-    let formula = "";
-    const rowNum = sheet.getLastRow() + 1;
-    if (sheetName === HOJA_DECORACION) {
-      formula = `=IF(ISNUMBER(E${rowNum}); E${rowNum}; 0) - IF(ISNUMBER(F${rowNum}); F${rowNum}; 0)`;
-    } else if (sheetName === HOJA_COMIDA) {
-      formula = `=IF(ISNUMBER(G${rowNum}); G${rowNum}; 0) - IF(ISNUMBER(H${rowNum}); H${rowNum}; 0)`;
-    } else if (idx["Ingresos"] !== -1 && idx["Salidas"] !== -1) {
-      const ingresosCol = columnToLetter(idx["Ingresos"] + 1);
-      const salidasCol = columnToLetter(idx["Salidas"] + 1);
-      formula = `=IF(ISNUMBER(${ingresosCol}${rowNum}); ${ingresosCol}${rowNum}; 0) - IF(ISNUMBER(${salidasCol}${rowNum}); ${salidasCol}${rowNum}; 0)`;
-    }
-    newRowData[idx["Unidades disponibles"]] =
-      formula || parseFloat(data.ingresosAgregar) || 0;
-  }
-
-  // Lógica específica por hoja para poblar la nueva fila
-  switch (sheetName) {
-    case HOJA_ARTICULOS:
-      if (idx["PROGRAMA"] !== -1)
-        newRowData[idx["PROGRAMA"]] = data.programaAgregar || "";
-      if (idx["Tiempo en Storage"] !== -1)
-        newRowData[idx["Tiempo en Storage"]] = 0;
-      if (idx["Imagen"] !== -1)
-        newRowData[idx["Imagen"]] = data.imagenAgregar || "";
-      if (idx["Entregas fecha"] !== -1) newRowData[idx["Entregas fecha"]] = "";
-      if (idx["Entregas cantidad"] !== -1)
-        newRowData[idx["Entregas cantidad"]] = 0;
-      break;
-    case HOJA_PAPELERIA:
-      if (idx["Tiempo en Storage"] !== -1)
-        newRowData[idx["Tiempo en Storage"]] = 0;
-      if (idx["Imagen"] !== -1)
-        newRowData[idx["Imagen"]] = data.imagenAgregar || "";
-      break;
-    case HOJA_DECORACION:
-      if (idx["TIPO"] !== -1) newRowData[idx["TIPO"]] = data.tipoAgregar || "";
-      if (idx["PRECIO"] !== -1)newRowData[idx["PRECIO"]]= parseFloat(data.precioAgregar) || 0;
-      if (idx["Comentarios"] !== -1)
-        newRowData[idx["Comentarios"]] = data.comentariosAgregar || "";
-      if (idx["Imagen"] !== -1)
-        newRowData[idx["Imagen"]] = data.imagenAgregar || "";
-      if (idx["FECHA DE ACTUALIZACION"] !== -1)
-        newRowData[idx["FECHA DE ACTUALIZACION"]] = new Date();
-      break;
-    case HOJA_COMIDA:
-      if (idx["PRECIO"] !== -1)
-        newRowData[idx["PRECIO"]] = data.precioAgregar || "";
-      if (idx["UBICACION"] !== -1)
-        newRowData[idx["UBICACION"]] = data.ubicacionAgregar || "";
-      if (idx["FECHA DE VENCIMIENTO"] !== -1)
-        newRowData[idx["FECHA DE VENCIMIENTO"]] = data.fechaVencimientoAgregar
-          ? new Date(data.fechaVencimientoAgregar)
-          : "";
-      if (idx["ESTADO DEL PRODUCTO"] !== -1)
-        newRowData[idx["ESTADO DEL PRODUCTO"]] = data.estadoAgregar || "ok";
-      if (idx["COMENTARIOS"] !== -1)
-        newRowData[idx["COMENTARIOS"]] = data.comentariosAgregar || "";
-      if (idx["Entregas fecha"] !== -1) newRowData[idx["Entregas fecha"]] = "";
-      if (idx["Entregas cantidad"] !== -1)
-        newRowData[idx["Entregas cantidad"]] = 0;
-      break;
-    case HOJA_USUARIO:
-      if (idx["NombreCompleto"] !== -1)
-        newRowData[idx["NombreCompleto"]] = data.nombreCompletoAgregar;
-      if (idx["UserName"] !== -1)
-        newRowData[idx["UserName"]] = data.userNameAgregar;
-      if (idx["Rol"] !== -1) newRowData[idx["Rol"]] = data.rolAgregar;
-      if (idx["Fecha de Registro"] !== -1)
-        newRowData[idx["Fecha de Registro"]] = new Date();
-      break;
-    case HOJA_COMENTARIOS:
-      if (idx["Comentario"] !== -1)
-        newRowData[idx["Comentario"]] = data.comentarioAgregar || "";
-      const activeUserForComment = getActiveUser();
-      if (idx["Autor"] !== -1)
-        newRowData[idx["Autor"]] = activeUserForComment
-          ? activeUserForComment.name || activeUserForComment.email
-          : "Anónimo";
-      if (idx["Fecha"] !== -1) newRowData[idx["Fecha"]] = new Date();
-      break;
-  }
-
   try {
+    const sheet = getSheetByName(sheetName);
+    if (!sheet) {
+      return JSON.stringify({
+        success: false,
+        message: `Hoja "${sheetName}" no encontrada.`,
+      });
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const lastDataRow = sheet.getLastRow();
+    const firstDataRowIndex = (sheet.getFrozenRows() || 0) + 1;
+
+    // === Mapeo de columnas ===
+    const idx = {};
+    [
+      "Id", "PRODUCTO", "FECHA DE INGRESO", "Ingresos", "Salidas", "Estado",
+      "Unidades disponibles", "PROGRAMA", "Tiempo en Storage", "Imagen",
+      "Entregas fecha", "Entregas cantidad", "TIPO", "PRECIO", "Comentarios",
+      "FECHA DE ACTUALIZACION", "UBICACION", "FECHA DE VENCIMIENTO",
+      "ESTADO DEL PRODUCTO", "COMENTARIOS", "NombreCompleto", "UserName",
+      "Rol", "Fecha de Registro", "Comentario", "Autor", "Fecha", "Password",
+      "CDE", "Email"
+    ].forEach(col => idx[col] = headers.indexOf(col));
+
+    // === Generar nuevo ID ===
+    let newId = 1;
+    if (idx["Id"] !== -1 && lastDataRow >= firstDataRowIndex) {
+      const ids = sheet
+        .getRange(firstDataRowIndex, idx["Id"] + 1, lastDataRow - firstDataRowIndex + 1, 1)
+        .getValues()
+        .flat()
+        .map(Number)
+        .filter(id => !isNaN(id));
+      if (ids.length > 0) newId = Math.max(...ids) + 1;
+    }
+
+    const newRowData = Array(headers.length).fill("");
+    if (idx["Id"] !== -1) newRowData[idx["Id"]] = newId;
+    if (idx["PRODUCTO"] !== -1) newRowData[idx["PRODUCTO"]] = data.productoAgregar;
+    if (idx["FECHA DE INGRESO"] !== -1) newRowData[idx["FECHA DE INGRESO"]] = new Date();
+    if (idx["Ingresos"] !== -1) newRowData[idx["Ingresos"]] = parseFloat(data.ingresosAgregar) || 0;
+    if (idx["Salidas"] !== -1) newRowData[idx["Salidas"]] = 0;
+    if (idx["Estado"] !== -1) newRowData[idx["Estado"]] = "Activo";
+
+   // === Calcular unidades disponibles ===
+if (idx["Unidades disponibles"] !== -1) {
+  const rowNum = sheet.getLastRow() + 1;
+  let ingresosCol = "E";
+  let salidasCol = "F";
+
+  // Ajuste según el nombre de la hoja
+  if (sheetName === HOJA_ARTICULOS) {
+    ingresosCol = "E";
+    salidasCol = "F";
+  } else if (sheetName === HOJA_PAPELERIA) {
+    ingresosCol = columnToLetter(idx["Ingresos"] + 1);
+    salidasCol = columnToLetter(idx["Salidas"] + 1);
+  } else if (sheetName === HOJA_DECORACION) {
+    ingresosCol = "G";
+    salidasCol = "H";
+  } else if (sheetName === HOJA_COMIDA) {
+    ingresosCol = "G";
+    salidasCol = "H";
+  } else {
+    ingresosCol = columnToLetter(idx["Ingresos"] + 1);
+    salidasCol = columnToLetter(idx["Salidas"] + 1);
+  }
+
+  const formula = `=IF(ISNUMBER(${ingresosCol}${rowNum}); ${ingresosCol}${rowNum}; 0) - IF(ISNUMBER(${salidasCol}${rowNum}); ${salidasCol}${rowNum}; 0)`;
+  newRowData[idx["Unidades disponibles"]] = formula;
+}
+
+
+    // === Manejo de imagen ===
+    let imageUrl = "";
+    if (data.imagenAgregar && typeof data.imagenAgregar === "string") {
+      try {
+        const driveFolder = DriveApp.getFolderById(ID_DRIVE_IMG);
+        const blob = Utilities.newBlob(Utilities.base64Decode(data.imagenAgregar.split(",")[1]), "image/png", `${data.productoAgregar || "imagen"}_${Date.now()}.png`);
+        const file = driveFolder.createFile(blob);
+        imageUrl = file.getUrl();
+        if (idx["Imagen"] !== -1) newRowData[idx["Imagen"]] = imageUrl;
+      } catch (e) {
+        Logger.log("Error al subir imagen: " + e.message);
+        if (idx["Imagen"] !== -1) newRowData[idx["Imagen"]] = "";
+      }
+    } else if (idx["Imagen"] !== -1) {
+      newRowData[idx["Imagen"]] = "";
+    }
+
+    // === Configuración según hoja ===
+    switch (sheetName) {
+      case HOJA_ARTICULOS:
+        if (idx["PROGRAMA"] !== -1) newRowData[idx["PROGRAMA"]] = data.programaAgregar || "";
+        if (idx["Tiempo en Storage"] !== -1) newRowData[idx["Tiempo en Storage"]] = 0;
+        if (idx["Entregas fecha"] !== -1) newRowData[idx["Entregas fecha"]] = "";
+        if (idx["Entregas cantidad"] !== -1) newRowData[idx["Entregas cantidad"]] = 0;
+        break;
+
+      case HOJA_PAPELERIA:
+        if (idx["Tiempo en Storage"] !== -1) newRowData[idx["Tiempo en Storage"]] = 0;
+        break;
+
+      case HOJA_DECORACION:
+        if (idx["TIPO"] !== -1) newRowData[idx["TIPO"]] = data.tipoAgregar || "";
+        if (idx["PRECIO"] !== -1) newRowData[idx["PRECIO"]] = parseFloat(data.precioAgregar) || 0;
+        if (idx["Comentarios"] !== -1) newRowData[idx["Comentarios"]] = data.comentariosAgregar || "";
+        if (idx["FECHA DE ACTUALIZACION"] !== -1) newRowData[idx["FECHA DE ACTUALIZACION"]] = new Date();
+        break;
+
+      case HOJA_COMIDA:
+        if (idx["PRECIO"] !== -1) newRowData[idx["PRECIO"]] = data.precioAgregar || "";
+        if (idx["UBICACION"] !== -1) newRowData[idx["UBICACION"]] = data.ubicacionAgregar || "";
+        if (idx["FECHA DE VENCIMIENTO"] !== -1)
+          newRowData[idx["FECHA DE VENCIMIENTO"]] = data.fechaVencimientoAgregar ? new Date(data.fechaVencimientoAgregar) : "";
+        if (idx["ESTADO DEL PRODUCTO"] !== -1) newRowData[idx["ESTADO DEL PRODUCTO"]] = data.estadoAgregar || "ok";
+        if (idx["COMENTARIOS"] !== -1) newRowData[idx["COMENTARIOS"]] = data.comentariosAgregar || "";
+        if (idx["Entregas fecha"] !== -1) newRowData[idx["Entregas fecha"]] = "";
+        if (idx["Entregas cantidad"] !== -1) newRowData[idx["Entregas cantidad"]] = 0;
+        break;
+
+      case HOJA_USUARIO:
+        if (idx["NombreCompleto"] !== -1) newRowData[idx["NombreCompleto"]] = data.nombreCompletoAgregar;
+        if (idx["UserName"] !== -1) newRowData[idx["UserName"]] = data.userNameAgregar;
+        if (idx["Rol"] !== -1) newRowData[idx["Rol"]] = data.rolAgregar;
+        if (idx["Fecha de Registro"] !== -1) newRowData[idx["Fecha de Registro"]] = new Date();
+        break;
+
+      case HOJA_COMENTARIOS:
+        if (idx["Comentario"] !== -1) newRowData[idx["Comentario"]] = data.comentarioAgregar || "";
+        const activeUserForComment = getActiveUser();
+        if (idx["Autor"] !== -1)
+          newRowData[idx["Autor"]] = activeUserForComment
+            ? activeUserForComment.name || activeUserForComment.email
+            : "Anónimo";
+        if (idx["Fecha"] !== -1) newRowData[idx["Fecha"]] = new Date();
+        break;
+    }
+
+    // === Añadir fila ===
     sheet.appendRow(newRowData);
     const appendedRowIndex = sheet.getLastRow();
 
+    // === Calcular tiempo en storage ===
     if (idx["Tiempo en Storage"] !== -1 && idx["FECHA DE INGRESO"] !== -1) {
-      const fechaIngresoVal = sheet
-        .getRange(appendedRowIndex, idx["FECHA DE INGRESO"] + 1)
-        .getValue();
+      const fechaIngresoVal = sheet.getRange(appendedRowIndex, idx["FECHA DE INGRESO"] + 1).getValue();
       if (fechaIngresoVal instanceof Date) {
-        sheet
-          .getRange(appendedRowIndex, idx["Tiempo en Storage"] + 1)
-          .setValue(calcularTiempoEnStorage(fechaIngresoVal));
+        sheet.getRange(appendedRowIndex, idx["Tiempo en Storage"] + 1).setValue(calcularTiempoEnStorage(fechaIngresoVal));
       }
     }
 
+    // === Historial ===
     const activeUser = getActiveUser();
-    const usuario = activeUser
-      ? activeUser.name || activeUser.email
-      : "Sistema";
+    const usuario = activeUser ? activeUser.name || activeUser.email : "Sistema";
 
-    // Preparar datos para el historial de forma modular
-    let nombreItemHistorial,
-      programaHistorial,
-      cantidadHistorial,
-      accionEstadoHistorial;
-
+    let nombreItemHistorial, programaHistorial, cantidadHistorial, accionEstadoHistorial;
     switch (sheetName) {
       case HOJA_USUARIO:
-        nombreItemHistorial =
-          data.userNameAgregar || data.nombreCompletoAgregar;
+        nombreItemHistorial = data.userNameAgregar || data.nombreCompletoAgregar;
         accionEstadoHistorial = `Usuario agregado: ${nombreItemHistorial}`;
-        cantidadHistorial = null;
-        programaHistorial = null;
         break;
       case HOJA_COMENTARIOS:
         nombreItemHistorial = `Comentario ID ${newId}`;
         accionEstadoHistorial = `Comentario agregado en ${sheetName}`;
-        cantidadHistorial = null;
-        programaHistorial = null;
         break;
       default:
         nombreItemHistorial = data.productoAgregar;
-        programaHistorial =
-          sheetName === HOJA_ARTICULOS ? data.programaAgregar : null;
-        cantidadHistorial = data.ingresosAgregar
-          ? parseFloat(data.ingresosAgregar)
-          : null;
-        accionEstadoHistorial = `Agregado: ${
-          data.productoAgregar || "ítem"
-        } en ${sheetName}`;
+        programaHistorial = sheetName === HOJA_ARTICULOS ? data.programaAgregar : null;
+        cantidadHistorial = data.ingresosAgregar ? parseFloat(data.ingresosAgregar) : null;
+        accionEstadoHistorial = `Agregado: ${data.productoAgregar || "ítem"} en ${sheetName}`;
         break;
     }
 
@@ -228,21 +193,22 @@ function agregarProductoGenerico(data, sheetName) {
       accionEstadoHistorial,
       usuario,
       new Date(),
-      cantidadHistorial
+      cantidadHistorial,
+      sheetName
     );
+
     return JSON.stringify({
       success: true,
       message: `Producto agregado exitosamente en ${sheetName}.`,
-      newId: newId,
-      imageUrl: data.imagenAgregar || "",
+      newId,
+      imageUrl,
     });
+
   } catch (e) {
-    Logger.log(
-      `Error en agregarProductoGenerico para ${sheetName}: ${e.message}\nStack: ${e.stack}`
-    );
+    Logger.log(`Error en agregarProductoGenerico(${sheetName}): ${e.message}\nStack: ${e.stack}`);
     return JSON.stringify({
       success: false,
-      message: `Error al agregar producto a ${sheetName}: ${e.message}`,
+      message: `Error al agregar producto en ${sheetName}: ${e.message}`,
     });
   }
 }
@@ -401,7 +367,8 @@ function actualizarProductoGenerico(data, sheetName) {
         `Modificado en ${sheetName} (Agregado por formulario: ${cantidadAgregadaDesdeFormulario})`,
         usuario,
         null,
-        null
+        null,
+        sheetName
       );
 
       return JSON.stringify({
@@ -513,7 +480,8 @@ function eliminarProductoGenerico(idToDelete, sheetName) {
         "Eliminado (Desactivado) de " + sheetName,
         usuario,
         null,
-        null
+        null,
+        sheetName
       );
 
       let successMessageText;
@@ -675,7 +643,8 @@ function retirarProductoGenerico(idProducto, unidadesRetirar, sheetName) {
         `Retiro de ${numUnidadesRetirar} unidades desde ${sheetName}`,
         usuario,
         new Date(),
-        numUnidadesRetirar
+        numUnidadesRetirar,
+        sheetName
       );
 
       return JSON.stringify({
