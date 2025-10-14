@@ -43,7 +43,7 @@ A continuación, se presenta un diagrama de Entidad-Relación (ERD) que modela l
 ```mermaid
 erDiagram
     USUARIO {
-        string Id "PK"
+        string Id PK
         string NombreCompleto
         string userName
         string password
@@ -51,11 +51,11 @@ erDiagram
         string Email
         string Estado_User
         string Rol
-        date "Fecha de Registro"
+        date Fecha_de_Registro
     }
 
     PRODUCTO {
-        string Id "PK"
+        string Id PK
         string PRODUCTO
         string PROGRAMA
         int Ingresos
@@ -67,55 +67,55 @@ erDiagram
     }
 
     ACTA {
-        string Id "PK"
-        string Id_Usuario "FK"
+        string Id PK
+        string Id_Usuario FK
         string Usuario
-        datetime "Fecha de entrega"
+        datetime Fecha_de_entrega
         string Producto
         string Programa
         int Cantidad
         string Link
         string Ciudad
-        string "Nombre Compelto"
-        datetime "fecha de carga"
+        string Nombre_Completo_Acta
+        datetime fecha_de_carga
     }
 
     COMENTARIO {
-        string Id "PK"
-        string ProductoId "FK"
+        string Id PK
+        string ProductoId FK
         string Producto
         string Programa
-        datetime "Fecha del Comentario"
+        datetime Fecha_del_Comentario
         string Comentario
         string Usuario
         string Origen
         bool Leido
         string Respuesta
-        datetime "Fecha De Respuesta"
-        bool "Borrado por Usuario"
-        bool "Borrado por Admin"
+        datetime Fecha_De_Respuesta
+        bool Borrado_por_Usuario
+        bool Borrado_por_Admin
         bool RespuestaConfirmada
     }
 
     HISTORIAL {
-        string Id "PK"
-        string ProductoId "FK"
-        datetime "Fecha y Hora"
+        string Id PK
+        string ProductoId FK
+        datetime Fecha_y_Hora
         string Producto
         string Programa
-        int "Unidades Anteriores"
-        int "Unidades Nuevas"
+        int Unidades_Anteriores
+        int Unidades_Nuevas
         string Estado
         string Usuario
-        datetime "Fecha de Retiro"
+        datetime Fecha_de_Retiro
         int Cantidad
         string Origen
     }
 
     REGISTRO_USUARIO {
-        string Id "PK"
+        string Id PK
         datetime Fecha
-        string "User Name"
+        string User_Name
         string Registro
     }
 
@@ -124,7 +124,6 @@ erDiagram
     USUARIO ||--o{ HISTORIAL : "realiza"
     PRODUCTO ||--o{ COMENTARIO : "tiene"
     PRODUCTO ||--o{ HISTORIAL : "registra en"
-
 ```
 
 ### Descripción de las Entidades
