@@ -3,7 +3,7 @@
 // =================================================================
 
 const URL_FAVICON =
-  "https://www.intouchcx.com/wp-content/themes/intouchcx/assets/favicon/favicon-16x16.png";
+  "https://i.ibb.co/mVZK3QvL/icon.png";
 //ID de la pagina de la hoja de cálculo de Google Sheets que funciona como base de datos principal.
 const ID_INVENTARIO = "1lWsyJLZTOZDbIeAcagvj7wCPIp9vD_METhdkiHQBzEU";
 //ID la ubicacion Drive donde se almacenarán los archivos subidos.
